@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Memory"
+  short_description: "Tracks decisions, patterns, and project knowledge across sessions"
+  default_prompt: "Log a project decision or recall past decisions"

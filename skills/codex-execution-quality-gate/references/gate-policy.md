@@ -5,6 +5,7 @@
 1. `security_scan.py`
 2. `run_gate.py` (lint + tests)
 3. `bundle_check.py` (optional, warning-only)
+4. `tech_debt_scan.py` (optional, warning-only)
 
 ## Blocking Rules
 
@@ -18,6 +19,8 @@
 - Timeout or command failure with exit code `>= 2`.
 - Bundle/dependency concerns.
 - Missing lock files or missing dependency installation artifacts.
+- Tech debt findings (TODO/FIXME/HACK, long functions/files, duplicates, unused exports).
+- Tech debt parse or git-blame fallback warnings.
 
 ## Lint Detection Order (run_gate.py)
 
@@ -43,3 +46,23 @@
 - Tests: 300 seconds
 
 Timeouts are warnings in MVP and do not block completion by themselves.
+
+## Tech Debt Scan Policy
+
+- `tech_debt_scan.py` is advisory in MVP.
+- Findings are reported with priorities but do not block completion.
+- Parse failures in specific files must be reported as warnings, then continue scanning.
+- If git blame is unavailable, TODO age scoring falls back gracefully and remains warning-only.
+
+## Pre-Commit Intelligence Policy
+
+- `pre_commit_check.py` is optional but recommended before local commits.
+- It evaluates staged files only (`git diff --cached`) instead of scanning the full repository.
+- Secret detection is always blocking.
+- Lint/test/tooling warnings remain warning-level unless strict mode is enabled.
+
+## Smart Test Selector Policy
+
+- `smart_test_selector.py` is the default fast-feedback strategy for local iteration.
+- Prefer selecting related tests over running the entire suite when developer feedback speed matters.
+- If related tests cannot be identified, warn and suggest running full suite.
