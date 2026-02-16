@@ -9,17 +9,51 @@ description: Generate execution workflows from confirmed intent using behavioral
 
 1. Activate after intent analysis is confirmed.
 2. Activate on explicit `$codex-workflow-autopilot`.
+3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 
 ## Behavioral Modes
 
 | Signals | Mode | Behavior |
 | --- | --- | --- |
 | what if, ideas, options | brainstorm | ask clarifying questions and present alternatives, no code |
+| think with me, compare options, help me decide | thinking-partner | co-think with tradeoff-first framing and explicit decision criteria |
 | build, create, implement | implement | execute quickly with production-focused output |
 | error, bug, broken | debug | reproduce, isolate, root-cause, fix, regression-test |
 | review, audit, check | review | inspect and report findings by severity |
+| challenge this, poke holes, red team, counterargument | devils-advocate | stress-test assumptions, expose risks, and propose mitigations |
 | explain, teach, learn | teach | explain progressively with examples |
 | deploy, release, ship | ship | prioritize stability and complete checks |
+
+## Thinking-Partner Trigger
+
+Trigger this mode when user asks for collaborative reasoning rather than immediate implementation.
+
+- Signal examples: "think with me", "compare options", "which approach is better", "help me decide".
+- Load and apply: `references/thinking-partner-mode.md`.
+- Ask focused clarifying questions before proposing workflow.
+- Present option matrix with tradeoffs, risks, and recommended path.
+- Convert selected path back to workflow steps and exit criteria.
+
+## Devil's Advocate Trigger
+
+Trigger this mode when user asks for challenge, risk probing, or plan hardening.
+
+- Signal examples: "be critical", "find blind spots", "red team this plan", "play devil's advocate".
+- Load and apply: `references/devils-advocate-mode.md`.
+- Attack assumptions explicitly and rank findings by impact/likelihood.
+- Provide mitigation actions and clear stop/ship criteria.
+- Return to normal workflow mode only after key risks are addressed or explicitly accepted.
+
+## Teaching Mode Trigger
+
+Trigger this mode when user asks to understand project code, not to modify it.
+
+- Signal examples: `$teach`, "explain this", "teach me", "how does this work", "walk me through".
+- Load and apply: `references/teaching-mode-spec.md`.
+- Prefer project-specific explanation over generic language/framework theory.
+- Use `scripts/explain_code.py` as optional context helper for functions/imports/imported-by mapping.
+- Output in four layers: what, how, why, connections, then gotchas.
+- Keep scope tight to user request (function/file/module) and avoid unnecessary full-file dumps.
 
 ## Intent to Workflow
 
@@ -64,6 +98,20 @@ Checkpoint: wait for explicit user approval before Phase 3.
 2. If gate fails, fix blockers and rerun.
 3. Do not declare completion before gate decision.
 
+## Reference Files
+
+- `references/thinking-partner-mode.md`: use only when collaborative option analysis is requested.
+- `references/devils-advocate-mode.md`: use only when explicit challenge/risk probing is requested.
+- `references/teaching-mode-spec.md`: use when user asks for code walkthrough, explanation, or teaching.
+
+## Helper Script
+
+- `scripts/explain_code.py`:
+  - Windows:
+    `python "$env:USERPROFILE\.codex\skills\codex-workflow-autopilot\scripts\explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
+  - macOS/Linux:
+    `python "$HOME/.codex/skills/codex-workflow-autopilot/scripts/explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
+
 ## Overrides
 
 - "skip test": remove test step and warn quality confidence is reduced.
@@ -83,7 +131,7 @@ Return fenced JSON in conversation:
 
 ```json
 {
-  "mode": "brainstorm | implement | debug | review | teach | ship",
+  "mode": "brainstorm | thinking-partner | implement | debug | review | devils-advocate | teach | ship",
   "workflow_type": "build | fix | review | debug | docs",
   "steps": ["step1", "step2"],
   "exit_criteria": ["criterion1"],

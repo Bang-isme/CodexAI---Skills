@@ -12,6 +12,7 @@ description: Run verification checks before completion using lint/test, security
 3. Run before saying work is complete.
 4. Activate on `$pre-commit` or "check before commit".
 5. Activate on `$smart-test` or "which tests to run".
+6. Activate on `$suggest` or "suggest improvements".
 
 ## Phase X Verification Order
 
@@ -22,6 +23,7 @@ description: Run verification checks before completion using lint/test, security
 | P2 | tests | `scripts/run_gate.py` | yes when detected tests exit 1 |
 | P3 | bundle/dependency check | `scripts/bundle_check.py` | warning only |
 | P4 | tech debt scan | `scripts/tech_debt_scan.py` | warning only |
+| P5 | improvement suggester (post-task) | `scripts/suggest_improvements.py` | warning only |
 
 ## Execution
 
@@ -29,7 +31,8 @@ description: Run verification checks before completion using lint/test, security
 2. Run `security_scan.py` with project root.
 3. Optionally run `bundle_check.py` with project root.
 4. Optionally run `tech_debt_scan.py` with project root.
-5. Merge results and decide pass/fail.
+5. Optionally run `suggest_improvements.py` after complex tasks.
+6. Merge results and decide pass/fail.
 
 ### Decision Rules
 
@@ -37,6 +40,7 @@ description: Run verification checks before completion using lint/test, security
 - Blocking failures must be fixed, then checks rerun.
 - Warning-only outcomes may proceed with explicit warning to user.
 - Tech debt scan is advisory in MVP and does not block completion.
+- Improvement suggestions are advisory and do not block completion.
 
 ## Script Paths
 
@@ -56,6 +60,16 @@ description: Run verification checks before completion using lint/test, security
 ### Smart Test Selector Command
 
 - `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\smart_test_selector.py" --project-root <path> --source staged`
+
+### Improvement Suggester Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\suggest_improvements.py" --project-root <path> --source last-commit`
+- In proactive mode, run after complex tasks and present top 3 suggestions.
+
+## Reference Files
+
+- `references/gate-policy.md`: blocking vs warning rules for gate decisions.
+- `references/improvement-suggester-spec.md`: post-task suggestion behavior and presentation protocol.
 
 ## Override
 

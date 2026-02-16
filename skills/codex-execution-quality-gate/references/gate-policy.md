@@ -6,6 +6,7 @@
 2. `run_gate.py` (lint + tests)
 3. `bundle_check.py` (optional, warning-only)
 4. `tech_debt_scan.py` (optional, warning-only)
+5. `suggest_improvements.py` (post-task, optional, warning-only)
 
 ## Blocking Rules
 
@@ -21,6 +22,7 @@
 - Missing lock files or missing dependency installation artifacts.
 - Tech debt findings (TODO/FIXME/HACK, long functions/files, duplicates, unused exports).
 - Tech debt parse or git-blame fallback warnings.
+- Improvement suggestions (long functions/files, missing tests, magic numbers, deep nesting, debug leftovers).
 
 ## Lint Detection Order (run_gate.py)
 
@@ -66,3 +68,10 @@ Timeouts are warnings in MVP and do not block completion by themselves.
 - `smart_test_selector.py` is the default fast-feedback strategy for local iteration.
 - Prefer selecting related tests over running the entire suite when developer feedback speed matters.
 - If related tests cannot be identified, warn and suggest running full suite.
+
+## Improvement Suggester Policy
+
+- `suggest_improvements.py` runs after task completion as an optional quality enhancer.
+- Findings are advisory and never block completion in MVP.
+- Prioritize top 3 findings when presenting to users, sorted by `high > medium > low`.
+- In proactive mode, auto-run is allowed after complex tasks if context budget permits.
