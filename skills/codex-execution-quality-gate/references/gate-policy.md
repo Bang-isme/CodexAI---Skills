@@ -7,6 +7,12 @@
 3. `bundle_check.py` (optional, warning-only)
 4. `tech_debt_scan.py` (optional, warning-only)
 5. `suggest_improvements.py` (post-task, optional, warning-only)
+6. `predict_impact.py` (pre-edit, optional, warning-only)
+7. `quality_trend.py` (periodic, optional, warning-only)
+8. `ux_audit.py` (pre-UI delivery, optional, warning-only)
+9. `accessibility_check.py` (public-facing pages, optional, warning-only)
+10. `lighthouse_audit.py` (pre-production URL audit, optional, warning-only)
+11. `playwright_runner.py` (E2E setup/execution helper, optional, warning-only)
 
 ## Blocking Rules
 
@@ -23,6 +29,12 @@
 - Tech debt findings (TODO/FIXME/HACK, long functions/files, duplicates, unused exports).
 - Tech debt parse or git-blame fallback warnings.
 - Improvement suggestions (long functions/files, missing tests, magic numbers, deep nesting, debug leftovers).
+- Impact predictor blast-radius alerts.
+- Quality trend health-score degradation signals.
+- UX static audit findings.
+- Accessibility static WCAG findings.
+- Lighthouse CLI not installed, URL not reachable, or Lighthouse run warnings.
+- Playwright not installed/setup incomplete or E2E inventory gaps.
 
 ## Lint Detection Order (run_gate.py)
 
@@ -75,3 +87,43 @@ Timeouts are warnings in MVP and do not block completion by themselves.
 - Findings are advisory and never block completion in MVP.
 - Prioritize top 3 findings when presenting to users, sorted by `high > medium > low`.
 - In proactive mode, auto-run is allowed after complex tasks if context budget permits.
+
+## Impact Predictor Policy
+
+- `predict_impact.py` is a pre-edit advisory check.
+- Use before model/interface/shared utility updates to estimate blast radius.
+- Output must be communicated before implementation for risk-aware planning.
+- Results are non-blocking in MVP.
+
+## Quality Trend Policy
+
+- `quality_trend.py --record` stores periodic quality snapshots in `.codex/quality/snapshots/`.
+- `quality_trend.py --report` compares historical snapshots and surfaces trajectory.
+- Trend insights are advisory and intended for sprint planning/tech-debt prioritization.
+- Results are non-blocking in MVP.
+
+## UX Audit Policy
+
+- `ux_audit.py` is optional and recommended before UI delivery.
+- Findings are advisory in MVP and do not block completion.
+- Use score and issue severity to prioritize remediation.
+
+## Accessibility Check Policy
+
+- `accessibility_check.py` is optional and recommended for public-facing pages.
+- WCAG issues are advisory in MVP and should be prioritized for user-critical flows.
+- Compliance score trend can be used as a pre-release signal.
+
+## Lighthouse Audit Policy
+
+- `lighthouse_audit.py` is optional and recommended before production deploy.
+- Requires a reachable running server URL.
+- Missing Lighthouse tool or run preconditions must return actionable guidance, not crashes.
+- Results are advisory and non-blocking in MVP.
+
+## Playwright Runner Policy
+
+- `playwright_runner.py` is optional and recommended for critical user journeys.
+- `check` mode verifies setup; `generate` bootstraps tests; `run` executes E2E.
+- Missing Playwright setup must return installation steps as warnings/advice.
+- Results are advisory and non-blocking in MVP.

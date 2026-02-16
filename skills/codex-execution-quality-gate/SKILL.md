@@ -13,17 +13,32 @@ description: Run verification checks before completion using lint/test, security
 4. Activate on `$pre-commit` or "check before commit".
 5. Activate on `$smart-test` or "which tests to run".
 6. Activate on `$suggest` or "suggest improvements".
+7. Activate on `$impact` or "what will this affect".
+8. Activate on `$quality-record` to record quality trend snapshot.
+9. Activate on `$quality-report` to generate trend report.
+10. Activate on `$ux-audit`.
+11. Activate on `$a11y-check`.
+12. Activate on `$lighthouse <url>`.
+13. Activate on `$e2e check`.
+14. Activate on `$e2e generate <url>`.
+15. Activate on `$e2e run`.
 
 ## Phase X Verification Order
 
 | Priority | Check | Script | Blocking |
 | --- | --- | --- | --- |
+| P-1 | impact predictor (pre-edit advisory) | `scripts/predict_impact.py` | warning only |
 | P0 | security scan | `scripts/security_scan.py` | yes for critical findings |
 | P1 | lint | `scripts/run_gate.py` | yes when detected lint exits 1 |
 | P2 | tests | `scripts/run_gate.py` | yes when detected tests exit 1 |
 | P3 | bundle/dependency check | `scripts/bundle_check.py` | warning only |
 | P4 | tech debt scan | `scripts/tech_debt_scan.py` | warning only |
 | P5 | improvement suggester (post-task) | `scripts/suggest_improvements.py` | warning only |
+| P6 | quality trend tracker (periodic) | `scripts/quality_trend.py` | warning only |
+| P7 | UX static audit (pre-UI delivery) | `scripts/ux_audit.py` | warning only |
+| P8 | accessibility static checker | `scripts/accessibility_check.py` | warning only |
+| P9 | Lighthouse runtime audit | `scripts/lighthouse_audit.py` | warning only |
+| P10 | Playwright setup/run helper | `scripts/playwright_runner.py` | warning only |
 
 ## Execution
 
@@ -32,7 +47,13 @@ description: Run verification checks before completion using lint/test, security
 3. Optionally run `bundle_check.py` with project root.
 4. Optionally run `tech_debt_scan.py` with project root.
 5. Optionally run `suggest_improvements.py` after complex tasks.
-6. Merge results and decide pass/fail.
+6. Optionally run `predict_impact.py` before high-risk edits.
+7. Optionally run `quality_trend.py --record` on periodic cadence.
+8. Optionally run `ux_audit.py` before UI handoff.
+9. Optionally run `accessibility_check.py` for public-facing surfaces.
+10. Optionally run `lighthouse_audit.py` before deploy (requires running server URL).
+11. Optionally run `playwright_runner.py` for E2E setup/check/run flows.
+12. Merge results and decide pass/fail.
 
 ### Decision Rules
 
@@ -41,6 +62,12 @@ description: Run verification checks before completion using lint/test, security
 - Warning-only outcomes may proceed with explicit warning to user.
 - Tech debt scan is advisory in MVP and does not block completion.
 - Improvement suggestions are advisory and do not block completion.
+- Impact prediction is advisory and does not block completion.
+- Quality trend reporting is periodic/advisory and does not block completion.
+- UX static audit is advisory and does not block completion.
+- Accessibility static checker is advisory and does not block completion.
+- Lighthouse wrapper is advisory and must fail gracefully when tool/server is unavailable.
+- Playwright wrapper is advisory and must fail gracefully when tool/setup is unavailable.
 
 ## Script Paths
 
@@ -66,10 +93,49 @@ description: Run verification checks before completion using lint/test, security
 - `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\suggest_improvements.py" --project-root <path> --source last-commit`
 - In proactive mode, run after complex tasks and present top 3 suggestions.
 
+### Impact Predictor Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\predict_impact.py" --project-root <path> --files <file1,file2> --depth 2`
+
+### Quality Trend Commands
+
+- Record:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root <path> --record`
+- Report:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root <path> --report --days 30`
+
+### UX Audit Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\ux_audit.py" --project-root <path>`
+
+### Accessibility Check Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\accessibility_check.py" --project-root <path> --level AA`
+
+### Lighthouse Audit Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\lighthouse_audit.py" --url <http://localhost:3000> --device mobile --runs 1`
+- Requires a running URL and Lighthouse availability through `npx`.
+
+### Playwright Runner Commands
+
+- Check setup:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode check`
+- Generate skeleton:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode generate --url <http://localhost:3000/page>`
+- Run tests:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode run --browser chromium`
+
 ## Reference Files
 
 - `references/gate-policy.md`: blocking vs warning rules for gate decisions.
 - `references/improvement-suggester-spec.md`: post-task suggestion behavior and presentation protocol.
+- `references/impact-predictor-spec.md`: pre-edit blast-radius analysis guidance.
+- `references/quality-trend-spec.md`: periodic quality trend workflow and interpretation.
+- `references/ux-audit-spec.md`: static UX audit checks and scoring.
+- `references/accessibility-check-spec.md`: WCAG static checks and compliance scoring.
+- `references/lighthouse-audit-spec.md`: Lighthouse wrapper behavior and graceful fallback.
+- `references/playwright-runner-spec.md`: Playwright check/generate/run behavior.
 
 ## Override
 
