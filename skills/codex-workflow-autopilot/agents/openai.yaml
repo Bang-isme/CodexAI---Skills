@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Workflow Autopilot"
+  short_description: "Generate BMAD workflows and behavioral execution modes"
+  default_prompt: "Use $codex-workflow-autopilot to map confirmed intent into phased execution steps."

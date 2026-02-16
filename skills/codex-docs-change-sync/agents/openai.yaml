@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Docs Sync"
+  short_description: "Map code diffs to documentation update candidates"
+  default_prompt: "Use $codex-docs-change-sync to report impacted docs using automatic diff scope detection."

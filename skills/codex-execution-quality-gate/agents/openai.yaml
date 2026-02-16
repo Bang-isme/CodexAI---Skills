@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Quality Gate"
+  short_description: "Run lint, test, and security checks before completion"
+  default_prompt: "Use $codex-execution-quality-gate to run Phase X verification before finalizing."

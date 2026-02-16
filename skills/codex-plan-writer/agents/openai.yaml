@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Plan Writer"
+  short_description: "Write structured, verifiable plan files for complex work"
+  default_prompt: "Use $codex-plan-writer to generate a task plan file for this complex request."

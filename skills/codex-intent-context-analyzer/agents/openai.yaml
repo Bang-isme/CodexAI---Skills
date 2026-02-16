@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Intent Analyzer"
+  short_description: "Analyze prompt intent with Socratic clarification gating"
+  default_prompt: "Use $codex-intent-context-analyzer to produce structured intent JSON and confirm scope."

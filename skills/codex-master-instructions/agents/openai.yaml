@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Master Instructions"
+  short_description: "Top-priority behavior and quality rules for Codex"
+  default_prompt: "Use $codex-master-instructions as the baseline policy before executing this coding task."
