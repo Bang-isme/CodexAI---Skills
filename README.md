@@ -1,4 +1,5 @@
-<img width="263" height="225" alt="image" src="https://github.com/user-attachments/assets/9fcfbd06-769e-4b2e-b245-f7701d3a5a9d" />
+
+<img width="1536" height="1024" alt="ChatGPT Image Feb 19, 2026, 11_40_37 PM" src="https://github.com/user-attachments/assets/ea6f441f-07ac-4b91-aaf0-d52aa8036595" />
 
 # CodexAI Skill Pack
 
