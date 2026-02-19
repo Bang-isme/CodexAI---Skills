@@ -47,3 +47,7 @@ Report which scope was selected.
 
 If script cannot run, inspect diffs manually and report likely docs:
 `docs/`, `README.md`, `CHANGELOG.md`, and module-specific docs.
+
+## Reference Files
+
+- `references/docs-sync-spec.md`: script behavior, output format, and fallback protocol.

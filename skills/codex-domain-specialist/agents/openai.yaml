@@ -1,4 +1,4 @@
 interface:
   display_name: "Codex Domain Specialist"
-  short_description: "Domain-aware rules for frontend, backend, mobile, and security"
-  default_prompt: "Use $codex-domain-specialist to apply domain-specific engineering rules for this task."
+  short_description: "Layered domain routing with specialized engineering references"
+  default_prompt: "Use $codex-domain-specialist to route this task through base and specialized references with strict context boundaries."

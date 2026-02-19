@@ -168,6 +168,12 @@ Task type -> Code change?
 - `references/accessibility-check-spec.md`: WCAG static checks and compliance scoring.
 - `references/lighthouse-audit-spec.md`: Lighthouse wrapper behavior and graceful fallback.
 - `references/playwright-runner-spec.md`: Playwright check/generate/run behavior.
+- `references/run-gate-spec.md`: lint and test orchestration behavior for pass/fail decisions.
+- `references/security-scan-spec.md`: severity-aware security scan integration and blocking criteria.
+- `references/bundle-check-spec.md`: dependency and bundle signal interpretation guidance.
+- `references/pre-commit-check-spec.md`: staged-file fast feedback behavior and blocker handling.
+- `references/smart-test-selector-spec.md`: test selection strategy for changed files.
+- `references/tech-debt-scan-spec.md`: advisory technical debt signal interpretation and prioritization.
 
 ## Override
 
