@@ -1,8 +1,12 @@
 ---
 name: "codex-doc-renderer"
 description: "Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks."
+load_priority: lazy
 ---
 
+
+## TL;DR
+Render documentation to DOCX format via `render_docx.py`. Specialized utility, activate only when DOCX export is explicitly requested.
 
 # DOCX Skill
 

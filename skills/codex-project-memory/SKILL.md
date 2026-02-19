@@ -1,7 +1,11 @@
 ---
 name: codex-project-memory
 description: Tracks project knowledge, decisions, and patterns across sessions
+load_priority: on-demand
 ---
+
+## TL;DR
+9 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`.
 
 # Codex Project Memory
 

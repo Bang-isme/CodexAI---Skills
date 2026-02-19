@@ -1,7 +1,11 @@
 ---
 name: codex-docs-change-sync
 description: Map code changes to candidate documentation updates using git diff and mapping rules. Use during docs steps to report impacted docs in MVP without auto-editing documentation.
+load_priority: lazy
 ---
+
+## TL;DR
+Map code changes to affected documentation via `map_changes_to_docs.py`. Report-only by default, no auto-edit. Scope: auto-detect staged -> unstaged -> last commit. Fallback: manual diff inspection.
 
 # Codex Docs Change Sync
 

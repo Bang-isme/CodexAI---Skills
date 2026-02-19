@@ -1,7 +1,11 @@
 ---
 name: codex-workflow-autopilot
 description: Generate execution workflows from confirmed intent using behavioral modes, BMAD phases, checkpoints, and Phase X verification. Route build, fix, review, debug, and docs tasks into ordered steps with exit criteria.
+load_priority: on-demand
 ---
+
+## TL;DR
+Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teaching -> Teaching Mode + explain_code.py, simple -> direct execution. Map intent to workflow (build/fix/review/debug/docs). Use BMAD 4-phase for complex. Always end with Phase X quality gate.
 
 # Workflow Autopilot
 
@@ -118,6 +122,9 @@ Checkpoint: wait for explicit user approval before Phase 3.
 - `references/workflow-create.md`: execution template for new feature workflows.
 - `references/workflow-debug.md`: execution template for debugging workflows.
 - `references/workflow-review.md`: execution template for review workflows.
+- `references/workflow-refactor.md`: execution template for refactoring workflows.
+- `references/workflow-deploy.md`: execution template for deployment workflows.
+- `references/workflow-handoff.md`: execution template for session handoff workflows.
 
 ## Helper Script
 

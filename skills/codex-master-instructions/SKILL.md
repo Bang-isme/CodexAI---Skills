@@ -1,7 +1,11 @@
 ---
 name: codex-master-instructions
 description: Master behavior rules for Codex. Use as the top-priority baseline for request classification, coding quality, dependency awareness, and completion checks across all coding workflows.
+load_priority: always
 ---
+
+## TL;DR
+P0 rules: classify request type -> apply engineering rules -> check dependencies before edit -> run quality gate before completion -> reply in user's language. Scripts: run `--help` first, treat as black-box.
 
 # Codex Master Instructions
 
@@ -84,6 +88,9 @@ If a mandatory check fails, fix and re-run before completion.
 | new feature | `codex-workflow-autopilot/references/workflow-create.md` | `predict_impact.py`, `pre_commit_check.py`, `smart_test_selector.py`, `suggest_improvements.py` |
 | bug fix | `codex-workflow-autopilot/references/workflow-debug.md` | `pre_commit_check.py`, `smart_test_selector.py`, `track_feedback.py` |
 | code review/audit | `codex-workflow-autopilot/references/workflow-review.md` | `tech_debt_scan.py`, `quality_trend.py --report`, `security_scan.py` |
+| refactor | `codex-workflow-autopilot/references/workflow-refactor.md` | `tech_debt_scan.py`, `predict_impact.py`, `pre_commit_check.py`, `smart_test_selector.py`, `suggest_improvements.py` |
+| deploy/ship | `codex-workflow-autopilot/references/workflow-deploy.md` | `security_scan.py`, `bundle_check.py`, `lighthouse_audit.py`, `playwright_runner.py`, `generate_changelog.py`, `with_server.py` |
+| session handoff | `codex-workflow-autopilot/references/workflow-handoff.md` | `generate_session_summary.py`, `generate_handoff.py`, `decision_logger.py`, `generate_changelog.py`, `track_feedback.py` |
 | docs sync | workflow docs phase | `map_changes_to_docs.py`, `generate_changelog.py` |
 | release/pre-ship | quality gate + ship mode | `security_scan.py`, `lighthouse_audit.py`, `playwright_runner.py`, `with_server.py` |
 | long-running project continuity | project-memory flow | `decision_logger.py`, `generate_session_summary.py`, `generate_handoff.py`, `generate_growth_report.py` |
@@ -140,3 +147,6 @@ Task type -> Code change?
 - `codex-workflow-autopilot/references/workflow-create.md`
 - `codex-workflow-autopilot/references/workflow-debug.md`
 - `codex-workflow-autopilot/references/workflow-review.md`
+- `codex-workflow-autopilot/references/workflow-refactor.md`
+- `codex-workflow-autopilot/references/workflow-deploy.md`
+- `codex-workflow-autopilot/references/workflow-handoff.md`

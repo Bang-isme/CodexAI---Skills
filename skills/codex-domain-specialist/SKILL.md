@@ -1,7 +1,11 @@
 ---
 name: codex-domain-specialist
 description: Apply layered domain routing for frontend, backend, mobile, debugging, security, and specialized engineering concerns. Use to select focused reference files with strict context boundaries before implementation or review.
+load_priority: on-demand
 ---
+
+## TL;DR
+Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.yaml` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references.
 
 # Domain Specialist
 
@@ -9,6 +13,41 @@ description: Apply layered domain routing for frontend, backend, mobile, debuggi
 
 1. Activate when the task edits domain-specific files.
 2. Activate on explicit `$codex-domain-specialist`.
+
+## Project Profile (Fast Path)
+
+Before running detection, check for `.codex/profile.yaml` in the project root.
+If the file exists:
+1. Parse `primary_domain` and map to the routing decision table directly.
+2. Use `stack` entries as supplemental signals for "Load On Signal" column.
+3. Skip file-extension-based detection entirely.
+If the file does not exist or fails to parse:
+- Fall back to the standard Detection and Routing Order below.
+See: `references/project-profile-spec.md` for schema and validation rules.
+
+## Feedback-Aware Supplemental Loading
+
+After determining the primary domain (via profile or detection), check for recurring feedback patterns:
+1. Scan `.codex/feedback/*.md` files from the last 30 days.
+2. Count feedback entries by `Category` field (e.g., "database", "security", "performance").
+3. If any category has 3+ entries in 30 days AND that category maps to a domain reference:
+   - Auto-load that domain's reference as supplemental context.
+   - Declare: `Feedback-driven load: [reference file] (N issues in 30 days)`.
+4. Maximum 1 supplemental reference from feedback (highest count wins).
+5. If no feedback files exist or all counts < 3, skip this step silently.
+
+### Category to Reference Mapping
+
+| Feedback Category | Supplemental Reference |
+| --- | --- |
+| database | `references/database-rules.md` |
+| security | `references/security-rules.md` |
+| performance | `references/performance-rules.md` |
+| accessibility | `references/accessibility-rules.md` |
+| testing | `references/testing-rules.md` |
+| frontend | `references/frontend-rules.md` |
+| backend | `references/backend-rules.md` |
+| api | `references/api-design-rules.md` |
 
 ## Detection and Routing Order
 
@@ -83,3 +122,7 @@ Route in this exact order:
 1. When domain routing recommends helper scripts from other skills, run `--help` first.
 2. Treat scripts as black-box helpers and execute by CLI contract before source inspection.
 3. Read script source only when customization or bug fixing is required.
+
+## Reference Files
+
+- `references/project-profile-spec.md`: project profile schema and fast-path routing.

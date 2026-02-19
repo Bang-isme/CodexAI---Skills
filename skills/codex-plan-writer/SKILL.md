@@ -1,7 +1,11 @@
 ---
 name: codex-plan-writer
 description: Create structured task plan files for complex coding requests. Use during planning phases to write verifiable, dependency-aware task breakdowns and checkpoint criteria before implementation.
+load_priority: on-demand
 ---
+
+## TL;DR
+Create `{task-slug}.md` plan file for complex requests. Required sections: Overview, Success Criteria, Tech Stack, Task Breakdown (with dependencies, verify, rollback), Phase X Checklist. No code in plan files. Wait for user approval.
 
 # Plan Writer
 

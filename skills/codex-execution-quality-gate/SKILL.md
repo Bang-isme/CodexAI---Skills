@@ -1,7 +1,11 @@
 ---
 name: codex-execution-quality-gate
 description: Run verification checks before completion using lint/test, security scanning, and optional bundle plus tech debt analysis. Use at final gate steps and block completion when mandatory failures are detected.
+load_priority: on-demand
 ---
+
+## TL;DR
+11-priority verification chain. Blocking: security (critical), lint (exit 1), tests (exit 1). Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select which checks. Fix blockers before completion.
 
 # Execution Quality Gate
 

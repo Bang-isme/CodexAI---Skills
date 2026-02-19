@@ -1,7 +1,11 @@
 ---
 name: codex-intent-context-analyzer
 description: Analyze code-change prompts into structured intent JSON with goal, constraints, missing info, normalized prompt, complexity, and confirmation gating. Use before implementation for build, fix, debug, review, and docs tasks.
+load_priority: always
 ---
+
+## TL;DR
+Parse user request into structured intent JSON (goal, constraints, complexity). Trigger Socratic Gate for complex/ambiguous scope. Wait for explicit confirmation before implementation. For large repos: read index files first, max 20 files deep-read per task.
 
 # Intent and Context Analyzer
 
