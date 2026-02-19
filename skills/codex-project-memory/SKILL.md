@@ -17,6 +17,30 @@ description: Tracks project knowledge, decisions, and patterns across sessions
 8. Activate on `$skill-track` to record skill usage analytics.
 9. Activate on `$skill-report` to generate skill evolution report.
 10. Activate on `$build-graph` or "map project" to generate project knowledge graph.
+11. Activate on `$changelog` to generate release-oriented commit summaries.
+12. Activate on `$growth-report` to generate a developer growth report.
+
+## Decision Tree Routing
+
+```
+User intent -> Memory action?
+    |- Log/record -> What?
+    |   |- Decision -> decision_logger.py
+    |   |- Feedback -> track_feedback.py
+    |   `- Skill usage -> track_skill_usage.py
+    |
+    |- Generate/export -> What?
+    |   |- Handoff -> generate_handoff.py
+    |   |- Session recap -> generate_session_summary.py
+    |   |- Changelog -> generate_changelog.py
+    |   `- Growth report -> generate_growth_report.py
+    |
+    |- Analyze -> What?
+    |   |- Patterns -> analyze_patterns.py
+    |   `- Dependencies -> build_knowledge_graph.py
+    |
+    `- Not memory -> skip
+```
 
 ## Behavior
 
@@ -46,6 +70,20 @@ description: Tracks project knowledge, decisions, and patterns across sessions
 3. Default output directory: `<project-root>/.codex/sessions/`.
 4. Return output path, commit count, and changed file count from script JSON.
 
+### Changelog Generator
+
+1. Trigger when user asks for release notes or changelog generation.
+2. Run `scripts/generate_changelog.py`.
+3. Default source range: latest tag or last 30 days.
+4. Return categorized markdown output and summary JSON.
+
+### Growth Report Generator
+
+1. Trigger when user asks for learning trends or improvement planning.
+2. Run `scripts/generate_growth_report.py`.
+3. Aggregate feedback, sessions, and usage analytics.
+4. Return report path and prioritized improvement areas.
+
 ### Pattern Learner
 
 1. Trigger when user asks to learn project coding conventions.
@@ -74,6 +112,19 @@ description: Tracks project knowledge, decisions, and patterns across sessions
 3. Default output: `<project-root>/.codex/knowledge-graph.json`.
 4. Before complex refactors, read `knowledge-graph.json` first to understand boundaries and dependencies.
 
+### Chaining Guidance
+
+1. Log major technical choices via `decision_logger.py`.
+2. Generate release communication via `generate_changelog.py`.
+3. Keep continuity via `generate_session_summary.py`.
+4. Track long-term improvement via `generate_growth_report.py`.
+
+## Script Invocation Discipline
+
+1. Always run `--help` before invoking a script.
+2. Treat scripts as black-box helpers and prefer direct execution over source inspection.
+3. Read script source only when customization or bug fixing is required.
+
 ## Execution Command
 
 ### Decision Logger
@@ -96,6 +147,20 @@ description: Tracks project knowledge, decisions, and patterns across sessions
   `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_session_summary.py" --project-root <path> --since today`
 - macOS/Linux:
   `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
+
+### Changelog Generator
+
+- Windows:
+  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_changelog.py" --project-root <path> --since "30 days ago"`
+- macOS/Linux:
+  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
+
+### Growth Report Generator
+
+- Windows:
+  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_growth_report.py" --project-root <path> --skills-root "$env:USERPROFILE\\.codex\\skills"`
+- macOS/Linux:
+  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "$HOME/.codex/skills"`
 
 ### Pattern Learner
 
@@ -156,6 +221,8 @@ Read:
 - `references/decision-journal-spec.md` for decision logging criteria and naming conventions.
 - `references/handoff-spec.md` for handoff usage guidance.
 - `references/session-summary-spec.md` for session summary workflow and retention guidance.
+- `references/changelog-spec.md` for release-focused changelog generation rules.
+- `references/growth-report-spec.md` for developer growth analytics/reporting behavior.
 - `references/pattern-learner-spec.md` for project style learning behavior.
 - `references/feedback-tracker-spec.md` for feedback logging and aggregate usage.
 - `references/skill-evolution-spec.md` for skill usage analytics and optimization.

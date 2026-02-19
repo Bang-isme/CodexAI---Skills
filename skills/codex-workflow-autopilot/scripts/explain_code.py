@@ -37,7 +37,25 @@ class JsBraceState:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract file context for teaching mode.")
+    parser = argparse.ArgumentParser(
+
+        description="Extract file context for teaching mode.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python explain_code.py --project-root <path> --file <file>\n"
+
+            "  python explain_code.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--file", required=True, help="Target file path (absolute or project-relative)")
     parser.add_argument("--function", default="", help="Optional function name to focus on")

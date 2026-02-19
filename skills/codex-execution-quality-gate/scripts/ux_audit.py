@@ -47,7 +47,25 @@ INTERACTIVE_SELECTOR_PATTERN = re.compile(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run static UX audit checks.")
+    parser = argparse.ArgumentParser(
+
+        description="Run static UX audit checks.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python ux_audit.py --project-root <path>\n"
+
+            "  python ux_audit.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--framework", choices=["react", "vue", "html"], default="", help="Framework override")
     return parser.parse_args()

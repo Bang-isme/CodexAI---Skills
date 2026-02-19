@@ -19,7 +19,25 @@ SESSION_FILE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}(?:-\d+)?\.md$")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate coding session summary.")
+    parser = argparse.ArgumentParser(
+
+        description="Generate coding session summary.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python generate_session_summary.py --project-root <path> --since today\n"
+
+            "  python generate_session_summary.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--since", default="today", help='ISO datetime, "today", or "last-session"')
     parser.add_argument("--output-dir", default="", help="Output directory (default: <project-root>/.codex/sessions)")

@@ -11,6 +11,18 @@ description: Generate execution workflows from confirmed intent using behavioral
 2. Activate on explicit `$codex-workflow-autopilot`.
 3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 
+## Behavioral Protocol Decision Tree
+
+```
+Task complexity?
+    |- Complex (architecture/design/multi-file) -> activate Thinking Partner mode
+    |   `- Before presenting solution -> activate Devil's Advocate mode
+    |
+    |- Teaching request -> activate Teaching Mode + explain_code.py
+    |
+    `- Simple (single file fix) -> direct execution
+```
+
 ## Behavioral Modes
 
 | Signals | Mode | Behavior |
@@ -103,6 +115,9 @@ Checkpoint: wait for explicit user approval before Phase 3.
 - `references/thinking-partner-mode.md`: use only when collaborative option analysis is requested.
 - `references/devils-advocate-mode.md`: use only when explicit challenge/risk probing is requested.
 - `references/teaching-mode-spec.md`: use when user asks for code walkthrough, explanation, or teaching.
+- `references/workflow-create.md`: execution template for new feature workflows.
+- `references/workflow-debug.md`: execution template for debugging workflows.
+- `references/workflow-review.md`: execution template for review workflows.
 
 ## Helper Script
 
@@ -111,6 +126,12 @@ Checkpoint: wait for explicit user approval before Phase 3.
     `python "$env:USERPROFILE\.codex\skills\codex-workflow-autopilot\scripts\explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
   - macOS/Linux:
     `python "$HOME/.codex/skills/codex-workflow-autopilot/scripts/explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
+
+## Script Invocation Discipline
+
+1. Always run `--help` before invoking a script.
+2. Treat scripts as black-box helpers and prefer direct execution over source inspection.
+3. Read script source only when customization or bug fixing is required.
 
 ## Overrides
 

@@ -57,7 +57,25 @@ MODULE_HINTS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build project knowledge graph JSON.")
+    parser = argparse.ArgumentParser(
+
+        description="Build project knowledge graph JSON.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python build_knowledge_graph.py --project-root <path>\n"
+
+            "  python build_knowledge_graph.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")

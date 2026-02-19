@@ -23,6 +23,23 @@ description: Run verification checks before completion using lint/test, security
 14. Activate on `$e2e generate <url>`.
 15. Activate on `$e2e run`.
 
+## Decision Tree Routing
+
+```
+Task type -> Code change?
+    |- Yes -> What kind?
+    |   |- New feature -> run: pre_commit_check + smart_test_selector + predict_impact
+    |   |- Bug fix -> run: pre_commit_check + smart_test_selector
+    |   |- Refactor -> run: tech_debt_scan + pre_commit_check
+    |   `- UI change -> run: ux_audit + accessibility_check + pre_commit_check
+    |
+    |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
+    |
+    |- Review/audit? -> run: quality_trend + suggest_improvements + tech_debt_scan
+    |
+    `- No code -> skip quality gate
+```
+
 ## Phase X Verification Order
 
 | Priority | Check | Script | Blocking |
@@ -39,6 +56,7 @@ description: Run verification checks before completion using lint/test, security
 | P8 | accessibility static checker | `scripts/accessibility_check.py` | warning only |
 | P9 | Lighthouse runtime audit | `scripts/lighthouse_audit.py` | warning only |
 | P10 | Playwright setup/run helper | `scripts/playwright_runner.py` | warning only |
+| P11 | server lifecycle helper (optional) | `scripts/with_server.py` | warning only |
 
 ## Execution
 
@@ -53,7 +71,8 @@ description: Run verification checks before completion using lint/test, security
 9. Optionally run `accessibility_check.py` for public-facing surfaces.
 10. Optionally run `lighthouse_audit.py` before deploy (requires running server URL).
 11. Optionally run `playwright_runner.py` for E2E setup/check/run flows.
-12. Merge results and decide pass/fail.
+12. Optionally run `with_server.py` to bootstrap local server(s) before Lighthouse/Playwright checks.
+13. Merge results and decide pass/fail.
 
 ### Decision Rules
 
@@ -68,6 +87,13 @@ description: Run verification checks before completion using lint/test, security
 - Accessibility static checker is advisory and does not block completion.
 - Lighthouse wrapper is advisory and must fail gracefully when tool/server is unavailable.
 - Playwright wrapper is advisory and must fail gracefully when tool/setup is unavailable.
+- Server lifecycle helper is advisory and should be used only when runtime checks need controlled startup/shutdown.
+
+## Script Invocation Discipline
+
+1. Always run `--help` before invoking a script.
+2. Treat scripts as black-box helpers and prefer direct execution over source inspection.
+3. Read script source only when customization or bug fixing is required.
 
 ## Script Paths
 
@@ -125,6 +151,12 @@ description: Run verification checks before completion using lint/test, security
   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode generate --url <http://localhost:3000/page>`
 - Run tests:
   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode run --browser chromium`
+
+### Server Lifecycle Helper Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\with_server.py" --help`
+- Example:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\with_server.py" --server "npm run dev" --port 3000 -- python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\lighthouse_audit.py" --url http://localhost:3000`
 
 ## Reference Files
 

@@ -75,6 +75,12 @@ Format:
 If `intent` is `other`, ask user to rephrase or choose one of:
 `build`, `fix`, `review`, `debug`, `docs`.
 
+## Script Invocation Discipline
+
+1. When this workflow calls helper scripts from other skills, run `--help` first.
+2. Treat helper scripts as black-box tools and execute by contract before reading source.
+3. Read script source only when customization or bug-fixing is required.
+
 ## Repo Comprehension Protocol
 
 For repositories with more than 50 files:

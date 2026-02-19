@@ -50,7 +50,25 @@ class JsBraceState:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Suggest improvements near changed code.")
+    parser = argparse.ArgumentParser(
+
+        description="Suggest improvements near changed code.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python suggest_improvements.py --project-root <path> --source last-commit\n"
+
+            "  python suggest_improvements.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--changed-files", default="", help="Comma-separated changed files")
     parser.add_argument("--source", choices=["staged", "unstaged", "last-commit"], default="last-commit")

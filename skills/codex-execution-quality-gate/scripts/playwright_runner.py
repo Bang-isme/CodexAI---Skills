@@ -22,7 +22,25 @@ ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Playwright check/generate/run wrapper.")
+    parser = argparse.ArgumentParser(
+
+        description="Playwright check/generate/run wrapper.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python playwright_runner.py --project-root <path> --mode check\n"
+
+            "  python playwright_runner.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--mode", required=True, choices=["run", "generate", "check"], help="Execution mode")
     parser.add_argument("--url", default="", help="URL for generate mode")
@@ -366,7 +384,7 @@ def mode_generate(project_root: Path, args: argparse.Namespace) -> None:
             "status": "generated",
             "file": file_display,
             "tests": 3,
-            "note": "Skeleton generated — fill in TODO assertions",
+            "note": "Skeleton generated Ã¢â‚¬â€ fill in TODO assertions",
         },
         exit_code=0,
     )

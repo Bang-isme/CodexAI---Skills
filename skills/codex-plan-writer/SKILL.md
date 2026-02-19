@@ -62,6 +62,12 @@ For each task include:
 - Keep tasks small and verifiable.
 - Explain why each task exists, not only what to do.
 
+## Script Invocation Discipline
+
+1. When plan execution calls scripts from other skills, run `--help` first.
+2. Treat scripts as black-box helpers and execute by contract.
+3. Read script source only when customization or bug fixing is required.
+
 ## Exit Gate
 
 Plan writing is complete only when:

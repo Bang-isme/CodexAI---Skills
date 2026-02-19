@@ -13,6 +13,7 @@
 9. `accessibility_check.py` (public-facing pages, optional, warning-only)
 10. `lighthouse_audit.py` (pre-production URL audit, optional, warning-only)
 11. `playwright_runner.py` (E2E setup/execution helper, optional, warning-only)
+12. `with_server.py` (runtime server lifecycle helper, optional, warning-only)
 
 ## Blocking Rules
 
@@ -35,6 +36,7 @@
 - Accessibility static WCAG findings.
 - Lighthouse CLI not installed, URL not reachable, or Lighthouse run warnings.
 - Playwright not installed/setup incomplete or E2E inventory gaps.
+- Runtime helper setup failures from `with_server.py` (server command, port wait timeout, command wiring).
 
 ## Lint Detection Order (run_gate.py)
 
@@ -127,3 +129,9 @@ Timeouts are warnings in MVP and do not block completion by themselves.
 - `check` mode verifies setup; `generate` bootstraps tests; `run` executes E2E.
 - Missing Playwright setup must return installation steps as warnings/advice.
 - Results are advisory and non-blocking in MVP.
+
+## With Server Helper Policy
+
+- `with_server.py` is a helper-only utility for runtime audits that need controlled startup/shutdown.
+- Use it before `lighthouse_audit.py` or `playwright_runner.py` when local services must be bootstrapped.
+- Failures are advisory in MVP and should return actionable command/port guidance.

@@ -67,7 +67,25 @@ DATABASE_KEYWORDS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate project handoff markdown.")
+    parser = argparse.ArgumentParser(
+
+        description="Generate project handoff markdown.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python generate_handoff.py --project-root <path>\n"
+
+            "  python generate_handoff.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output markdown path")
     parser.add_argument("--max-depth", type=int, default=3, help="Folder tree depth")

@@ -21,6 +21,12 @@ Identify documentation that is likely affected by code changes.
 - macOS/Linux:
   `python "$HOME/.codex/skills/codex-docs-change-sync/scripts/map_changes_to_docs.py" --project-root <path> --diff-scope <scope>`
 
+## Script Invocation Discipline
+
+1. Always run `--help` before invoking `map_changes_to_docs.py`.
+2. Treat the script as a black-box mapper and prefer direct execution over source inspection.
+3. Read script source only when customization or bug fixing is required.
+
 ## Enhanced Diff Scope
 
 If scope is not specified, use `auto` mode:

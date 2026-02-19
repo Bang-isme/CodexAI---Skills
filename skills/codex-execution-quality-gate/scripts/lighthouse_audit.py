@@ -29,7 +29,25 @@ DEFAULT_CATEGORY_ORDER = ["performance", "accessibility", "best-practices", "seo
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Lighthouse audit and extract summary metrics.")
+    parser = argparse.ArgumentParser(
+
+        description="Run Lighthouse audit and extract summary metrics.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python lighthouse_audit.py --url <http://localhost:3000>\n"
+
+            "  python lighthouse_audit.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--url", required=True, help="URL to audit")
     parser.add_argument("--output-dir", default="", help="Output directory for Lighthouse JSON reports")
     parser.add_argument("--categories", default="perf,a11y,seo,best-practices", help="Comma-separated categories")

@@ -41,7 +41,25 @@ def emit(payload: Dict[str, str]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Log a project decision to .codex/decisions.")
+    parser = argparse.ArgumentParser(
+
+        description="Log a project decision to .codex/decisions.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python decision_logger.py --project-root <path> --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>\n"
+
+            "  python decision_logger.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--title", required=True, help="Decision title / slug source")
     parser.add_argument("--decision", required=True, help="Decision statement")

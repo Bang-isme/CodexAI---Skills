@@ -21,7 +21,25 @@ SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Select related tests from changed files.")
+    parser = argparse.ArgumentParser(
+
+        description="Select related tests from changed files.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python smart_test_selector.py --project-root <path> --source staged\n"
+
+            "  python smart_test_selector.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--changed-files", default="", help="Comma-separated changed files")
     parser.add_argument("--source", choices=["staged", "unstaged", "branch"], default="staged")

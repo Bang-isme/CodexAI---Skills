@@ -168,7 +168,25 @@ KNOWN_ARIA_ATTRS = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run static accessibility checks.")
+    parser = argparse.ArgumentParser(
+
+        description="Run static accessibility checks.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python accessibility_check.py --project-root <path> --level AA\n"
+
+            "  python accessibility_check.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--level", choices=["A", "AA", "AAA"], default="AA", help="WCAG level target")
     return parser.parse_args()

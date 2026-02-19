@@ -63,7 +63,25 @@ class JsBraceState:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Scan project tech debt and emit JSON.")
+    parser = argparse.ArgumentParser(
+
+        description="Scan project tech debt and emit JSON.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python tech_debt_scan.py --project-root <path>\n"
+
+            "  python tech_debt_scan.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--max-function-lines", type=int, default=50, help="Max function lines")
     parser.add_argument("--max-file-lines", type=int, default=500, help="Max file lines")

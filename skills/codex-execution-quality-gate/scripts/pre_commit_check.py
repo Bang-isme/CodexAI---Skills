@@ -52,7 +52,25 @@ class CommandSpec:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run staged-file pre-commit intelligence checks.")
+    parser = argparse.ArgumentParser(
+
+        description="Run staged-file pre-commit intelligence checks.",
+
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+
+        epilog=(
+
+            "Examples:\n"
+
+            "  python pre_commit_check.py --project-root <path>\n"
+
+            "  python pre_commit_check.py --help\n\n"
+
+            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+
+        ),
+
+    )
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--strict", action="store_true", help="Fail on warning-level findings")
     parser.add_argument("--skip-tests", action="store_true", help="Skip test execution")
