@@ -1,3 +1,5 @@
+<img width="263" height="225" alt="image" src="https://github.com/user-attachments/assets/9fcfbd06-769e-4b2e-b245-f7701d3a5a9d" />
+
 # CodexAI Skill Pack
 
 Bộ skill mở rộng cho OpenAI Codex theo triết lý **instruction-first**: ưu tiên hành vi và workflow trong `SKILL.md`, chỉ dùng script cho các phần cần chạy tool thật (git/lint/test/security/audit).
