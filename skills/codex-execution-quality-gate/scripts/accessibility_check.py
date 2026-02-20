@@ -15,7 +15,20 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 
-SKIP_DIRS = {"node_modules", ".git", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 MARKUP_EXTENSIONS = {".html", ".jsx", ".tsx", ".vue"}
 STYLE_EXTENSIONS = {".css", ".scss"}
 

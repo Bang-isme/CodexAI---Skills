@@ -14,13 +14,15 @@ Intent Analyzer -> Plan Writer -> Workflow Autopilot -> Domain Specialist -> Qua
 | codex-domain-specialist | Route technical tasks into focused domain guidance | -- | 16 refs |
 | codex-workflow-autopilot | Map intent to execution workflow and behavioral modes | 1 | 9 refs |
 | codex-execution-quality-gate | Run verification checks and aggregate ship-readiness signals | 15 | 14 refs |
-| codex-project-memory | Persist decisions, handoffs, session context, and analytics | 9 | 9 refs |
+| codex-project-memory | Persist decisions, handoffs, session context, and analytics | 10 | 9 refs |
 | codex-docs-change-sync | Map code changes to impacted documentation candidates | 1 | 2 refs |
 | codex-doc-renderer | Render documentation to DOCX format with visual checks | 1 | -- |
 ## Quick Commands
 | What | Command |
 |---|---|
 | Run quality gate | `$codex-execution-quality-gate` |
+| Environment doctor | `$codex-doctor` |
+| Compact context | `$compact-context` |
 | Log decision | `$log-decision` |
 | Generate changelog | `$changelog` |
 | Growth report | `$growth-report` |

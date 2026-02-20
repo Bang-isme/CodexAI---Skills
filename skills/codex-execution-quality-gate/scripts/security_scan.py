@@ -28,14 +28,14 @@ SKIP_DIRS = {
     "node_modules",
     "dist",
     "build",
+    "__pycache__",
     ".next",
-    ".nuxt",
     ".venv",
     "venv",
-    "__pycache__",
-    "coverage",
-    "target",
-    "out",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
 }
 
 TEXT_EXTENSIONS = {

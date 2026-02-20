@@ -17,7 +17,20 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 TEXT_SCAN_LIMIT = 250_000
 MAX_TREE_ITEMS_PER_DIR = 40
 

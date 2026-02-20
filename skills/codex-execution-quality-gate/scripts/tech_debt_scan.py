@@ -33,6 +33,12 @@ SKIP_DIRS = {
     "build",
     "__pycache__",
     ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
 }
 
 CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx"}

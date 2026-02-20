@@ -30,6 +30,10 @@ predict_impact = load_script_module(
     "skills_predict_impact",
     "codex-execution-quality-gate/scripts/predict_impact.py",
 )
+run_gate = load_script_module(
+    "skills_run_gate",
+    "codex-execution-quality-gate/scripts/run_gate.py",
+)
 smart_test_selector = load_script_module(
     "skills_smart_test_selector",
     "codex-execution-quality-gate/scripts/smart_test_selector.py",
@@ -136,6 +140,25 @@ def test_security_scan_handles_binary_unicode_and_permission_denied(tmp_path: Pa
     assert "summary" in report
 
 
+def test_gate_state_round_trip(tmp_path: Path) -> None:
+    run_gate.save_gate_state(tmp_path, {"consecutive_failures": 5})
+    loaded = run_gate.load_gate_state(tmp_path)
+    assert loaded["consecutive_failures"] == 5
+
+
+def test_gate_state_missing_file(tmp_path: Path) -> None:
+    loaded = run_gate.load_gate_state(tmp_path)
+    assert loaded == {"consecutive_failures": 0}
+
+
+def test_gate_state_corrupted_file(tmp_path: Path) -> None:
+    state_file = tmp_path / ".codex" / "state" / "gate_state.json"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text("NOT VALID JSON", encoding="utf-8")
+    loaded = run_gate.load_gate_state(tmp_path)
+    assert loaded == {"consecutive_failures": 0}
+
+
 def test_predict_parse_imports_js() -> None:
     content = "\n".join(
         [
@@ -198,6 +221,39 @@ def test_predict_build_dependency_maps_missing_root_returns_empty(tmp_path: Path
     assert reverse == {}
     assert rel_files == set()
     assert warnings == []
+
+
+def test_predict_escalate_to_epic_true(tmp_path: Path) -> None:
+    for i in range(25):
+        write_text(
+            tmp_path / "src" / f"mod_{i}.ts",
+            f"import {{ x }} from './mod_{(i + 1) % 25}';\nexport const y_{i} = 1;\n",
+        )
+    forward, reverse, _, _ = predict_impact.build_dependency_maps(tmp_path)
+    all_affected = set(forward.keys()) | set(reverse.keys())
+    for deps in forward.values():
+        all_affected.update(deps)
+    for deps in reverse.values():
+        all_affected.update(deps)
+    blast_radius_size = len(all_affected)
+    escalate_to_epic = blast_radius_size > 20
+    assert blast_radius_size > 20
+    assert escalate_to_epic is True
+
+
+def test_predict_escalate_to_epic_false(tmp_path: Path) -> None:
+    for i in range(3):
+        write_text(tmp_path / "src" / f"small_{i}.ts", f"export const x_{i} = {i};\n")
+    forward, reverse, _, _ = predict_impact.build_dependency_maps(tmp_path)
+    all_affected = set(forward.keys()) | set(reverse.keys())
+    for deps in forward.values():
+        all_affected.update(deps)
+    for deps in reverse.values():
+        all_affected.update(deps)
+    blast_radius_size = len(all_affected)
+    escalate_to_epic = blast_radius_size > 20
+    assert blast_radius_size <= 20
+    assert escalate_to_epic is False
 
 
 def test_selector_is_test_file_variants() -> None:

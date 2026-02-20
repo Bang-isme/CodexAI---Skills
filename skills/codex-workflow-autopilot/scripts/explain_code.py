@@ -16,7 +16,20 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 CODE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx"}
 
 IMPORT_REF_PATTERN = re.compile(

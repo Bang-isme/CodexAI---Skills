@@ -16,7 +16,20 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py", ".mjs", ".cjs"}
 RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".json"]
 TEST_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}

@@ -17,7 +17,20 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 SKIP_FILE_NAMES = {
     "package-lock.json",
     "pnpm-lock.yaml",

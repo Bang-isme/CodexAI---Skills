@@ -17,7 +17,20 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME)\b", re.IGNORECASE)
 

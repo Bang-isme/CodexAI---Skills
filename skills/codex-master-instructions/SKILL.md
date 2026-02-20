@@ -93,13 +93,37 @@ When a helper script fails mid-workflow:
 3. Never silently swallow errors - always surface in conversation.
 4. If 2+ scripts fail in same workflow, pause and ask user before continuing.
 
+## Circuit Breaker Protocol
+
+When `run_gate.py` returns `consecutive_failures >= 3`:
+1. **HALT execution.** Do not attempt another automatic fix.
+2. Read `.codex/decisions/` to check if a recent architectural change broke the tests.
+3. Switch behavioral mode to `devil's-advocate` and critically evaluate if the foundational approach is wrong.
+4. Present the user with two options:
+   - "Continue debugging with a new approach"
+   - "Revert the last commits and return to Planning phase"
+5. Reset the counter only after gate passes or user explicitly requests `$reset-gate`.
+
 ## Complexity-to-Scope Mapping
 
-| Intent Analyzer Output | Workflow Autopilot Scope | Plan Writer Trigger |
-| --- | --- | --- |
-| `complexity: simple` | `estimated_scope: small` | Skip plan (direct execution) |
-| `complexity: complex` + <=10 files | `estimated_scope: medium` | Plan recommended |
-| `complexity: complex` + >10 files | `estimated_scope: large` | Plan mandatory |
+| Intent Analyzer Output | Workflow Autopilot Scope | Plan Writer Trigger | Action |
+| --- | --- | --- | --- |
+| `complexity: simple` | `estimated_scope: small` | Skip plan (direct execution) | Standard |
+| `complexity: complex` + <=10 files | `estimated_scope: medium` | Plan recommended | Standard |
+| `complexity: complex` + >10 files | `estimated_scope: large` | Plan mandatory | Staged execution |
+| Blast Radius > 20 files | `estimated_scope: epic` | **HALT** | Epic Mode |
+
+## Epic Mode
+
+When `predict_impact.py` returns `escalate_to_epic: true`:
+1. **Refuse** to write implementation code in the current session.
+2. Generate a "Master Plan" document breaking the epic into 3-5 isolated tickets.
+3. Each ticket must have:
+   - Clear file boundary (which files belong to this ticket)
+   - Independent acceptance criteria
+   - Estimated blast radius <= 15 files
+4. Ask the user to approve the Master Plan.
+5. Instruct the user to open a **fresh session** for each ticket to preserve context window.
 
 ## Script Invocation Discipline
 
@@ -139,12 +163,13 @@ Task type -> Code change?
     `- No code -> skip quality gate
 ```
 
-## Core Script Inventory (25)
+## Core Script Inventory (28)
 
 | Script | Purpose | Usage |
 | --- | --- | --- |
 | `map_changes_to_docs.py` | map code changes to docs candidates | `python "...\\codex-docs-change-sync\\scripts\\map_changes_to_docs.py" --project-root <path> --diff-scope auto` |
 | `run_gate.py` | lint/test gate evaluation | `python "...\\codex-execution-quality-gate\\scripts\\run_gate.py" --project-root <path>` |
+| `doctor.py` | Environment tool dependency check | `python "...\\codex-execution-quality-gate\\scripts\\doctor.py"` |
 | `security_scan.py` | static security checks | `python "...\\codex-execution-quality-gate\\scripts\\security_scan.py" --project-root <path>` |
 | `bundle_check.py` | dependency/bundle risk checks | `python "...\\codex-execution-quality-gate\\scripts\\bundle_check.py" --project-root <path>` |
 | `tech_debt_scan.py` | tech debt signal scan | `python "...\\codex-execution-quality-gate\\scripts\\tech_debt_scan.py" --project-root <path>` |
@@ -167,7 +192,9 @@ Task type -> Code change?
 | `build_knowledge_graph.py` | build dependency/data-flow graph | `python "...\\codex-project-memory\\scripts\\build_knowledge_graph.py" --project-root <path>` |
 | `generate_changelog.py` | generate user-facing changelog from commits | `python "...\\codex-project-memory\\scripts\\generate_changelog.py" --project-root <path> --since \"30 days ago\"` |
 | `generate_growth_report.py` | aggregate feedback/session/usage growth report | `python "...\\codex-project-memory\\scripts\\generate_growth_report.py" --project-root <path> --skills-root <skills-root>` |
+| `compact_context.py` | Archive old memory files to reduce context | `python "...\\codex-project-memory\\scripts\\compact_context.py" --project-root <path>` |
 | `explain_code.py` | teaching-mode code context extractor | `python "...\\codex-workflow-autopilot\\scripts\\explain_code.py" --project-root <path> --file <file>` |
+| `render_docx.py` | DOCX to image rendering | `python "...\\codex-doc-renderer\\scripts\\render_docx.py" <path>` |
 
 ## Workflow References
 

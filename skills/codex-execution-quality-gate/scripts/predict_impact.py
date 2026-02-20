@@ -15,7 +15,20 @@ from pathlib import Path
 from typing import Deque, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 SCAN_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py"}
 RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".json"]
 TEST_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
@@ -69,7 +82,9 @@ def parse_args() -> argparse.Namespace:
 
             "  python predict_impact.py --help\n\n"
 
-            "Output:\n  JSON to stdout: {\"status\": \"...\", ...}"
+            "Output:\n"
+            "  JSON to stdout includes: blast_radius_size, escalate_to_epic\n"
+            "  Example: {\"status\": \"predicted\", \"blast_radius_size\": 23, \"escalate_to_epic\": true, ...}"
 
         ),
 
@@ -458,6 +473,25 @@ def main() -> int:
     impact_scope = sorted(set(resolved_targets) | all_direct)
     tests = collect_tests(project_root)
     affected_tests = find_affected_tests(project_root, impact_scope, tests)
+    # Calculate true blast radius = all unique files touched.
+    all_affected: Set[str] = set(forward.keys()) | set(reverse.keys())
+    for deps in forward.values():
+        if isinstance(deps, (list, set)):
+            all_affected.update(deps)
+        elif isinstance(deps, str):
+            all_affected.add(deps)
+    for deps in reverse.values():
+        if isinstance(deps, (list, set)):
+            all_affected.update(deps)
+        elif isinstance(deps, str):
+            all_affected.add(deps)
+    blast_radius_size = len(all_affected)
+    escalate_to_epic = blast_radius_size > 20
+    if escalate_to_epic:
+        warnings.append(
+            f"BLAST RADIUS EXCEEDS COGNITIVE LIMIT ({blast_radius_size} files). "
+            "Escalate to Epic Mode: generate Master Plan only, no direct implementation."
+        )
 
     payload: Dict[str, object] = {
         "status": "predicted",
@@ -471,6 +505,8 @@ def main() -> int:
         "dependency_tree": dependency_tree,
         "affected_tests": affected_tests,
         "recommendations": build_recommendations(resolved_targets, dependency_tree, affected_tests, impact_level),
+        "blast_radius_size": blast_radius_size,
+        "escalate_to_epic": escalate_to_epic,
     }
     if warnings:
         payload["warnings"] = sorted(dict.fromkeys(warnings))

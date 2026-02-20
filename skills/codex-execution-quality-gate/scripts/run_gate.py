@@ -294,6 +294,24 @@ def build_gate_report(
     }
 
 
+def load_gate_state(project_root: Path) -> Dict[str, Any]:
+    """Load persistent gate state from .codex/state/gate_state.json."""
+    state_file = project_root / ".codex" / "state" / "gate_state.json"
+    if state_file.exists():
+        try:
+            return json.loads(state_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError, ValueError):
+            pass
+    return {"consecutive_failures": 0}
+
+
+def save_gate_state(project_root: Path, state: Dict[str, Any]) -> None:
+    """Persist gate state to .codex/state/gate_state.json."""
+    state_file = project_root / ".codex" / "state" / "gate_state.json"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run lint/test gate and output JSON report.")
     parser.add_argument("--project-root", required=True, help="Project root path")
@@ -331,6 +349,7 @@ def print_human_summary(report: Dict[str, Any]) -> None:
         f"Lint:     {status_for(lint)}",
         f"Tests:    {status_for(test)}",
         f"Gate:     {'PASS' if gate_passed else 'FAIL'}",
+        f"Retries:  {report.get('consecutive_failures', 0)}",
     ]
 
     print(render_human_box("QUALITY GATE RESULTS", rows), file=sys.stderr)
@@ -346,6 +365,15 @@ def main() -> int:
         skip_lint=args.skip_lint,
         skip_test=args.skip_test,
     )
+    # --- Circuit Breaker state tracking (START) ---
+    state = load_gate_state(project_root)
+    if report["gate_passed"]:
+        state["consecutive_failures"] = 0
+    else:
+        state["consecutive_failures"] = state.get("consecutive_failures", 0) + 1
+    save_gate_state(project_root, state)
+    report["consecutive_failures"] = state["consecutive_failures"]
+    # --- Circuit Breaker state tracking (END) ---
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.human:
         print_human_summary(report)

@@ -17,7 +17,20 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 
 TEST_EXTS = {".js", ".jsx", ".ts", ".tsx", ".py"}
-SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".next"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "__pycache__",
+    ".next",
+    ".venv",
+    "venv",
+    ".codex",
+    ".idea",
+    ".vscode",
+    ".yarn",
+}
 
 
 def parse_args() -> argparse.Namespace:

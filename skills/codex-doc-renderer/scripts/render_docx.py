@@ -282,7 +282,7 @@ def main() -> None:
                     dpi = calc_dpi_via_ooxml_docx(input_path, args.width, args.height)
                 else:
                     raise RuntimeError("Skip OOXML DPI; not a DOCX container")
-            except Exception:
+            except (OSError, ValueError, TypeError):
                 dpi = calc_dpi_via_pdf(input_path, args.width, args.height)
 
         rasterize(input_path, out_dir, dpi)
