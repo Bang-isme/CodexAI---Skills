@@ -1,0 +1,33 @@
+# Template reference: copy into target repo and customize script paths/steps as needed.
+name: Codex Quality Gate
+
+on: [push, pull_request]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: pip install pytest
+
+      - name: Run smoke test
+        run: python tests/smoke_test.py
+
+      - name: Run unit tests
+        run: pytest tests/ -v
+
+      - name: Security scan
+        run: python codex-execution-quality-gate/scripts/security_scan.py --project-root .
+
+      - name: Pre-commit check
+        run: python codex-execution-quality-gate/scripts/pre_commit_check.py --project-root .

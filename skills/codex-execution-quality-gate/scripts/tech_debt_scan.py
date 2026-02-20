@@ -86,6 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-function-lines", type=int, default=50, help="Max function lines")
     parser.add_argument("--max-file-lines", type=int, default=500, help="Max file lines")
     parser.add_argument("--todo-age-days", type=int, default=30, help="Mark TODO older than this as medium")
+    parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
 
@@ -683,6 +684,61 @@ def scan_project(
     }
 
 
+def render_human_box(title: str, rows: List[str]) -> str:
+    width = max(len(title), *(len(row) for row in rows), 32)
+    border = "+" + "-" * (width + 2) + "+"
+    out = [border, f"| {title.ljust(width)} |", border]
+    for row in rows:
+        out.append(f"| {row.ljust(width)} |")
+    out.append(border)
+    return "\n".join(out)
+
+
+def print_human_summary(report: Dict[str, object]) -> None:
+    by_category = report.get("by_category", {})
+    if not isinstance(by_category, dict):
+        by_category = {}
+
+    todo = by_category.get("todo_fixme", [])
+    long_functions = by_category.get("long_functions", [])
+    long_files = by_category.get("long_files", [])
+    duplicates = by_category.get("duplicates", [])
+    unused_exports = by_category.get("unused_exports", [])
+    warnings = report.get("warnings", [])
+
+    rows: List[str] = [
+        f"Total Issues: {int(report.get('total_issues', 0) or 0)}",
+        f"TODO/FIXME: {len(todo) if isinstance(todo, list) else 0}",
+        f"Long Functions: {len(long_functions) if isinstance(long_functions, list) else 0}",
+        f"Long Files: {len(long_files) if isinstance(long_files, list) else 0}",
+        f"Duplicates: {len(duplicates) if isinstance(duplicates, list) else 0}",
+        f"Unused Exports: {len(unused_exports) if isinstance(unused_exports, list) else 0}",
+        f"Warnings: {len(warnings) if isinstance(warnings, list) else 0}",
+    ]
+
+    hotspots: List[str] = []
+    if isinstance(long_functions, list):
+        for item in long_functions[:2]:
+            hotspots.append(f"{item.get('file', '?')}:{item.get('line', '?')} ({item.get('lines', '?')} lines)")
+    if isinstance(long_files, list):
+        for item in long_files[:2]:
+            hotspots.append(f"{item.get('file', '?')} ({item.get('lines', '?')} lines)")
+    if hotspots:
+        rows.append("Hotspots:")
+        for idx, spot in enumerate(hotspots[:4], start=1):
+            rows.append(f"  {idx}. {spot}")
+
+    print(render_human_box("TECH DEBT SCAN RESULTS", rows), file=sys.stderr)
+
+
+def emit_json(payload: Dict[str, object]) -> None:
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+    try:
+        print(rendered)
+    except UnicodeEncodeError:
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
+
+
 def main() -> int:
     args = parse_args()
     report = scan_project(
@@ -691,7 +747,9 @@ def main() -> int:
         max_file_lines=args.max_file_lines,
         todo_age_days=args.todo_age_days,
     )
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    emit_json(report)
+    if args.human:
+        print_human_summary(report)
     return 0
 
 

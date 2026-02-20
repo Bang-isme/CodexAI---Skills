@@ -11,11 +11,12 @@ Intent Analyzer -> Plan Writer -> Workflow Autopilot -> Domain Specialist -> Qua
 | codex-master-instructions | P0 baseline behavior and coordination rules | -- | -- |
 | codex-intent-context-analyzer | Normalize requests into actionable, confirmed intent | -- | -- |
 | codex-plan-writer | Produce structured, verifiable implementation plans | -- | -- |
-| codex-domain-specialist | Route technical tasks into focused domain guidance | -- | 15 rules |
-| codex-workflow-autopilot | Map intent to execution workflow and behavioral modes | 1 | 6 refs |
+| codex-domain-specialist | Route technical tasks into focused domain guidance | -- | 16 refs |
+| codex-workflow-autopilot | Map intent to execution workflow and behavioral modes | 1 | 9 refs |
 | codex-execution-quality-gate | Run verification checks and aggregate ship-readiness signals | 15 | 14 refs |
 | codex-project-memory | Persist decisions, handoffs, session context, and analytics | 9 | 9 refs |
-| codex-docs-change-sync | Map code changes to impacted documentation candidates | 1 | 1 ref |
+| codex-docs-change-sync | Map code changes to impacted documentation candidates | 1 | 2 refs |
+| codex-doc-renderer | Render documentation to DOCX format with visual checks | 1 | -- |
 ## Quick Commands
 | What | Command |
 |---|---|

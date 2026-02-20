@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-11-priority verification chain. Blocking: security (critical), lint (exit 1), tests (exit 1). Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select which checks. Fix blockers before completion.
+11-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1). Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
 
 # Execution Quality Gate
 
@@ -26,22 +26,26 @@ load_priority: on-demand
 13. Activate on `$e2e check`.
 14. Activate on `$e2e generate <url>`.
 15. Activate on `$e2e run`.
+16. Activate on `$codex-doctor`.
+17. Activate on `$setup-check`.
 
 ## Decision Tree Routing
 
 ```
-Task type -> Code change?
-    |- Yes -> What kind?
-    |   |- New feature -> run: pre_commit_check + smart_test_selector + predict_impact
-    |   |- Bug fix -> run: pre_commit_check + smart_test_selector
-    |   |- Refactor -> run: tech_debt_scan + pre_commit_check
-    |   `- UI change -> run: ux_audit + accessibility_check + pre_commit_check
-    |
-    |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
-    |
-    |- Review/audit? -> run: quality_trend + suggest_improvements + tech_debt_scan
-    |
-    `- No code -> skip quality gate
+Task type -> Pre-flight/setup?
+    |- Yes -> run: doctor
+    `- No -> Code change?
+        |- Yes -> What kind?
+        |   |- New feature -> run: pre_commit_check + smart_test_selector + predict_impact
+        |   |- Bug fix -> run: pre_commit_check + smart_test_selector
+        |   |- Refactor -> run: tech_debt_scan + pre_commit_check
+        |   `- UI change -> run: ux_audit + accessibility_check + pre_commit_check
+        |
+        |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
+        |
+        |- Review/audit? -> run: quality_trend + suggest_improvements + tech_debt_scan
+        |
+        `- No code -> skip quality gate
 ```
 
 ## Phase X Verification Order
@@ -105,6 +109,11 @@ Task type -> Code change?
   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\<script>.py" --project-root <path>`
 - macOS/Linux:
   `python "$HOME/.codex/skills/codex-execution-quality-gate/scripts/<script>.py" --project-root <path>`
+
+### Environment Doctor Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\doctor.py" --skills-root "$env:USERPROFILE\.codex\skills" --format json`
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\doctor.py" --format table`
 
 ### Tech Debt Command
 

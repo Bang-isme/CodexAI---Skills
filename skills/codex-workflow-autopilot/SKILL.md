@@ -160,7 +160,7 @@ Return fenced JSON in conversation:
 ```json
 {
   "mode": "brainstorm | thinking-partner | implement | debug | review | devils-advocate | teach | ship",
-  "workflow_type": "build | fix | review | debug | docs",
+  "workflow_type": "build | fix | review | debug | docs | refactor | deploy | handoff",
   "steps": ["step1", "step2"],
   "exit_criteria": ["criterion1"],
   "estimated_scope": "small | medium | large",

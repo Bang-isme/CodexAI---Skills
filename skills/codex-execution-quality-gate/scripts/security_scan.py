@@ -87,6 +87,7 @@ PRINT_PATTERN = re.compile(r"(^|\s)print\s*\(")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run basic security scan and emit JSON.")
     parser.add_argument("--project-root", required=True, help="Project root path")
+    parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
 
@@ -301,11 +302,48 @@ def scan(project_root: Path) -> Dict[str, object]:
     }
 
 
+def render_human_box(title: str, rows: List[str]) -> str:
+    width = max(len(title), *(len(row) for row in rows), 32)
+    border = "+" + "-" * (width + 2) + "+"
+    out = [border, f"| {title.ljust(width)} |", border]
+    for row in rows:
+        out.append(f"| {row.ljust(width)} |")
+    out.append(border)
+    return "\n".join(out)
+
+
+def print_human_summary(report: Dict[str, object]) -> None:
+    critical = report.get("critical", [])
+    warnings = report.get("warnings", [])
+    rows: List[str] = [
+        f"Passed: {bool(report.get('passed', False))}",
+        f"Critical: {len(critical) if isinstance(critical, list) else 0}",
+        f"Warnings: {len(warnings) if isinstance(warnings, list) else 0}",
+    ]
+
+    top: List[Dict[str, object]] = []
+    if isinstance(critical, list):
+        top.extend(critical[:3])
+    if isinstance(warnings, list) and len(top) < 5:
+        top.extend(warnings[: 5 - len(top)])
+    if top:
+        rows.append("Top Issues:")
+        for idx, item in enumerate(top, start=1):
+            file_path = str(item.get("file", "?"))
+            line = item.get("line", "?")
+            issue = str(item.get("issue", ""))
+            rows.append(f"  {idx}. {file_path}:{line} {issue}")
+
+    print(render_human_box("SECURITY SCAN RESULTS", rows), file=sys.stderr)
+
+
 def main() -> int:
     args = parse_args()
     project_root = Path(args.project_root).resolve()
     report = scan(project_root)
     print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.human:
+        print_human_summary(report)
     return 0
 
 

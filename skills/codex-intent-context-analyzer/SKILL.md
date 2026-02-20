@@ -20,7 +20,7 @@ Always return a fenced JSON block in conversation:
 
 ```json
 {
-  "intent": "build | fix | review | debug | docs | other",
+  "intent": "build | fix | review | debug | docs | refactor | deploy | handoff | other",
   "goal": "One-sentence description",
   "pain_points": ["Problems extracted from the prompt"],
   "constraints": ["Technical or business constraints"],

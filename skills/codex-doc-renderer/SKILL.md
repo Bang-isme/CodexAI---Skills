@@ -68,7 +68,7 @@ pdftoppm -png $OUTDIR/$BASENAME.pdf $OUTDIR/$BASENAME
 
 Bundled helper:
 ```
-python3 scripts/render_docx.py /path/to/file.docx --output_dir /tmp/docx_pages
+python scripts/render_docx.py /path/to/file.docx --output_dir /tmp/docx_pages
 ```
 
 ## Quality expectations

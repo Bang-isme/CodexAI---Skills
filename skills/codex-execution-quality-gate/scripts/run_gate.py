@@ -299,7 +299,47 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout-test", type=int, default=300, help="Test timeout seconds")
     parser.add_argument("--skip-lint", action="store_true", help="Skip lint execution")
     parser.add_argument("--skip-test", action="store_true", help="Skip test execution")
+    parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
+
+
+def render_human_box(title: str, rows: List[str]) -> str:
+    width = max(len(title), *(len(row) for row in rows), 30)
+    border = "+" + "-" * (width + 2) + "+"
+    out = [border, f"| {title.ljust(width)} |", border]
+    for row in rows:
+        out.append(f"| {row.ljust(width)} |")
+    out.append(border)
+    return "\n".join(out)
+
+
+def print_human_summary(report: Dict[str, Any]) -> None:
+    lint = report.get("lint", {})
+    test = report.get("test", {})
+    blocking = report.get("blocking_issues", [])
+    warnings = report.get("warnings", [])
+
+    def status_for(item: Dict[str, Any]) -> str:
+        if not item.get("detected"):
+            return "not detected"
+        exit_code = item.get("exit_code")
+        if item.get("passed"):
+            return f"pass (exit={exit_code})"
+        return f"fail (exit={exit_code})"
+
+    rows: List[str] = [
+        f"Gate Passed: {bool(report.get('gate_passed', False))}",
+        f"Lint: {status_for(lint)}",
+        f"Test: {status_for(test)}",
+        f"Blocking Issues: {len(blocking)}",
+        f"Warnings: {len(warnings)}",
+    ]
+    if blocking:
+        rows.append("Top Blocking:")
+        for idx, issue in enumerate(blocking[:3], start=1):
+            rows.append(f"  {idx}. {issue}")
+
+    print(render_human_box("QUALITY GATE RESULTS", rows), file=sys.stderr)
 
 
 def main() -> int:
@@ -313,6 +353,8 @@ def main() -> int:
         skip_test=args.skip_test,
     )
     print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.human:
+        print_human_summary(report)
     return 0
 
 

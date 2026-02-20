@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-9 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`.
+10 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph. Maintain -> compact old context. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`, `$compact-context`.
 
 # Codex Project Memory
 
@@ -23,6 +23,7 @@ load_priority: on-demand
 10. Activate on `$build-graph` or "map project" to generate project knowledge graph.
 11. Activate on `$changelog` to generate release-oriented commit summaries.
 12. Activate on `$growth-report` to generate a developer growth report.
+13. Activate on `$compact-context` or "clean up old sessions".
 
 ## Decision Tree Routing
 
@@ -42,6 +43,9 @@ User intent -> Memory action?
     |- Analyze -> What?
     |   |- Patterns -> analyze_patterns.py
     |   `- Dependencies -> build_knowledge_graph.py
+    |
+    |- Maintain -> What?
+    |   `- Compact old memory -> compact_context.py
     |
     `- Not memory -> skip
 ```
@@ -196,6 +200,15 @@ User intent -> Memory action?
 - macOS/Linux:
   `python "$HOME/.codex/skills/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
 
+### Context Compactor
+
+- Windows:
+  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
+- macOS/Linux:
+  `python "$HOME/.codex/skills/codex-project-memory/scripts/compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
+- Dry run:
+  `python ".../compact_context.py" --project-root <path> --dry-run`
+
 ## Output Contract
 
 Success JSON:
@@ -219,6 +232,74 @@ Error JSON:
 }
 ```
 
+### Per-Script Output Schemas
+
+#### generate_session_summary.py
+
+```json
+{"status": "generated", "path": "<file>", "commits": <int>, "files_changed": <int>}
+```
+
+#### generate_handoff.py
+
+```json
+{"status": "generated", "path": "<file>", "sections": <int>, "size_bytes": <int>, "warnings": [<string>]}
+```
+
+#### generate_changelog.py
+
+```json
+{"status": "generated", "version": "<string>", "since": "<string>", "total_commits": <int>, "categories": {<object>}, "path": "<file-or-empty>", "changelog_markdown": "<markdown>"}
+```
+
+#### generate_growth_report.py
+
+```json
+{"status": "generated", "path": "<file>", "improvement_areas": <int>, "sessions_analyzed": <int>, "warnings": [<string>]}
+```
+
+#### analyze_patterns.py
+
+```json
+{"status": "generated", "path": "<file>", "profile": {<object>}, "warnings": [<string>]}
+```
+
+#### track_feedback.py
+
+```json
+{"status": "logged", "path": "<file>", "file": "<string>", "category": "<string>", "severity": "<string>"}
+```
+
+Aggregate mode:
+
+```json
+{"total_feedback": <int>, "by_category": {<object>}, "by_severity": {<object>}, "top_files": [<object>], "recent": [<object>], "patterns": "<string>"}
+```
+
+#### track_skill_usage.py
+
+```json
+{"status": "recorded", "path": "<file>", "entry": {"date": "<YYYY-MM-DD>", "skill": "<name>", "task": "<task>", "outcome": "<success|partial|failed>", "notes": "<string>", "duration_estimate": "<string>"}, "skills_root": "<path>"}
+```
+
+Report mode:
+
+```json
+{"status": "report_ready", "total_usages": <int>, "period": {"from": "<YYYY-MM-DD>", "to": "<YYYY-MM-DD>"}, "by_skill": {<object>}, "unused_skills": [<string>], "most_effective": "<string>", "least_effective": "<string>", "recommendations": [<string>], "trends": {"overall_success_rate": <float>, "direction": "<improving|stable|declining>"}, "warnings": [<string>]}
+```
+
+#### build_knowledge_graph.py
+
+```json
+{"status": "generated", "path": "<file>", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>}, "file_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": {<object>}, "data_models": {<object>}, "circular_dependencies": [<object>], "warnings": [<string>]}
+```
+
+#### compact_context.py
+
+```json
+{"status": "compacted", "sessions_archived": <int>, "feedback_archived": <int>, "decisions_kept": <int>, "bytes_freed": <int>}
+```
+
 ## Reference
 
 Read:
@@ -231,3 +312,4 @@ Read:
 - `references/feedback-tracker-spec.md` for feedback logging and aggregate usage.
 - `references/skill-evolution-spec.md` for skill usage analytics and optimization.
 - `references/knowledge-graph-spec.md` for deep architecture mapping and refresh guidance.
+- `references/context-compactor-spec.md` for retention policy, archive layout, and dry-run expectations.

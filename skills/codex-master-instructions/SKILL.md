@@ -75,6 +75,32 @@ If a mandatory check fails, fix and re-run before completion.
 - Do not create extra abstraction for one-line logic.
 - Do not claim completion before verification.
 
+## Error Recovery Protocol
+
+When a helper script fails mid-workflow:
+
+1. Read the JSON error output (`"status": "error"`, `"message": "..."`).
+2. Classify the failure:
+
+| Error Type | Action |
+| --- | --- |
+| Missing tool (`command not found`) | Run `$codex-doctor` to diagnose, suggest install command |
+| Permission denied | Report to user, do not retry |
+| Git not available | Skip git-dependent steps, warn "reduced accuracy" |
+| Network timeout | Retry once after 5s, then skip with warning |
+| Parse/syntax error in project files | Report file and line, continue with other files |
+
+3. Never silently swallow errors - always surface in conversation.
+4. If 2+ scripts fail in same workflow, pause and ask user before continuing.
+
+## Complexity-to-Scope Mapping
+
+| Intent Analyzer Output | Workflow Autopilot Scope | Plan Writer Trigger |
+| --- | --- | --- |
+| `complexity: simple` | `estimated_scope: small` | Skip plan (direct execution) |
+| `complexity: complex` + <=10 files | `estimated_scope: medium` | Plan recommended |
+| `complexity: complex` + >10 files | `estimated_scope: large` | Plan mandatory |
+
 ## Script Invocation Discipline
 
 1. Always run `--help` before invoking any helper script.
@@ -90,6 +116,7 @@ If a mandatory check fails, fix and re-run before completion.
 | code review/audit | `codex-workflow-autopilot/references/workflow-review.md` | `tech_debt_scan.py`, `quality_trend.py --report`, `security_scan.py` |
 | refactor | `codex-workflow-autopilot/references/workflow-refactor.md` | `tech_debt_scan.py`, `predict_impact.py`, `pre_commit_check.py`, `smart_test_selector.py`, `suggest_improvements.py` |
 | deploy/ship | `codex-workflow-autopilot/references/workflow-deploy.md` | `security_scan.py`, `bundle_check.py`, `lighthouse_audit.py`, `playwright_runner.py`, `generate_changelog.py`, `with_server.py` |
+| environment check | pre-flight diagnostics | `doctor.py` |
 | session handoff | `codex-workflow-autopilot/references/workflow-handoff.md` | `generate_session_summary.py`, `generate_handoff.py`, `decision_logger.py`, `generate_changelog.py`, `track_feedback.py` |
 | docs sync | workflow docs phase | `map_changes_to_docs.py`, `generate_changelog.py` |
 | release/pre-ship | quality gate + ship mode | `security_scan.py`, `lighthouse_audit.py`, `playwright_runner.py`, `with_server.py` |

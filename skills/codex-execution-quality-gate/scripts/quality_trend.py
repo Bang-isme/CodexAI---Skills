@@ -64,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report", action="store_true", help="Build quality trend report")
     parser.add_argument("--days", type=int, default=30, help="Days window for report")
     parser.add_argument("--output-dir", default="", help="Output directory (default: <project-root>/.codex/quality)")
+    parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
 
@@ -559,17 +560,71 @@ def build_report(output_dir: Path, days: int) -> Dict[str, object]:
     }
 
 
+def render_human_box(title: str, rows: List[str]) -> str:
+    width = max(len(title), *(len(row) for row in rows), 34)
+    border = "+" + "-" * (width + 2) + "+"
+    out = [border, f"| {title.ljust(width)} |", border]
+    for row in rows:
+        out.append(f"| {row.ljust(width)} |")
+    out.append(border)
+    return "\n".join(out)
+
+
+def print_human_summary(payload: Dict[str, object]) -> None:
+    status = str(payload.get("status", ""))
+    rows: List[str] = [f"Status: {status or 'unknown'}"]
+
+    if status == "recorded":
+        snapshot = payload.get("snapshot", {})
+        metrics = snapshot.get("metrics", {}) if isinstance(snapshot, dict) else {}
+        rows.append(f"Snapshot Date: {snapshot.get('date', '') if isinstance(snapshot, dict) else ''}")
+        rows.append(f"Code Files: {metrics.get('total_code_files', 0) if isinstance(metrics, dict) else 0}")
+        rows.append(f"TODO/FIXME: {metrics.get('todo_count', 0) if isinstance(metrics, dict) else 0}")
+        rows.append(f"Long Functions: {metrics.get('long_functions', 0) if isinstance(metrics, dict) else 0}")
+        rows.append(f"Long Files: {metrics.get('long_files', 0) if isinstance(metrics, dict) else 0}")
+    elif status == "report_ready":
+        rows.append(f"Period: {payload.get('period', {})}")
+        rows.append(f"Snapshots: {payload.get('snapshots_count', 0)}")
+        rows.append(f"Health: {payload.get('health_score', 0)} ({payload.get('health_grade', 'D')})")
+        summary = str(payload.get("summary", "")).strip()
+        if summary:
+            rows.append(f"Summary: {summary}")
+    elif status == "ok":
+        record_payload = payload.get("record", {})
+        report_payload = payload.get("report", {})
+        if isinstance(record_payload, dict):
+            rows.append(f"Record: {record_payload.get('status', 'n/a')}")
+        if isinstance(report_payload, dict):
+            rows.append(
+                f"Report: {report_payload.get('status', 'n/a')} "
+                f"(health {report_payload.get('health_score', 0)}, grade {report_payload.get('health_grade', 'D')})"
+            )
+    elif status == "error":
+        rows.append(f"Message: {payload.get('message', '')}")
+
+    print(render_human_box("QUALITY TREND RESULTS", rows), file=sys.stderr)
+
+
+def emit_with_human(payload: Dict[str, object], human: bool) -> None:
+    emit(payload)
+    if human:
+        print_human_summary(payload)
+
+
 def main() -> int:
     args = parse_args()
     project_root = Path(args.project_root).expanduser().resolve()
     output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else (project_root / ".codex" / "quality")
 
     if not project_root.exists() or not project_root.is_dir():
-        emit({"status": "error", "path": "", "message": f"Project root does not exist or is not a directory: {project_root}"})
+        emit_with_human(
+            {"status": "error", "path": "", "message": f"Project root does not exist or is not a directory: {project_root}"},
+            args.human,
+        )
         return 1
 
     if not args.record and not args.report:
-        emit({"status": "error", "message": "Provide at least one mode: --record and/or --report."})
+        emit_with_human({"status": "error", "message": "Provide at least one mode: --record and/or --report."}, args.human)
         return 1
 
     payload: Dict[str, object] = {}
@@ -579,21 +634,23 @@ def main() -> int:
         if args.report:
             payload["report"] = build_report(output_dir, max(1, int(args.days)))
     except PermissionError as exc:
-        emit({"status": "error", "path": "", "message": f"Permission denied: {exc}"})
+        emit_with_human({"status": "error", "path": "", "message": f"Permission denied: {exc}"}, args.human)
         return 1
     except OSError as exc:
-        emit({"status": "error", "path": "", "message": f"I/O failure: {exc}"})
+        emit_with_human({"status": "error", "path": "", "message": f"I/O failure: {exc}"}, args.human)
         return 1
     except Exception as exc:  # pragma: no cover - defensive
-        emit({"status": "error", "path": "", "message": f"Unexpected error: {exc}"})
+        emit_with_human({"status": "error", "path": "", "message": f"Unexpected error: {exc}"}, args.human)
         return 1
 
     if args.record and args.report:
-        emit({"status": "ok", **payload})
+        final_payload: Dict[str, object] = {"status": "ok", **payload}
     elif args.record:
-        emit(payload["record"])
+        final_payload = payload["record"] if isinstance(payload["record"], dict) else {"status": "error", "message": "Invalid record payload"}
     else:
-        emit(payload["report"])
+        final_payload = payload["report"] if isinstance(payload["report"], dict) else {"status": "error", "message": "Invalid report payload"}
+
+    emit_with_human(final_payload, args.human)
     return 0
 
 

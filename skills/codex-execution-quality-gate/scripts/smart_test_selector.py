@@ -45,6 +45,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", choices=["staged", "unstaged", "branch"], default="staged")
     parser.add_argument("--run", action="store_true", help="Run selected tests")
     parser.add_argument("--runner", choices=["jest", "pytest", "vitest"], default="")
+    parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
 
@@ -360,17 +361,63 @@ def coverage_estimate(selected_count: int, total_count: int) -> str:
     return f"{value:.1f}%"
 
 
+def render_human_box(title: str, rows: List[str]) -> str:
+    width = max(len(title), *(len(row) for row in rows), 34)
+    border = "+" + "-" * (width + 2) + "+"
+    out = [border, f"| {title.ljust(width)} |", border]
+    for row in rows:
+        out.append(f"| {row.ljust(width)} |")
+    out.append(border)
+    return "\n".join(out)
+
+
+def print_human_summary(payload: Dict[str, object]) -> None:
+    rows: List[str] = [
+        f"Status: {payload.get('status', 'unknown')}",
+        f"Changed Files: {len(payload.get('changed_files', [])) if isinstance(payload.get('changed_files'), list) else 0}",
+        f"Selected Tests: {int(payload.get('selected_count', 0) or 0)} / {int(payload.get('total_tests_in_project', 0) or 0)}",
+        f"Coverage Estimate: {payload.get('coverage_estimate', '0.0%')}",
+    ]
+
+    selected_tests = payload.get("selected_tests", [])
+    if isinstance(selected_tests, list) and selected_tests:
+        rows.append("Top Selected:")
+        for idx, item in enumerate(selected_tests[:5], start=1):
+            if not isinstance(item, dict):
+                continue
+            rows.append(f"  {idx}. {item.get('test', '?')} ({item.get('reason', '')})")
+
+    run_result = payload.get("run_result")
+    if isinstance(run_result, dict):
+        rows.append(f"Run: {run_result.get('runner', '')} exit={run_result.get('exit_code', '?')}")
+        rows.append(f"Passed: {run_result.get('passed', 0)}  Failed: {run_result.get('failed', 0)}")
+
+    warnings = payload.get("warnings", [])
+    if isinstance(warnings, list) and warnings:
+        rows.append(f"Warnings: {len(warnings)}")
+        for idx, warning in enumerate(warnings[:3], start=1):
+            rows.append(f"  {idx}. {warning}")
+
+    print(render_human_box("SMART TEST SELECTOR RESULTS", rows), file=sys.stderr)
+
+
+def emit_with_human(payload: Dict[str, object], human: bool) -> None:
+    emit(payload)
+    if human:
+        print_human_summary(payload)
+
+
 def main() -> int:
     args = parse_args()
     project_root = Path(args.project_root).expanduser().resolve()
     if not project_root.exists() or not project_root.is_dir():
-        emit({"status": "error", "message": f"Project root does not exist or is not a directory: {project_root}"})
+        emit_with_human({"status": "error", "message": f"Project root does not exist or is not a directory: {project_root}"}, args.human)
         return 1
 
     changed_files = parse_changed_files(args.changed_files)
     if not changed_files:
         if not git_ready(project_root):
-            emit({"status": "error", "message": "Git repository required when --changed-files is not provided."})
+            emit_with_human({"status": "error", "message": "Git repository required when --changed-files is not provided."}, args.human)
             return 1
         changed_files = get_changed_files_from_git(project_root, args.source)
 
@@ -412,7 +459,7 @@ def main() -> int:
     if warnings:
         payload["warnings"] = warnings
 
-    emit(payload)
+    emit_with_human(payload, args.human)
     return 0
 
 
