@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from collections import Counter
 import json
 import os
 import re
@@ -685,12 +686,14 @@ def scan_project(
 
 
 def render_human_box(title: str, rows: List[str]) -> str:
-    width = max(len(title), *(len(row) for row in rows), 32)
-    border = "+" + "-" * (width + 2) + "+"
-    out = [border, f"| {title.ljust(width)} |", border]
+    width = max(38, len(title), *(len(row) for row in rows))
+    top = "╔" + ("═" * width) + "╗"
+    mid = "╠" + ("═" * width) + "╣"
+    bottom = "╚" + ("═" * width) + "╝"
+    out = [top, f"║{title.center(width)}║", mid]
     for row in rows:
-        out.append(f"| {row.ljust(width)} |")
-    out.append(border)
+        out.append(f"║ {'{}'.format(row).ljust(width - 2)} ║")
+    out.append(bottom)
     return "\n".join(out)
 
 
@@ -699,34 +702,38 @@ def print_human_summary(report: Dict[str, object]) -> None:
     if not isinstance(by_category, dict):
         by_category = {}
 
-    todo = by_category.get("todo_fixme", [])
-    long_functions = by_category.get("long_functions", [])
-    long_files = by_category.get("long_files", [])
-    duplicates = by_category.get("duplicates", [])
-    unused_exports = by_category.get("unused_exports", [])
-    warnings = report.get("warnings", [])
+    total_signals = int(report.get("total_issues", 0) or 0)
+    signal_by_file: Counter[str] = Counter()
+    critical_count = 0
+
+    for items in by_category.values():
+        if not isinstance(items, list):
+            continue
+        for issue in items:
+            if not isinstance(issue, dict):
+                continue
+            priority = str(issue.get("priority", "")).strip().lower()
+            if priority in {"high", "critical"}:
+                critical_count += 1
+            file_path = issue.get("file")
+            if isinstance(file_path, str) and file_path:
+                signal_by_file[file_path] += 1
+            files = issue.get("files")
+            if isinstance(files, list):
+                for file_item in files:
+                    if isinstance(file_item, str) and file_item:
+                        signal_by_file[file_item] += 1
 
     rows: List[str] = [
-        f"Total Issues: {int(report.get('total_issues', 0) or 0)}",
-        f"TODO/FIXME: {len(todo) if isinstance(todo, list) else 0}",
-        f"Long Functions: {len(long_functions) if isinstance(long_functions, list) else 0}",
-        f"Long Files: {len(long_files) if isinstance(long_files, list) else 0}",
-        f"Duplicates: {len(duplicates) if isinstance(duplicates, list) else 0}",
-        f"Unused Exports: {len(unused_exports) if isinstance(unused_exports, list) else 0}",
-        f"Warnings: {len(warnings) if isinstance(warnings, list) else 0}",
+        f"Total Signals: {total_signals}",
+        f"Critical:      {critical_count}",
+        "Top Files:",
     ]
-
-    hotspots: List[str] = []
-    if isinstance(long_functions, list):
-        for item in long_functions[:2]:
-            hotspots.append(f"{item.get('file', '?')}:{item.get('line', '?')} ({item.get('lines', '?')} lines)")
-    if isinstance(long_files, list):
-        for item in long_files[:2]:
-            hotspots.append(f"{item.get('file', '?')} ({item.get('lines', '?')} lines)")
-    if hotspots:
-        rows.append("Hotspots:")
-        for idx, spot in enumerate(hotspots[:4], start=1):
-            rows.append(f"  {idx}. {spot}")
+    if signal_by_file:
+        for idx, (file_path, count) in enumerate(signal_by_file.most_common(3), start=1):
+            rows.append(f"  {idx}. {file_path} ({count} signals)")
+    else:
+        rows.append("  1. none (0 signals)")
 
     print(render_human_box("TECH DEBT SCAN RESULTS", rows), file=sys.stderr)
 

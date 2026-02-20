@@ -140,6 +140,8 @@ def run_command(spec: CommandSpec, cwd: Path, timeout_seconds: int) -> Dict[str,
             cwd=cwd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout_seconds,
             shell=spec.shell,
             check=False,
@@ -304,47 +306,39 @@ def parse_args() -> argparse.Namespace:
 
 
 def render_human_box(title: str, rows: List[str]) -> str:
-    width = max(len(title), *(len(row) for row in rows), 30)
-    border = "+" + "-" * (width + 2) + "+"
-    out = [border, f"| {title.ljust(width)} |", border]
+    width = max(38, len(title), *(len(row) for row in rows))
+    top = "╔" + ("═" * width) + "╗"
+    mid = "╠" + ("═" * width) + "╣"
+    bottom = "╚" + ("═" * width) + "╝"
+    out = [top, f"║{title.center(width)}║", mid]
     for row in rows:
-        out.append(f"| {row.ljust(width)} |")
-    out.append(border)
+        out.append(f"║ {'{}'.format(row).ljust(width - 2)} ║")
+    out.append(bottom)
     return "\n".join(out)
 
 
 def print_human_summary(report: Dict[str, Any]) -> None:
     lint = report.get("lint", {})
     test = report.get("test", {})
-    blocking = report.get("blocking_issues", [])
-    warnings = report.get("warnings", [])
+    gate_passed = bool(report.get("gate_passed", False))
 
     def status_for(item: Dict[str, Any]) -> str:
         if not item.get("detected"):
-            return "not detected"
-        exit_code = item.get("exit_code")
-        if item.get("passed"):
-            return f"pass (exit={exit_code})"
-        return f"fail (exit={exit_code})"
+            return "SKIP"
+        return "PASS" if bool(item.get("passed")) else "FAIL"
 
     rows: List[str] = [
-        f"Gate Passed: {bool(report.get('gate_passed', False))}",
-        f"Lint: {status_for(lint)}",
-        f"Test: {status_for(test)}",
-        f"Blocking Issues: {len(blocking)}",
-        f"Warnings: {len(warnings)}",
+        f"Lint:     {status_for(lint)}",
+        f"Tests:    {status_for(test)}",
+        f"Gate:     {'PASS' if gate_passed else 'FAIL'}",
     ]
-    if blocking:
-        rows.append("Top Blocking:")
-        for idx, issue in enumerate(blocking[:3], start=1):
-            rows.append(f"  {idx}. {issue}")
 
     print(render_human_box("QUALITY GATE RESULTS", rows), file=sys.stderr)
 
 
 def main() -> int:
     args = parse_args()
-    project_root = Path(args.project_root).resolve()
+    project_root = Path(args.project_root).expanduser().resolve()
     report = build_gate_report(
         project_root=project_root,
         timeout_lint=args.timeout_lint,
@@ -355,7 +349,7 @@ def main() -> int:
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.human:
         print_human_summary(report)
-    return 0
+    return 0 if report["gate_passed"] else 1
 
 
 if __name__ == "__main__":

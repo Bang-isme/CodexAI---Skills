@@ -362,41 +362,29 @@ def coverage_estimate(selected_count: int, total_count: int) -> str:
 
 
 def render_human_box(title: str, rows: List[str]) -> str:
-    width = max(len(title), *(len(row) for row in rows), 34)
-    border = "+" + "-" * (width + 2) + "+"
-    out = [border, f"| {title.ljust(width)} |", border]
+    width = max(38, len(title), *(len(row) for row in rows))
+    top = "╔" + ("═" * width) + "╗"
+    mid = "╠" + ("═" * width) + "╣"
+    bottom = "╚" + ("═" * width) + "╝"
+    out = [top, f"║{title.center(width)}║", mid]
     for row in rows:
-        out.append(f"| {row.ljust(width)} |")
-    out.append(border)
+        out.append(f"║ {'{}'.format(row).ljust(width - 2)} ║")
+    out.append(bottom)
     return "\n".join(out)
 
 
 def print_human_summary(payload: Dict[str, object]) -> None:
+    changed_count = len(payload.get("changed_files", [])) if isinstance(payload.get("changed_files"), list) else 0
+    selected_count = int(payload.get("selected_count", 0) or 0)
+    total_tests = int(payload.get("total_tests_in_project", 0) or 0)
+    coverage = str(payload.get("coverage_estimate", "0.0%"))
     rows: List[str] = [
-        f"Status: {payload.get('status', 'unknown')}",
-        f"Changed Files: {len(payload.get('changed_files', [])) if isinstance(payload.get('changed_files'), list) else 0}",
-        f"Selected Tests: {int(payload.get('selected_count', 0) or 0)} / {int(payload.get('total_tests_in_project', 0) or 0)}",
-        f"Coverage Estimate: {payload.get('coverage_estimate', '0.0%')}",
+        f"Changed Files:  {changed_count}",
+        f"Tests Selected: {selected_count} / {total_tests}",
+        f"Coverage Est:   {coverage}",
     ]
-
-    selected_tests = payload.get("selected_tests", [])
-    if isinstance(selected_tests, list) and selected_tests:
-        rows.append("Top Selected:")
-        for idx, item in enumerate(selected_tests[:5], start=1):
-            if not isinstance(item, dict):
-                continue
-            rows.append(f"  {idx}. {item.get('test', '?')} ({item.get('reason', '')})")
-
-    run_result = payload.get("run_result")
-    if isinstance(run_result, dict):
-        rows.append(f"Run: {run_result.get('runner', '')} exit={run_result.get('exit_code', '?')}")
-        rows.append(f"Passed: {run_result.get('passed', 0)}  Failed: {run_result.get('failed', 0)}")
-
-    warnings = payload.get("warnings", [])
-    if isinstance(warnings, list) and warnings:
-        rows.append(f"Warnings: {len(warnings)}")
-        for idx, warning in enumerate(warnings[:3], start=1):
-            rows.append(f"  {idx}. {warning}")
+    if str(payload.get("status", "")) == "error":
+        rows.append(f"Error: {payload.get('message', '')}")
 
     print(render_human_box("SMART TEST SELECTOR RESULTS", rows), file=sys.stderr)
 

@@ -344,7 +344,8 @@ def main() -> int:
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.human:
         print_human_summary(report)
-    return 0
+    critical = report.get("critical", [])
+    return 1 if isinstance(critical, list) and len(critical) > 0 else 0
 
 
 if __name__ == "__main__":

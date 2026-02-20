@@ -561,46 +561,57 @@ def build_report(output_dir: Path, days: int) -> Dict[str, object]:
 
 
 def render_human_box(title: str, rows: List[str]) -> str:
-    width = max(len(title), *(len(row) for row in rows), 34)
-    border = "+" + "-" * (width + 2) + "+"
-    out = [border, f"| {title.ljust(width)} |", border]
+    width = max(38, len(title), *(len(row) for row in rows))
+    top = "╔" + ("═" * width) + "╗"
+    mid = "╠" + ("═" * width) + "╣"
+    bottom = "╚" + ("═" * width) + "╝"
+    out = [top, f"║{title.center(width)}║", mid]
     for row in rows:
-        out.append(f"| {row.ljust(width)} |")
-    out.append(border)
+        out.append(f"║ {'{}'.format(row).ljust(width - 2)} ║")
+    out.append(bottom)
     return "\n".join(out)
 
 
-def print_human_summary(payload: Dict[str, object]) -> None:
-    status = str(payload.get("status", ""))
-    rows: List[str] = [f"Status: {status or 'unknown'}"]
+def infer_overall_trend(trend_map: Dict[str, object]) -> str:
+    improving = 0
+    declining = 0
+    for key in ("todo_count", "long_functions", "long_files", "test_to_source_ratio"):
+        value = trend_map.get(key, {})
+        if not isinstance(value, dict):
+            continue
+        trend = str(value.get("trend", "stable"))
+        if trend == "improving":
+            improving += 1
+        elif trend == "declining":
+            declining += 1
+    if improving > declining:
+        return "improving"
+    if declining > improving:
+        return "declining"
+    return "stable"
 
-    if status == "recorded":
-        snapshot = payload.get("snapshot", {})
-        metrics = snapshot.get("metrics", {}) if isinstance(snapshot, dict) else {}
-        rows.append(f"Snapshot Date: {snapshot.get('date', '') if isinstance(snapshot, dict) else ''}")
-        rows.append(f"Code Files: {metrics.get('total_code_files', 0) if isinstance(metrics, dict) else 0}")
-        rows.append(f"TODO/FIXME: {metrics.get('todo_count', 0) if isinstance(metrics, dict) else 0}")
-        rows.append(f"Long Functions: {metrics.get('long_functions', 0) if isinstance(metrics, dict) else 0}")
-        rows.append(f"Long Files: {metrics.get('long_files', 0) if isinstance(metrics, dict) else 0}")
-    elif status == "report_ready":
-        rows.append(f"Period: {payload.get('period', {})}")
-        rows.append(f"Snapshots: {payload.get('snapshots_count', 0)}")
-        rows.append(f"Health: {payload.get('health_score', 0)} ({payload.get('health_grade', 'D')})")
-        summary = str(payload.get("summary", "")).strip()
-        if summary:
-            rows.append(f"Summary: {summary}")
-    elif status == "ok":
-        record_payload = payload.get("record", {})
-        report_payload = payload.get("report", {})
-        if isinstance(record_payload, dict):
-            rows.append(f"Record: {record_payload.get('status', 'n/a')}")
-        if isinstance(report_payload, dict):
-            rows.append(
-                f"Report: {report_payload.get('status', 'n/a')} "
-                f"(health {report_payload.get('health_score', 0)}, grade {report_payload.get('health_grade', 'D')})"
-            )
-    elif status == "error":
-        rows.append(f"Message: {payload.get('message', '')}")
+
+def extract_report_payload(payload: Dict[str, object]) -> Dict[str, object]:
+    status = str(payload.get("status", ""))
+    if status == "report_ready":
+        return payload
+    if status == "ok":
+        report = payload.get("report", {})
+        if isinstance(report, dict):
+            return report
+    return {}
+
+
+def print_human_summary(payload: Dict[str, object]) -> None:
+    report_payload = extract_report_payload(payload)
+    snapshots = int(report_payload.get("snapshots_count", 0) or 0) if report_payload else 0
+    trend = infer_overall_trend(report_payload.get("trends", {})) if report_payload else "stable"
+    rows: List[str] = [
+        f"Snapshots: {snapshots}",
+        f"Trend:     {trend}",
+    ]
+    if str(payload.get("status", "")) == "error":
+        rows.append(f"Error: {payload.get('message', '')}")
 
     print(render_human_box("QUALITY TREND RESULTS", rows), file=sys.stderr)
 
