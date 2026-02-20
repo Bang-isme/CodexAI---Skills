@@ -234,6 +234,25 @@ Error JSON:
 
 ### Per-Script Output Schemas
 
+| Script | `status` on success | Key fields |
+| --- | --- | --- |
+| `decision_logger.py` | `"logged"` | `path`, `title` |
+| `generate_session_summary.py` | `"generated"` | `path`, `commits`, `files_changed` |
+| `generate_handoff.py` | `"generated"` | `path`, `sections` |
+| `generate_changelog.py` | `"generated"` | `path`, `entries` |
+| `generate_growth_report.py` | `"generated"` | `path`, `metrics` |
+| `analyze_patterns.py` | `"generated"` | `path`, `patterns` |
+| `build_knowledge_graph.py` | `"generated"` | `path`, `stats` |
+| `track_feedback.py` (log) | `"logged"` | `path`, `category` |
+| `track_feedback.py` (aggregate) | `"aggregated"` | `total`, `by_category` |
+| `track_skill_usage.py` (record) | `"recorded"` | `skill`, `outcome` |
+| `track_skill_usage.py` (report) | `"report"` | `total_entries`, `by_skill` |
+| `compact_context.py` | `"compacted"` | `sessions_archived`, `feedback_archived`, `bytes_freed` |
+
+All scripts emit `{"status": "error", "message": "..."}` on failure.
+
+#### Detailed Examples
+
 #### generate_session_summary.py
 
 ```json

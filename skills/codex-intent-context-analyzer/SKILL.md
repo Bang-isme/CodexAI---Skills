@@ -77,7 +77,7 @@ Format:
 ## Fallback
 
 If `intent` is `other`, ask user to rephrase or choose one of:
-`build`, `fix`, `review`, `debug`, `docs`.
+`build`, `fix`, `review`, `debug`, `docs`, `refactor`, `deploy`, `handoff`.
 
 ## Script Invocation Discipline
 
