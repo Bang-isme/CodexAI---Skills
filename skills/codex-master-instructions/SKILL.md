@@ -32,6 +32,23 @@ Before acting, classify the request:
 | debug | error, bug, broken, not working | reproduce, isolate, root-cause, fix, test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
 
+## Design-Before-Code Gate (HARD-GATE)
+
+For `complex-code` and `refactor` requests:
+<HARD-GATE>
+Do NOT write any implementation code, scaffold any project, or take any implementation action until:
+1. You have explored the project context (files, docs, recent commits)
+2. Asked clarifying questions ONE AT A TIME (prefer multiple-choice)
+3. Proposed 2-3 approaches with trade-offs and your recommendation
+4. Presented the design and the user has APPROVED it
+5. Written a plan using `$codex-plan-writer`
+This applies to EVERY complex task regardless of perceived simplicity.
+</HARD-GATE>
+
+### Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every complex task goes through this process. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences), but you MUST present it and get approval.
+
 ## Universal Engineering Rules
 
 - Keep output concise and action-oriented.
@@ -50,17 +67,35 @@ For each file you modify:
 3. Update dependent files together if contracts change.
 4. Do not leave broken imports or references.
 
-## Completion Self-Check (Mandatory)
+## Completion Self-Check (MANDATORY — Evidence Before Claims)
 
-Before saying work is complete:
+**Iron Law: NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE.**
 
-- Goal fully addressed.
-- Required files updated.
-- Checks executed and reviewed.
-- No unresolved blocking errors.
-- Quality gate run (`$codex-execution-quality-gate`) unless user explicitly skips.
+Before saying work is complete, you MUST:
+1. **IDENTIFY:** What command proves this claim? (test, lint, build, gate)
+2. **RUN:** Execute the FULL command (fresh, complete — not cached)
+3. **READ:** Full output, check exit code, count failures
+4. **VERIFY:** Does output confirm the claim?
+   - If NO -> State actual status with evidence
+   - If YES -> State claim WITH evidence
+5. **ONLY THEN:** Make the completion claim
 
-If a mandatory check fails, fix and re-run before completion.
+### Red Flags — STOP Immediately
+
+If you catch yourself using these words WITHOUT having run verification in this message:
+- "Should work now" -> RUN the verification
+- "I'm confident" -> Confidence != evidence
+- "Looks correct" -> Looks != verified
+- "Done!" / "Fixed!" -> Evidence or it didn't happen
+
+### What Counts as Evidence
+
+| Claim | Requires | NOT Sufficient |
+| --- | --- | --- |
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check |
+| Bug fixed | Reproduction test passes | "Code changed, assumed fixed" |
+| Gate passes | `run_gate.py` output: `gate_passed: true` | "I ran it earlier" |
 
 ## Language Handling
 
@@ -74,6 +109,25 @@ If a mandatory check fails, fix and re-run before completion.
 - Do not add obvious comments that restate code.
 - Do not create extra abstraction for one-line logic.
 - Do not claim completion before verification.
+
+## Anti-Rationalization Defense
+
+**Core principle:** Violating the letter of the rules IS violating the spirit of the rules.
+
+Common rationalizations that indicate process violation:
+
+| Rationalization | Reality |
+| --- | --- |
+| "Too simple to need a plan" | Simple tasks are where unexamined assumptions waste the most work |
+| "I'll test after" | Tests written after code pass immediately — proves nothing |
+| "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run |
+| "Skip gate just this once" | No exceptions. Gate exists to catch what you missed |
+| "Quick fix, investigate later" | Later never comes. Systematic is faster than thrashing |
+| "I'm confident it works" | Confidence ≠ evidence. RUN the verification |
+| "This is different because..." | It's not. Follow the process |
+| "TDD/gate will slow me down" | Testing-first is faster than debugging after |
+
+If you catch yourself thinking any of these -> STOP -> follow the process.
 
 ## Error Recovery Protocol
 
@@ -92,6 +146,52 @@ When a helper script fails mid-workflow:
 
 3. Never silently swallow errors - always surface in conversation.
 4. If 2+ scripts fail in same workflow, pause and ask user before continuing.
+
+## Systematic Debugging Protocol
+
+**Iron Law: NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST.**
+
+When encountering bugs, test failures, or unexpected behavior - follow these 4 phases IN ORDER:
+
+### Phase 1: Root Cause Investigation (BEFORE any fix)
+
+1. Read error messages COMPLETELY (stack trace, line numbers, error codes)
+2. Reproduce consistently - can you trigger it reliably?
+3. Check recent changes - `git diff`, recent commits, new dependencies
+4. Trace data flow - where does the bad value originate?
+
+### Phase 2: Pattern Analysis
+
+1. Find working examples of similar code in the codebase
+2. Compare working vs broken - list EVERY difference
+3. Don't assume "that can't matter"
+
+### Phase 3: Hypothesis & Testing
+
+1. Form ONE hypothesis: "I think X causes Y because Z"
+2. Make the SMALLEST possible change to test it
+3. Did it work? -> Phase 4. Didn't work? -> New hypothesis
+4. Do NOT stack multiple fixes
+
+### Phase 4: Implementation
+
+1. Write a failing test reproducing the bug
+2. Implement single fix addressing root cause
+3. Verify fix: test passes, no regressions
+
+### 3-Fix Architecture Circuit Breaker
+
+If 3+ fix attempts have failed:
+- **STOP.** This is likely an architectural problem, not a code bug
+- Question fundamentals: Is this pattern sound? Are we fighting inertia?
+- Discuss with user before attempting more fixes
+
+### Red Flags - STOP and Return to Phase 1
+
+- "Quick fix for now, investigate later"
+- "Just try changing X and see"
+- "I don't fully understand but this might work"
+- Proposing solutions before tracing data flow
 
 ## Circuit Breaker Protocol
 
@@ -145,6 +245,33 @@ When `predict_impact.py` returns `escalate_to_epic: true`:
 | docs sync | workflow docs phase | `map_changes_to_docs.py`, `generate_changelog.py` |
 | release/pre-ship | quality gate + ship mode | `security_scan.py`, `lighthouse_audit.py`, `playwright_runner.py`, `with_server.py` |
 | long-running project continuity | project-memory flow | `decision_logger.py`, `generate_session_summary.py`, `generate_handoff.py`, `generate_growth_report.py` |
+
+## Two-Stage Review Protocol
+
+When reviewing completed work against a plan or spec:
+
+### Stage 1: Spec Compliance Review (DO FIRST)
+
+- Does the implementation match EVERY requirement in the plan/spec?
+- Is anything MISSING that was requested?
+- Is anything EXTRA that was NOT requested (YAGNI violation)?
+- Are acceptance criteria met?
+
+⚠️ Do NOT proceed to Stage 2 until Stage 1 passes.
+
+### Stage 2: Code Quality Review (DO SECOND)
+
+- Does the code follow project conventions?
+- Is error handling proper?
+- Are there security concerns?
+- Is test coverage adequate?
+- Is there unnecessary complexity?
+
+### Issue Severity
+
+- **Critical** (must fix before completion) - missing requirements, security holes, data loss risk
+- **Important** (should fix) - poor error handling, missing tests, convention violations
+- **Suggestion** (nice to have) - naming improvements, minor refactoring opportunities
 
 ## Quality Gate Decision Tree
 

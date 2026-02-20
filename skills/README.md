@@ -33,5 +33,11 @@ Intent Analyzer -> Plan Writer -> Workflow Autopilot -> Domain Specialist -> Qua
 - Domain rules: edit files in `codex-domain-specialist/references/`
 - Gate policy: edit `codex-execution-quality-gate/references/gate-policy.md`
 - Workflow templates: edit files in `codex-workflow-autopilot/references/workflow-*.md`
+## Dependencies
+- **Core skills:** Zero external dependencies (stdlib only)
+- **codex-doc-renderer:** Requires `pip install pdf2image` and [Poppler](https://poppler.freedesktop.org/) system binaries
+  - Windows: `choco install poppler` or download from [poppler-windows](https://github.com/oschwartz10612/poppler-windows)
+  - macOS: `brew install poppler`
+  - Linux: `sudo apt install poppler-utils`
 ## Priority System
 P0: codex-master-instructions > P1: domain references > P2: other skills

@@ -188,7 +188,7 @@ def contains_pyproject_section(project_root: Path, section: str) -> bool:
 def make_command(parts: List[str], is_windows: bool, name: str) -> CommandSpec:
     display = " ".join(parts)
     if is_windows and parts and parts[0] in {"npx", "npm"}:
-        return CommandSpec(name=name, command=display, shell=True, display=display)
+        return CommandSpec(name=name, command=parts, shell=True, display=display)
     return CommandSpec(name=name, command=parts, shell=False, display=display)
 
 
@@ -203,12 +203,21 @@ def run_command(project_root: Path, spec: CommandSpec) -> Dict[str, object]:
             errors="replace",
             shell=spec.shell,
             check=False,
+            timeout=120,
         )
         return {
             "ok": True,
             "exit_code": proc.returncode,
             "stdout": proc.stdout or "",
             "stderr": proc.stderr or "",
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "ok": False,
+            "exit_code": -1,
+            "stdout": exc.stdout or "",
+            "stderr": (exc.stderr or "") + "\n[TIMEOUT] Command exceeded 120s limit.",
+            "not_found": False,
         }
     except FileNotFoundError:
         return {"ok": False, "exit_code": None, "stdout": "", "stderr": f"Tool not found for {spec.name}"}

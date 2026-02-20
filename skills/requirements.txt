@@ -1,0 +1,3 @@
+# Core skill pack: no external dependencies required
+# The following are OPTIONAL - only needed for codex-doc-renderer
+pdf2image>=1.16.0  # render_docx.py - also requires poppler system binaries

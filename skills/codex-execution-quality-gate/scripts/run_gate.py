@@ -63,7 +63,7 @@ def contains_pyproject_section(project_root: Path, section: str) -> bool:
 def make_command(command_parts: List[str], tool: str, is_windows: bool) -> CommandSpec:
     display = " ".join(command_parts)
     if is_windows and command_parts and command_parts[0] in {"npm", "npx"}:
-        return CommandSpec(tool=tool, display_command=display, invocation=display, shell=True)
+        return CommandSpec(tool=tool, display_command=display, invocation=command_parts, shell=True)
     return CommandSpec(tool=tool, display_command=display, invocation=command_parts, shell=False)
 
 

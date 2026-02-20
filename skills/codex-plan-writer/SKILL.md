@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Create `{task-slug}.md` plan file for complex requests. Required sections: Overview, Success Criteria, Tech Stack, Task Breakdown (with dependencies, verify, rollback), Phase X Checklist. No code in plan files. Wait for user approval.
+Create `{task-slug}.md` plan file for complex requests. Required sections: Overview, Success Criteria, Tech Stack, Task Breakdown (with dependencies, verify, rollback), Phase X Checklist. Use bite-sized tasks with concrete files/code/commands/verification details. Wait for user approval.
 
 # Plan Writer
 
@@ -60,9 +60,26 @@ For each task include:
 - security scan reviewed
 - all tasks completed
 
+## Plan Granularity: Bite-Sized Tasks
+
+Each task in an implementation plan should be **completable in 2-5 minutes**. Break down as follows:
+1. "Write the failing test" - one step
+2. "Run it to verify it fails" - one step
+3. "Implement minimal code to pass" - one step
+4. "Run tests to verify they pass" - one step
+5. "Commit" - one step
+
+### Task Structure
+
+Each task MUST include:
+- **Files:** Exact paths to create/modify/test
+- **Code:** Complete code (not "add validation here")
+- **Commands:** Exact commands with expected output
+- **Verification:** How to confirm this task is done
+
 ## Rules
 
-- Do not include implementation code in plan files.
+- Do not use vague placeholders in implementation tasks.
 - Keep tasks small and verifiable.
 - Explain why each task exists, not only what to do.
 
