@@ -551,6 +551,38 @@ def run_pre_commit_gate(project_root: Path, skip_tests: bool = False) -> Dict[st
     return {"passed": result.returncode == 0, "warnings": ["Could not parse gate output"]}
 
 
+def run_security_scan(project_root: Path) -> Dict[str, Any]:
+    """Run full security scan as additional gate."""
+    scan_script = (
+        Path(__file__).parent.parent.parent
+        / "codex-execution-quality-gate"
+        / "scripts"
+        / "security_scan.py"
+    )
+    if not scan_script.exists():
+        return {"passed": True, "warnings": ["security_scan.py not found, skipping"]}
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(scan_script), "--project-root", str(project_root)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"passed": False, "critical": ["Security scan timed out"]}
+    except OSError as exc:
+        return {"passed": False, "critical": [f"Failed to run security scan: {exc}"]}
+
+    payload = parse_json_from_output(result.stdout or "")
+    if payload is None:
+        return {"passed": result.returncode == 0}
+    return payload
+
+
 def detect_commit_type(files: List[str]) -> str:
     scores: Dict[str, int] = {ctype: 0 for ctype in COMMIT_TYPES}
     for file_path in files:
@@ -689,6 +721,19 @@ def main() -> int:
                 "message": "Pre-commit gate FAILED. Commit aborted.",
                 "blocking": blocking,
                 "warnings": gate.get("warnings", []),
+            }
+        )
+        return 1
+
+    sec = run_security_scan(project_root)
+    sec_critical = sec.get("critical", [])
+    if isinstance(sec_critical, list) and sec_critical:
+        run_git(project_root, ["reset", "HEAD", "--"] + files)
+        emit(
+            {
+                "status": "blocked",
+                "message": f"Security scan found {len(sec_critical)} critical issue(s). Commit aborted.",
+                "critical": sec_critical[:5],
             }
         )
         return 1

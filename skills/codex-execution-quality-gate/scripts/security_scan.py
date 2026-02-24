@@ -76,6 +76,24 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 AWS_KEY_PATTERN = re.compile(r"\bAKIA[0-9A-Z]{16}\b")
 GITHUB_TOKEN_PATTERN = re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")
+# Private key blocks
+PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN\s+(RSA|EC|DSA|OPENSSH|PGP)\s+PRIVATE\s+KEY-----")
+# JWT tokens (eyJ prefix = base64 of {"alg":...})
+JWT_PATTERN = re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b")
+# Database connection strings with credentials
+DB_URL_PATTERN = re.compile(
+    r"(?:mongodb|postgres|mysql|redis|amqp)(?:\+\w+)?://[^:]+:[^@]+@[^\s\"']+",
+    re.IGNORECASE,
+)
+# Slack/Discord webhooks
+WEBHOOK_PATTERN = re.compile(
+    r"https://(?:hooks\.slack\.com/services/|discord(?:app)?\.com/api/webhooks/)[^\s\"']+",
+    re.IGNORECASE,
+)
+# Generic high-entropy strings in key/secret assignments (Base64-like, 32+ chars)
+HIGH_ENTROPY_ASSIGNMENT = re.compile(
+    r"""(?i)\b(?:api[_-]?key|secret|token|password|credential|auth)\b\s*[:=]\s*["']([A-Za-z0-9+/=_-]{32,})["']"""
+)
 EVAL_CALL_PATTERN = re.compile(r"(^|[^A-Za-z0-9_\"'])eval\s*\(")
 EXEC_CALL_PATTERN = re.compile(r"(^|[^A-Za-z0-9_\"'])exec\s*\(")
 HTTP_PATTERN = re.compile(r"http://[^\s\"')`]+")
@@ -114,13 +132,27 @@ def looks_like_placeholder(value: str) -> bool:
         "example",
         "changeme",
         "your_",
+        "your-",
         "dummy",
         "sample",
         "placeholder",
         "xxxx",
         "test",
+        "replace_me",
+        "fixme",
+        "todo",
+        "insert",
+        "fill_in",
     )
-    return any(token in lowered for token in placeholders)
+    if any(token in lowered for token in placeholders):
+        return True
+    if re.search(r"<[a-z_-]+>", lowered):
+        return True
+    if re.search(r"\$\{[A-Z_]+\}", value):
+        return True
+    if "process.env." in value or "os.environ" in value:
+        return True
+    return False
 
 
 def is_production_path(rel_path: str) -> bool:
@@ -239,6 +271,42 @@ def scan(project_root: Path) -> Dict[str, object]:
 
             if GITHUB_TOKEN_PATTERN.search(line):
                 item = build_issue(rel, idx, "Potential GitHub token exposure", "critical")
+                key = (item["file"], item["line"], item["issue"], item["severity"])
+                if key not in seen:
+                    seen.add(key)
+                    critical.append(item)
+
+            if PRIVATE_KEY_PATTERN.search(line):
+                item = build_issue(rel, idx, "Private key found in source code", "critical")
+                key = (item["file"], item["line"], item["issue"], item["severity"])
+                if key not in seen:
+                    seen.add(key)
+                    critical.append(item)
+
+            if JWT_PATTERN.search(line):
+                item = build_issue(rel, idx, "Potential hardcoded JWT token", "critical")
+                key = (item["file"], item["line"], item["issue"], item["severity"])
+                if key not in seen:
+                    seen.add(key)
+                    critical.append(item)
+
+            if DB_URL_PATTERN.search(line):
+                item = build_issue(rel, idx, "Database URL with embedded credentials", "critical")
+                key = (item["file"], item["line"], item["issue"], item["severity"])
+                if key not in seen:
+                    seen.add(key)
+                    critical.append(item)
+
+            if WEBHOOK_PATTERN.search(line):
+                item = build_issue(rel, idx, "Webhook URL exposed (Slack/Discord)", "critical")
+                key = (item["file"], item["line"], item["issue"], item["severity"])
+                if key not in seen:
+                    seen.add(key)
+                    critical.append(item)
+
+            entropy_match = HIGH_ENTROPY_ASSIGNMENT.search(line)
+            if entropy_match and not looks_like_placeholder(entropy_match.group(1)):
+                item = build_issue(rel, idx, "Potential high-entropy secret assignment", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:
                     seen.add(key)

@@ -409,7 +409,7 @@ def secret_scan(added: Dict[str, List[Tuple[int, str]]]) -> Tuple[Dict[str, obje
             "files": len(sorted({item["file"] for item in issues})),
             "issues": issues,
         },
-        True,
+        False,
     )
 
 

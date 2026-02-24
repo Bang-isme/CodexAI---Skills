@@ -1,5 +1,13 @@
 # Changelog
 
+## [8.3.0] - 2026-02-25
+
+### Security
+- `security_scan.py`: added detection for private keys, JWT tokens, database URLs with credentials, Slack/Discord webhooks
+- `security_scan.py`: improved placeholder detection (template patterns, env vars)
+- `pre_commit_check.py`: CRITICAL FIX - `secret_scan()` now blocks commit when secrets are detected (was informational-only)
+- `auto_commit.py`: integrated full `security_scan.py` as an additional gate before commit
+
 ## [8.2.0] - 2026-02-25
 
 ### Fixed
