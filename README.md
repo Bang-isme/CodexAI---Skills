@@ -1,61 +1,76 @@
 ﻿# CodexAI Skill Pack
 
-Instruction-first skill framework for OpenAI Codex, designed for real developer workflows: analyze intent, plan execution, apply domain-specific guidance, run quality gates, and persist project memory across sessions.
+Production-oriented skill pack for OpenAI Codex.
+It gives Codex a structured engineering workflow: classify requests, plan safely, execute with quality gates, persist project memory, and automate Git operations.
 
-## Why This Pack
+## Current Status
 
-- Standardize how Codex handles build, fix, debug, review, docs, and handoff tasks.
-- Keep behavior in `SKILL.md` and use scripts only for tool-backed actions.
-- Reduce regressions with verification scripts before completion.
-- Improve long-term consistency with local project memory (`.codex/`).
+- Version: `8.2.0` (see `skills/VERSION`)
+- Active skills: `11` domain skills + `2` system skills
+- Core helper scripts: `30`
+- Smoke validation: `32/32` script checks
 
-## Skill Pipeline
+## What This Pack Adds
+
+- Deterministic skill contracts (`SKILL.md`) with clear activation rules
+- Intent normalization before implementation
+- Plan-first workflow for complex requests
+- Context compression (`Project Genome`) for large repositories
+- Quality verification gates before completion claims
+- Persistent project memory (`.codex/decisions`, `.codex/sessions`, `.codex/context`)
+- Auto-commit pipeline with CI gate + GPG signing support
+
+## Skill Architecture
 
 ```text
-Intent Analyzer
+Master Instructions (P0)
+  -> Intent Context Analyzer
   -> Plan Writer
   -> Workflow Autopilot
   -> Domain Specialist
+  -> Context Engine (Genome)
   -> Execution Quality Gate
   -> Project Memory
   -> Docs Change Sync
+  -> Git Autopilot
+  -> Doc Renderer (optional)
 ```
+
+## Skill Catalog
+
+| Skill | Purpose | Scripts |
+| --- | --- | --- |
+| `codex-master-instructions` | P0 behavior, governance, completion discipline | 0 |
+| `codex-intent-context-analyzer` | Normalize prompts into actionable intent JSON | 0 |
+| `codex-plan-writer` | Produce structured, verifiable implementation plans | 0 |
+| `codex-workflow-autopilot` | Route tasks into executable workflow phases | 1 |
+| `codex-domain-specialist` | Domain-specific guidance with strict context boundaries | 0 |
+| `codex-context-engine` | Generate/load multi-layer project context maps | 0 |
+| `codex-execution-quality-gate` | Lint/test/security/audit verification suite | 15 |
+| `codex-project-memory` | Decisions, summaries, changelog, genome, analytics | 11 |
+| `codex-docs-change-sync` | Map code diffs to impacted documentation candidates | 1 |
+| `codex-git-autopilot` | Task-scoped commit pipeline with gate + GPG + push | 1 |
+| `codex-doc-renderer` | DOCX render pipeline for visual fidelity checks | 1 |
 
 ## Repository Layout
 
 ```text
 CodexAI---Skills/
 |- skills/
-|  |- codex-master-instructions/
-|  |- codex-intent-context-analyzer/
-|  |- codex-plan-writer/
-|  |- codex-workflow-autopilot/
-|  |- codex-domain-specialist/
-|  |- codex-execution-quality-gate/
-|  |- codex-project-memory/
-|  |- codex-docs-change-sync/
-|  |- codex-doc-renderer/
+|  |- codex-*/               # Skill folders
+|  |- .system/               # Installer/creator system skills
+|  |- templates/
 |  |- tests/
+|  |- VERSION
+|  `- CHANGELOG.md
 |- docs/
 |- README.md
 `- LICENSE
 ```
 
-## Core Skills
-
-- `codex-master-instructions`: Top-priority behavioral baseline.
-- `codex-intent-context-analyzer`: Request parsing into structured intent JSON.
-- `codex-plan-writer`: Plan file generation for medium/large tasks.
-- `codex-workflow-autopilot`: Workflow routing and behavioral mode selection.
-- `codex-domain-specialist`: Layered domain routing with context boundaries.
-- `codex-execution-quality-gate`: Verification checks (lint, tests, security, audits).
-- `codex-project-memory`: Decisions, handoff, session summaries, and learning loops.
-- `codex-docs-change-sync`: Code-diff to documentation candidate mapping.
-- `codex-doc-renderer`: DOCX-focused document rendering utility.
-
 ## Installation
 
-Copy the `skills/` directory into your Codex home.
+Copy the full `skills/` content into your Codex home.
 
 ### Windows (PowerShell)
 
@@ -69,48 +84,68 @@ Copy-Item -Recurse -Force ".\skills\*" "$env:USERPROFILE\.codex\skills\"
 cp -R ./skills/* "$HOME/.codex/skills/"
 ```
 
-## Quick Commands
+## High-Value Commands
 
-- Quality gate: `$codex-execution-quality-gate`
-- Pre-commit checks: `$pre-commit`
-- Smart test selection: `$smart-test`
-- Impact prediction: `$impact`
-- Decision logging: `$log-decision`
-- Session summary: `$session-summary`
-- Handoff export: `$handoff`
-- Changelog generation: `$changelog`
-- Growth report: `$growth-report`
-- Teaching mode: `$teach`
+| Use Case | Command |
+| --- | --- |
+| Environment check | `$codex-doctor` |
+| Generate project genome | `$codex-genome` |
+| Compact old memory files | `$compact-context` |
+| Run quality gate | `$codex-execution-quality-gate` |
+| Log decision | `$log-decision` |
+| Session summary | `$session-summary` |
+| Generate changelog | `$changelog` |
+| Auto commit/push | `python auto_commit.py --project-root <path> --files <files...>` |
 
-## Local Validation
+## Validation
 
-Run smoke tests for script availability and help contracts:
+Run smoke tests from repo root:
 
 ```bash
 python skills/tests/smoke_test.py --verbose
 ```
 
-## Requirements
+Expected result: all checks pass (`32/32` at version `8.2.0`).
 
-- Python 3.8+
+## Dependencies
+
+### Core Pack
+
+- Python `3.10+` recommended
 - Git
-- Node.js/npm (for Lighthouse/Playwright wrappers and related checks)
 
-## Versioning
+### Optional Runtime Tools
 
-Current skill pack version is tracked in `skills/VERSION`.
+- Node.js/npm/npx (Playwright, Lighthouse, JS quality gates)
+- GPG (for `codex-git-autopilot` verified commit workflow)
+- Poppler + `pdf2image` (for `codex-doc-renderer`)
 
-## Contributing
+Install `pdf2image`:
 
-1. Keep behavior changes in `SKILL.md` first.
-2. Add scripts only for real tool/runtime execution.
-3. Prefer deterministic JSON output for script contracts.
-4. Update references and README when adding new capabilities.
+```bash
+pip install pdf2image
+```
 
-## Security and Privacy
+## Versioning and Release Notes
 
-Project-memory artifacts are local by default under `<project-root>/.codex/`. Review generated handoff/summary files before sharing externally.
+- Current version: `skills/VERSION`
+- Detailed history: `skills/CHANGELOG.md`
+- Semantic versioning is used for pack-level releases
+
+## Contribution Guidelines
+
+1. Update behavior contracts in `SKILL.md` first.
+2. Keep script outputs machine-readable (JSON-first).
+3. Add/adjust tests for new scripts or contract changes.
+4. Run smoke test before commit.
+5. Keep docs synchronized (`README`, `CHANGELOG`, relevant skill docs).
+
+## Security and Data Scope
+
+- Project memory is stored locally in `<project-root>/.codex/`.
+- Review generated summaries/handoffs before external sharing.
+- Do not commit sensitive data from `.codex/` artifacts into product repositories.
 
 ## License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+MIT. See `LICENSE`.
