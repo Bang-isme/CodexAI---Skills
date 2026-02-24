@@ -55,9 +55,10 @@ def emit(payload: Dict[str, object], exit_code: int = 0) -> None:
 
 
 def run_command(args: Sequence[str], cwd: Optional[Path] = None, timeout: int = 300) -> Tuple[Optional[subprocess.CompletedProcess], Optional[str]]:
+    cmd_list = list(args)
     try:
         process = subprocess.run(
-            list(args),
+            cmd_list,
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -71,7 +72,7 @@ def run_command(args: Sequence[str], cwd: Optional[Path] = None, timeout: int = 
     except FileNotFoundError:
         if os.name == "nt":
             try:
-                cmd = subprocess.list2cmdline(list(args))
+                cmd = subprocess.list2cmdline(cmd_list)
                 process = subprocess.run(
                     cmd,
                     cwd=cwd,
@@ -94,7 +95,7 @@ def run_command(args: Sequence[str], cwd: Optional[Path] = None, timeout: int = 
 
 
 def detect_playwright(project_root: Path) -> Tuple[bool, str]:
-    process, error = run_command(["npx", "playwright", "--version"], cwd=project_root, timeout=60)
+    process, error = run_command(["npx", "playwright", "--version"], cwd=project_root, timeout=300)
     if error is not None or process is None:
         return False, ""
     if process.returncode != 0:
@@ -140,7 +141,7 @@ def count_test_files(test_dir: Path) -> int:
 
 
 def browser_install_status(project_root: Path, browser: str) -> bool:
-    process, error = run_command(["npx", "playwright", "install", "--dry-run", browser], cwd=project_root, timeout=120)
+    process, error = run_command(["npx", "playwright", "install", "--dry-run", browser], cwd=project_root, timeout=300)
     if error is not None or process is None or process.returncode != 0:
         return False
     output = ((process.stdout or "") + "\n" + (process.stderr or "")).lower()

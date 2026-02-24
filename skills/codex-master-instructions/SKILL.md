@@ -32,6 +32,23 @@ Before acting, classify the request:
 | debug | error, bug, broken, not working | reproduce, isolate, root-cause, fix, test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
 
+## Context Loading Rule
+
+Before acting on any code-change request:
+1. Check if `.codex/context/genome.md` exists in the project root.
+2. If yes, read it first - this is your project briefing.
+3. If project has 50+ files and no genome.md exists, suggest: "This project has [N] files. Run `$codex-genome` to generate a project context map for better accuracy."
+
+### Auto-Commit Rule
+
+After completing a code change task, offer to commit using `auto_commit.py`:
+
+```bash
+python auto_commit.py --project-root <project> --files <changed_files>
+```
+
+Only commit files directly related to the current task. Use `--dry-run` first if uncertain.
+
 ## Design-Before-Code Gate (HARD-GATE)
 
 For `complex-code` and `refactor` requests:
@@ -290,11 +307,12 @@ Task type -> Code change?
     `- No code -> skip quality gate
 ```
 
-## Core Script Inventory (28)
+## Core Script Inventory (30)
 
 | Script | Purpose | Usage |
 | --- | --- | --- |
 | `map_changes_to_docs.py` | map code changes to docs candidates | `python "...\\codex-docs-change-sync\\scripts\\map_changes_to_docs.py" --project-root <path> --diff-scope auto` |
+| `auto_commit.py` | task-scoped auto-commit with gate, GPG sign, and push | `python "...\\codex-git-autopilot\\scripts\\auto_commit.py" --project-root <path> --files <file1> <file2>` |
 | `run_gate.py` | lint/test gate evaluation | `python "...\\codex-execution-quality-gate\\scripts\\run_gate.py" --project-root <path>` |
 | `doctor.py` | Environment tool dependency check | `python "...\\codex-execution-quality-gate\\scripts\\doctor.py"` |
 | `security_scan.py` | static security checks | `python "...\\codex-execution-quality-gate\\scripts\\security_scan.py" --project-root <path>` |
@@ -317,6 +335,7 @@ Task type -> Code change?
 | `track_feedback.py` | log/aggregate AI feedback corrections | `python "...\\codex-project-memory\\scripts\\track_feedback.py" --project-root <path> --aggregate` |
 | `track_skill_usage.py` | usage analytics for skill effectiveness | `python "...\\codex-project-memory\\scripts\\track_skill_usage.py" --skills-root <skills-root> --report` |
 | `build_knowledge_graph.py` | build dependency/data-flow graph | `python "...\\codex-project-memory\\scripts\\build_knowledge_graph.py" --project-root <path>` |
+| `generate_genome.py` | Generate multi-layer project context docs | `python "...\\codex-project-memory\\scripts\\generate_genome.py" --project-root <path>` |
 | `generate_changelog.py` | generate user-facing changelog from commits | `python "...\\codex-project-memory\\scripts\\generate_changelog.py" --project-root <path> --since \"30 days ago\"` |
 | `generate_growth_report.py` | aggregate feedback/session/usage growth report | `python "...\\codex-project-memory\\scripts\\generate_growth_report.py" --project-root <path> --skills-root <skills-root>` |
 | `compact_context.py` | Archive old memory files to reduce context | `python "...\\codex-project-memory\\scripts\\compact_context.py" --project-root <path>` |

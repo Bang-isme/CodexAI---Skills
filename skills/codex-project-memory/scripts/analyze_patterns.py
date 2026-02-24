@@ -133,9 +133,20 @@ DATA_FETCH_PATTERNS = {
     "custom-hooks": ["useFetch(", "useApi("],
 }
 ROUTING_PATTERNS = {
-    "express-router": ["express.Router(", "router.", "app.use("],
+    "express-router": [
+        "express.Router(",
+        "router.get(",
+        "router.post(",
+        "router.put(",
+        "router.delete(",
+        "app.get(",
+        "app.post(",
+        "app.listen(",
+    ],
     "nextjs-app-router": ["next/navigation", "/app/", "route.ts", "route.js"],
     "react-router": ["react-router", "BrowserRouter", "createBrowserRouter", "<Routes"],
+    "fastapi": ["from fastapi", "FastAPI(", "APIRouter("],
+    "django": ["urlpatterns", "from django", "django.urls", "views.py"],
 }
 ORM_PATTERNS = {
     "mongoose": ["mongoose", "Schema(", ".find(", ".aggregate("],
@@ -145,8 +156,8 @@ ORM_PATTERNS = {
     "raw-queries": ["SELECT ", "INSERT ", "UPDATE ", "DELETE FROM"],
 }
 AUTH_PATTERNS = {
-    "jwt": ["jsonwebtoken", "jwt.sign", "jwt.verify", "bearer "],
-    "session": ["express-session", "req.session", "session("],
+    "jwt": ["jsonwebtoken", "jwt.sign", "jwt.verify", "jwt.decode", "jwt", "bcrypt", "bearer", "authorization"],
+    "session": ["express-session", "req.session", "session(", "cookie-session"],
     "oauth": ["passport", "oauth", "openid", "google strategy"],
 }
 
@@ -381,6 +392,20 @@ def count_keyword_score(content: str, mapping: Dict[str, List[str]]) -> str:
     return best[0] if best[1] > 0 else "unknown"
 
 
+def count_keyword_scores_multi(content: str, mapping: Dict[str, List[str]]) -> List[str]:
+    """Return all labels with positive match scores, sorted by score descending."""
+    scores: Dict[str, int] = {}
+    for label, keywords in mapping.items():
+        score = 0
+        for keyword in keywords:
+            score += content.count(keyword.lower())
+        if score > 0:
+            scores[label] = score
+    if not scores:
+        return []
+    return [label for label, _ in sorted(scores.items(), key=lambda item: item[1], reverse=True)]
+
+
 def sanitize_line_for_semicolon(line: str) -> Optional[str]:
     stripped = line.strip()
     if not stripped:
@@ -611,11 +636,36 @@ def analyze(project_root: Path, sample_size: int) -> Dict[str, object]:
     avg_file_lines = round(total_file_lines / files_analyzed, 2) if files_analyzed else 0
     avg_functions = round(sum(function_counts) / len(function_counts), 2) if function_counts else 0
 
-    state = count_keyword_score(combined_content, STATE_PATTERNS)
-    data_fetching = count_keyword_score(combined_content, DATA_FETCH_PATTERNS)
-    routing = count_keyword_score(combined_content, ROUTING_PATTERNS)
-    orm = count_keyword_score(combined_content, ORM_PATTERNS)
-    auth = count_keyword_score(combined_content, AUTH_PATTERNS)
+    state_all = count_keyword_scores_multi(combined_content, STATE_PATTERNS)
+    data_fetching_all = count_keyword_scores_multi(combined_content, DATA_FETCH_PATTERNS)
+    routing_all = count_keyword_scores_multi(combined_content, ROUTING_PATTERNS)
+    orm_all = count_keyword_scores_multi(combined_content, ORM_PATTERNS)
+    auth_all = count_keyword_scores_multi(combined_content, AUTH_PATTERNS)
+
+    state_all_raw = list(state_all)
+    entry_point = detect_entry_point(project_root)
+    is_backend = False
+    if entry_point and entry_point != "unknown":
+        entry_path = project_root / entry_point
+        if entry_path.exists():
+            try:
+                entry_content = entry_path.read_text(encoding="utf-8", errors="ignore").lower()
+                if "listen(" in entry_content or "createserver(" in entry_content or "app.use(" in entry_content:
+                    is_backend = True
+            except OSError:
+                pass
+
+    if is_backend:
+        frontend_only_states = {"useState", "useReducer", "Redux", "Zustand", "Pinia"}
+        state_all = [label for label in state_all if label not in frontend_only_states]
+
+    state = state_all[0] if state_all else "unknown"
+    data_fetching = data_fetching_all[0] if data_fetching_all else "unknown"
+    routing = routing_all[0] if routing_all else "unknown"
+    orm = orm_all[0] if orm_all else "unknown"
+    auth = auth_all[0] if auth_all else "unknown"
+    if is_backend and not state_all:
+        state = "none (backend)"
 
     confidence_score = 0
     if files_analyzed >= min(sample_size, 10):
@@ -649,7 +699,7 @@ def analyze(project_root: Path, sample_size: int) -> Dict[str, object]:
             "avg_file_lines": avg_file_lines,
             "avg_functions_per_file": avg_functions,
             "directories": detect_structure_directories(project_root),
-            "entry_point": detect_entry_point(project_root),
+            "entry_point": entry_point,
         },
         "imports": {
             "module_system": module_system,
@@ -670,10 +720,16 @@ def analyze(project_root: Path, sample_size: int) -> Dict[str, object]:
         },
         "patterns": {
             "state_management": state,
+            "state_management_all": state_all,
+            "state_management_all_raw": state_all_raw,
             "data_fetching": data_fetching,
+            "data_fetching_all": data_fetching_all,
             "routing": routing,
+            "routing_all": routing_all,
             "orm": orm,
+            "orm_all": orm_all,
             "auth": auth,
+            "auth_all": auth_all,
         },
         "confidence": confidence,
     }

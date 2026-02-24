@@ -82,15 +82,24 @@ def emit(payload: Dict[str, object]) -> None:
 
 
 def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=["git", *args],
+            returncode=1,
+            stdout="",
+            stderr="git timeout",
+        )
 
 
 def git_ready(project_root: Path) -> bool:

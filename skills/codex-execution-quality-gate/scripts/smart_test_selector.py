@@ -66,27 +66,33 @@ def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def git_ready(project_root: Path) -> bool:
     inside = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if inside is None:
+        return False
     return inside.returncode == 0 and inside.stdout.strip().lower() == "true"
 
 
 def detect_base_branch(project_root: Path) -> Optional[str]:
     for candidate in ("main", "master"):
         result = run_git(project_root, ["rev-parse", "--verify", candidate])
-        if result.returncode == 0:
+        if result is not None and result.returncode == 0:
             return candidate
     return None
 
@@ -102,7 +108,7 @@ def get_changed_files_from_git(project_root: Path, source: str) -> List[str]:
             return []
         cmd = ["diff", "--name-only", f"{base}...HEAD"]
     result = run_git(project_root, cmd)
-    if result.returncode != 0:
+    if result is None or result.returncode != 0:
         return []
     files = [line.strip().replace("\\", "/") for line in result.stdout.splitlines() if line.strip()]
     return sorted(dict.fromkeys(files))
@@ -302,9 +308,16 @@ def run_command(project_root: Path, parts: List[str]) -> Dict[str, object]:
             errors="replace",
             shell=shell,
             check=False,
+            timeout=300,
         )
     except FileNotFoundError:
         return {"ok": False, "error": "runner not found", "duration_ms": int((time.perf_counter() - start) * 1000)}
+    except subprocess.TimeoutExpired:
+        return {
+            "ok": False,
+            "error": "test runner timed out after 300s",
+            "duration_ms": int((time.perf_counter() - start) * 1000),
+        }
     except OSError as exc:
         return {"ok": False, "error": str(exc), "duration_ms": int((time.perf_counter() - start) * 1000)}
 

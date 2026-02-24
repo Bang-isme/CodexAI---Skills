@@ -98,13 +98,18 @@ def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int) -> int:
 
 
 def run_cmd_no_check(cmd: list[str]) -> None:
-    subprocess.run(
-        cmd,
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        env=os.environ.copy(),
-    )
+    env_copy = os.environ.copy()
+    try:
+        subprocess.run(
+            cmd,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=120,
+            env=env_copy,
+        )
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def convert_to_pdf(

@@ -48,23 +48,29 @@ def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False))
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def git_ready(project_root: Path) -> bool:
     version = run_git(project_root, ["--version"])
-    if version.returncode != 0:
+    if version is None or version.returncode != 0:
         return False
     inside = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if inside is None:
+        return False
     return inside.returncode == 0 and inside.stdout.strip().lower() == "true"
 
 
@@ -302,16 +308,22 @@ def generate_summary(project_root: Path, since_raw: str, output_dir: Path) -> Di
     since_git = since_dt.isoformat(sep=" ")
 
     commit_log = run_git(project_root, ["log", f"--since={since_git}", "--pretty=format:%H|%cI|%s"])
+    if commit_log is None:
+        raise RuntimeError("git log timed out after 60s")
     if commit_log.returncode != 0:
         raise RuntimeError((commit_log.stderr or commit_log.stdout).strip() or "git log failed")
     commits = parse_commit_rows(commit_log.stdout)
 
     numstat_result = run_git(project_root, ["log", f"--since={since_git}", "--pretty=tformat:", "--numstat"])
+    if numstat_result is None:
+        raise RuntimeError("git log --numstat timed out after 60s")
     if numstat_result.returncode != 0:
         raise RuntimeError((numstat_result.stderr or numstat_result.stdout).strip() or "git log --numstat failed")
     per_file_stats, total_added, total_deleted = aggregate_numstat(numstat_result.stdout)
 
     status_result = run_git(project_root, ["log", f"--since={since_git}", "--pretty=tformat:", "--name-status"])
+    if status_result is None:
+        raise RuntimeError("git log --name-status timed out after 60s")
     if status_result.returncode != 0:
         raise RuntimeError((status_result.stderr or status_result.stdout).strip() or "git log --name-status failed")
     modified, new_files, deleted = aggregate_name_status(status_result.stdout)

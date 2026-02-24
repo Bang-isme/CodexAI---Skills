@@ -122,20 +122,26 @@ def safe_read(path: Path) -> str:
         return ""
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def git_ready(project_root: Path) -> bool:
     check = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if check is None:
+        return False
     return check.returncode == 0 and check.stdout.strip().lower() == "true"
 
 
@@ -486,12 +492,19 @@ def generate_handoff(
     if include_git_status and git_ok:
         lines.append("## Recent Changes (git)")
         log_result = run_git(project_root, ["log", "--oneline", "-10"])
-        if log_result.returncode == 0 and log_result.stdout.strip():
+        if log_result is None:
+            lines.append("Recent commit list timed out after 60s.")
+            warnings.append("Git log command timed out after 60s; skipped commit list.")
+        elif log_result.returncode == 0 and log_result.stdout.strip():
             lines.append(log_result.stdout.strip())
         else:
             lines.append("No recent commits found.")
         status_result = run_git(project_root, ["status", "--short"])
-        status_text = status_result.stdout.strip() if status_result.returncode == 0 else ""
+        if status_result is None:
+            status_text = ""
+            warnings.append("Git status command timed out after 60s; skipped uncommitted changes.")
+        else:
+            status_text = status_result.stdout.strip() if status_result.returncode == 0 else ""
         if status_text:
             lines.append("")
             lines.append("Uncommitted changes:")

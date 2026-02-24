@@ -92,11 +92,14 @@ def main() -> int:
 
         emit({"status": "ready", "servers": args.servers, "ports": args.ports, "timeout": args.timeout})
 
-        run_proc = subprocess.run(command, check=False)
+        run_proc = subprocess.run(command, check=False, timeout=600)
         emit({"status": "completed", "command": command, "exit_code": run_proc.returncode})
         return int(run_proc.returncode)
     except RuntimeError as exc:
         emit({"status": "error", "message": str(exc)})
+        return 1
+    except subprocess.TimeoutExpired:
+        emit({"status": "error", "message": "Command timed out after 600s."})
         return 1
     except OSError as exc:
         emit({"status": "error", "message": f"Process execution failed: {exc}"})

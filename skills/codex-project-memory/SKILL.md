@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-10 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph. Maintain -> compact old context. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`, `$compact-context`.
+11 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph/project-genome. Maintain -> compact old context. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`, `$compact-context`, `$codex-genome`.
 
 # Codex Project Memory
 
@@ -24,6 +24,7 @@ load_priority: on-demand
 11. Activate on `$changelog` to generate release-oriented commit summaries.
 12. Activate on `$growth-report` to generate a developer growth report.
 13. Activate on `$compact-context` or "clean up old sessions".
+14. Activate on `$codex-genome` or `$generate-genome` to create layered project context docs.
 
 ## Decision Tree Routing
 
@@ -42,7 +43,8 @@ User intent -> Memory action?
     |
     |- Analyze -> What?
     |   |- Patterns -> analyze_patterns.py
-    |   `- Dependencies -> build_knowledge_graph.py
+    |   |- Dependencies -> build_knowledge_graph.py
+    |   `- Context genome -> generate_genome.py
     |
     |- Maintain -> What?
     |   `- Compact old memory -> compact_context.py
@@ -119,6 +121,13 @@ User intent -> Memory action?
 2. Run `scripts/build_knowledge_graph.py`.
 3. Default output: `<project-root>/.codex/knowledge-graph.json`.
 4. Before complex refactors, read `knowledge-graph.json` first to understand boundaries and dependencies.
+
+### Project Genome Generator
+
+1. Trigger when user asks for compressed, layered project context.
+2. Run `scripts/generate_genome.py`.
+3. Default output: `<project-root>/.codex/context/genome.md` and optional module maps in `.codex/context/modules/`.
+4. Use `--depth auto|shallow|full` for scale-aware output and `--force` to refresh stale context.
 
 ### Chaining Guidance
 
@@ -199,6 +208,25 @@ User intent -> Memory action?
   `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\build_knowledge_graph.py" --project-root <path>`
 - macOS/Linux:
   `python "$HOME/.codex/skills/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
+
+### Project Genome Generator
+
+- Windows:
+  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_genome.py" --project-root <path>`
+- macOS/Linux:
+  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
+- Options:
+  `--depth auto|shallow|full` (default: auto), `--force` to regenerate
+- Output:
+  JSON summary + `.codex/context/genome.md` and optional `.codex/context/modules/*.md`
+
+### auto_commit.py
+
+- **Skill**: `codex-git-autopilot`
+- **Purpose**: Automated commit with CI gate + GPG signing
+- **Command**: `python auto_commit.py --project-root <dir> --files <file1> <file2>`
+- **Options**: `--dry-run`, `--skip-tests`, `--no-push`, `--setup-gpg`, `--message`, `--type`, `--scope`
+- **Output**: JSON with commit hash, push status, GPG status
 
 ### Context Compactor
 

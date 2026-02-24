@@ -50,28 +50,36 @@ def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=True, indent=2))
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def git_ready(project_root: Path) -> bool:
     version = run_git(project_root, ["--version"])
-    if version.returncode != 0:
+    if version is None or version.returncode != 0:
         return False
     inside = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if inside is None:
+        return False
     return inside.returncode == 0 and inside.stdout.strip().lower() == "true"
 
 
 def latest_tag(project_root: Path) -> Optional[str]:
     proc = run_git(project_root, ["describe", "--tags", "--abbrev=0"])
+    if proc is None:
+        return None
     if proc.returncode != 0:
         return None
     tag = proc.stdout.strip()
@@ -181,6 +189,9 @@ def main() -> int:
 
     log_args, effective_since = build_log_args(project_root, args.since)
     log_proc = run_git(project_root, log_args)
+    if log_proc is None:
+        emit({"status": "error", "message": "git log timed out after 60s", "since": effective_since})
+        return 1
     if log_proc.returncode != 0:
         detail = (log_proc.stderr or log_proc.stdout).strip() or "git log failed"
         emit({"status": "error", "message": detail, "since": effective_since})

@@ -93,20 +93,26 @@ def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def git_ready(project_root: Path) -> bool:
     result = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if result is None:
+        return False
     return result.returncode == 0 and result.stdout.strip().lower() == "true"
 
 
@@ -125,7 +131,7 @@ def changed_files_from_git(project_root: Path, source: str) -> List[str]:
     else:
         args = ["show", "--name-only", "--pretty=format:", "HEAD"]
     result = run_git(project_root, args)
-    if result.returncode != 0:
+    if result is None or result.returncode != 0:
         return []
     files = [line.strip().replace("\\", "/") for line in result.stdout.splitlines() if line.strip()]
     return sorted(dict.fromkeys(files))
@@ -177,7 +183,7 @@ def added_lines_from_git(project_root: Path, source: str) -> Dict[str, Set[int]]
     else:
         args = ["show", "--unified=0", "--no-color", "--pretty=format:", "HEAD"]
     result = run_git(project_root, args)
-    if result.returncode != 0:
+    if result is None or result.returncode != 0:
         return {}
     return parse_added_lines(result.stdout)
 

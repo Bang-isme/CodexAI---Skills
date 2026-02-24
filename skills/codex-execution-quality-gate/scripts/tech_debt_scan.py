@@ -129,8 +129,16 @@ def collect_code_files(root: Path) -> List[Path]:
 
 def git_available() -> bool:
     try:
-        result = subprocess.run(["git", "--version"], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            ["git", "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
         return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
     except OSError:
         return False
 
@@ -143,7 +151,10 @@ def inside_git_repo(root: Path) -> bool:
             capture_output=True,
             text=True,
             check=False,
+            timeout=60,
         )
+    except subprocess.TimeoutExpired:
+        return False
     except OSError:
         return False
     return result.returncode == 0 and result.stdout.strip().lower() == "true"
@@ -200,10 +211,10 @@ def load_blame_times(
             encoding="utf-8",
             errors="replace",
             check=False,
-            timeout=20,
+            timeout=60,
         )
     except subprocess.TimeoutExpired:
-        warnings.append(f"Git blame timed out for {rel}; TODO age fallback applied.")
+        warnings.append(f"Git blame timed out (60s) for {rel}; TODO age fallback applied.")
         blame_cache[rel] = {}
         return {}
     except OSError as exc:

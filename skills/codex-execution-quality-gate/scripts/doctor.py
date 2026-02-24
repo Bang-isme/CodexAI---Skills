@@ -106,9 +106,10 @@ def tool_specs() -> List[ToolSpec]:
 
 
 def run_command(command: Sequence[str]) -> Tuple[bool, str]:
+    cmd = list(command)
     try:
         result = subprocess.run(
-            list(command),
+            cmd,
             capture_output=True,
             text=True,
             encoding="utf-8",

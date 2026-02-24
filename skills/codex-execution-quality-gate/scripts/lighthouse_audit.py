@@ -76,9 +76,10 @@ def parse_categories(raw: str) -> List[str]:
 
 
 def run_command(args: Sequence[str], timeout: int = 300) -> Tuple[Optional[subprocess.CompletedProcess], Optional[str]]:
+    cmd_list = list(args)
     try:
         process = subprocess.run(
-            list(args),
+            cmd_list,
             capture_output=True,
             text=True,
             encoding="utf-8",

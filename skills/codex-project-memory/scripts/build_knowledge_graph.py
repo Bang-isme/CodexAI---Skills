@@ -283,7 +283,11 @@ def module_name(rel_file: str) -> str:
         if hint in lowered:
             return "middlewares" if hint == "middleware" else hint
     if lowered[0] in {"src", "app", "server", "backend", "frontend", "lib"} and len(lowered) > 1:
+        if len(lowered) == 2 and Path(parts[1]).suffix:
+            return "root"
         return lowered[1]
+    if len(parts) == 1:
+        return "root"
     return lowered[0]
 
 
@@ -539,6 +543,45 @@ def extract_first_object_block(text: str, start_pos: int) -> str:
 
 
 def extract_keys_from_block(block: str) -> List[str]:
+    schema_meta_keys = {
+        # Mongoose meta
+        "type",
+        "required",
+        "default",
+        "ref",
+        "unique",
+        "validate",
+        "index",
+        "sparse",
+        "enum",
+        "min",
+        "max",
+        "minlength",
+        "maxlength",
+        "lowercase",
+        "uppercase",
+        "trim",
+        "match",
+        "alias",
+        "immutable",
+        "select",
+        "get",
+        "set",
+        "transform",
+        "expires",
+        # Sequelize meta
+        "allownull",
+        "primarykey",
+        "autoincrement",
+        "defaultvalue",
+        "references",
+        "ondelete",
+        "onupdate",
+        "field",
+        "comment",
+        "constraints",
+        "through",
+    }
     keys: List[str] = []
     for line in block.splitlines():
         stripped = line.strip()
@@ -548,7 +591,7 @@ def extract_keys_from_block(block: str) -> List[str]:
         if not match:
             continue
         key = match.group(1)
-        if key.lower() in {"type", "required", "default", "ref", "allowNull", "primaryKey", "unique", "validate"}:
+        if key.lower() in schema_meta_keys:
             continue
         keys.append(key)
     deduped = sorted(dict.fromkeys(keys))
@@ -612,6 +655,9 @@ def build_data_model_map(
         lower = rel.lower()
         if "/models/" not in lower and "model" not in Path(rel).stem.lower():
             continue
+        stem_lower = Path(rel).stem.lower()
+        if stem_lower in {"index", "init", "setup", "associations", "connection"}:
+            continue
         content = raw_content.get(rel, "")
         if not content:
             continue
@@ -620,7 +666,7 @@ def build_data_model_map(
         model_name = detect_model_name(rel, content)
 
         block = ""
-        schema_match = re.search(r"new\s+Schema\s*\(", content)
+        schema_match = re.search(r"new\s+(?:mongoose\.)?Schema\s*\(", content)
         define_match = re.search(r"sequelize\.define\s*\(", content)
         init_match = re.search(r"\.init\s*\(", content)
         if schema_match:

@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple
 SKILLS_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS: List[Tuple[str, str]] = [
     ("codex-docs-change-sync", "scripts/map_changes_to_docs.py"),
+    ("codex-git-autopilot", "scripts/auto_commit.py"),
     ("codex-execution-quality-gate", "scripts/accessibility_check.py"),
     ("codex-execution-quality-gate", "scripts/bundle_check.py"),
     ("codex-execution-quality-gate", "scripts/doctor.py"),
@@ -38,6 +39,7 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-project-memory", "scripts/decision_logger.py"),
     ("codex-project-memory", "scripts/generate_changelog.py"),
     ("codex-project-memory", "scripts/generate_growth_report.py"),
+    ("codex-project-memory", "scripts/generate_genome.py"),
     ("codex-project-memory", "scripts/generate_handoff.py"),
     ("codex-project-memory", "scripts/generate_session_summary.py"),
     ("codex-project-memory", "scripts/track_feedback.py"),
@@ -48,9 +50,10 @@ SCRIPTS: List[Tuple[str, str]] = [
 
 
 def run_help(script_path: Path) -> Tuple[bool, str]:
+    command = [sys.executable, str(script_path), "--help"]
     try:
         result = subprocess.run(
-            [sys.executable, str(script_path), "--help"],
+            command,
             capture_output=True,
             text=True,
             timeout=10,

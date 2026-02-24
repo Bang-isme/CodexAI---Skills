@@ -51,31 +51,37 @@ LOW_VALUE_TOKENS = {
 }
 
 
-def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *args],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.CompletedProcess]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return None
 
 
 def is_git_repo(project_root: Path) -> bool:
     result = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
+    if result is None:
+        return False
     return result.returncode == 0 and result.stdout.strip().lower() == "true"
 
 
 def detect_default_branch(project_root: Path) -> str:
     symbolic = run_git(project_root, ["symbolic-ref", "refs/remotes/origin/HEAD"])
-    if symbolic.returncode == 0:
+    if symbolic is not None and symbolic.returncode == 0:
         ref = symbolic.stdout.strip()
         if ref:
             return ref.rsplit("/", 1)[-1]
 
     for candidate in ("main", "master"):
         check = run_git(project_root, ["rev-parse", "--verify", candidate])
-        if check.returncode == 0:
+        if check is not None and check.returncode == 0:
             return candidate
 
     return "main"
@@ -97,6 +103,8 @@ def parse_changed_output(raw_output: str) -> List[str]:
 
 def has_head_commit(project_root: Path) -> bool:
     result = run_git(project_root, ["rev-parse", "--verify", "HEAD"])
+    if result is None:
+        return False
     return result.returncode == 0
 
 
@@ -134,9 +142,22 @@ def get_changed_files(project_root: Path, scope: str) -> Tuple[List[str], List[s
         raise ValueError(f"Unsupported diff scope: {scope}")
 
     result = run_git(project_root, cmd)
+    if result is None:
+        if scope == "branch":
+            notes.append(
+                "Branch comparison timed out. Falling back to last-commit scope."
+            )
+            fallback_files, fallback_notes = get_changed_files(project_root, "last-commit")
+            notes.extend(fallback_notes)
+            notes.append("Fallback scope used: last-commit")
+            return fallback_files, notes
+        raise RuntimeError("git command timed out after 60s")
+
     if result.returncode != 0:
         if scope == "last-commit":
             fallback_result = run_git(project_root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", "HEAD"])
+            if fallback_result is None:
+                raise RuntimeError("git diff-tree timed out after 60s")
             if fallback_result.returncode == 0:
                 notes.append("last-commit fallback used: git diff-tree --root HEAD")
                 return parse_changed_output(fallback_result.stdout), notes
