@@ -1,4 +1,5 @@
-﻿# CodexAI Skill Pack
+<img width="1536" height="1024" alt="ChatGPT Image Feb 25, 2026, 03_25_19 AM" src="https://github.com/user-attachments/assets/66d28c0d-dece-48dc-ae33-2272a13d5e99" />
+ # CodexAI Skill Pack
 
 A production-grade skill framework for OpenAI Codex.
 This pack standardizes how Codex handles engineering work from request intake to verified delivery.
