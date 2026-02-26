@@ -1,0 +1,129 @@
+# ============================================
+# SECURITY CI PIPELINE — Full DevSecOps
+# ============================================
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly full scan Monday 6AM
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  # ---- Pre-flight: Secret Detection ----
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Detect secrets in git history
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  # ---- SAST: Static Code Analysis ----
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/nodejs
+            p/javascript
+
+  # ---- SCA: Dependency Vulnerabilities ----
+  sca:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
+      - name: Snyk test
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # ---- Container Security ----
+  container:
+    runs-on: ubuntu-latest
+    needs: [sast, sca]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t app:${{ github.sha }} .
+      - name: Hadolint (Dockerfile lint)
+        uses: hadolint/hadolint-action@v3.1.0
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: app:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: sarif
+          output: trivy.sarif
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+  # ---- IaC Security ----
+  iac:
+    runs-on: ubuntu-latest
+    if: hashFiles('terraform/**') != '' || hashFiles('k8s/**') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        if: hashFiles('terraform/**') != ''
+        with:
+          minimum_severity: HIGH
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform,dockerfile,kubernetes
+
+  # ---- License Compliance ----
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - name: Check licenses
+        run: npx license-checker --production --failOn 'GPL-3.0;AGPL-3.0'
+
+  # ---- DAST (weekly only — slow) ----
+  dast:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    needs: [container]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start application
+        run: |
+          docker compose -f docker-compose.test.yml up -d
+          sleep 15
+      - name: ZAP API scan
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          target: http://localhost:3000/api-docs.json
+          format: openapi
+      - name: Stop application
+        if: always()
+        run: docker compose -f docker-compose.test.yml down

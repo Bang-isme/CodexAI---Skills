@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.3.0] - 2026-02-27
+
+### Added (codex-security-specialist)
+- 4 DevSecOps references:
+  - `devsecops-pipeline.md`: shift-left pipeline architecture, pre-commit hooks, CI/CD security stages, gate policy, metrics
+  - `sast-dast-sca.md`: Semgrep/SonarQube/CodeQL setup, ZAP DAST in CI, Snyk/npm audit SCA, custom rules, suppression policy
+  - `iac-security.md`: tfsec/Checkov/Terrascan, common misconfigs, secure Terraform patterns (S3, RDS), IaC CI pipeline
+  - `supply-chain-security.md`: attack vectors (typosquatting, dependency confusion), 6 defense layers, SBOM, Sigstore, emergency response
+- 2 starters:
+  - `security-ci-pipeline.yml`: full DevSecOps GitHub Actions (secrets + SAST + SCA + container + IaC + license + DAST)
+  - `security-headers.js`: comprehensive Express security headers with helmet + custom policies
+
 ## [10.2.0] - 2026-02-27
 
 ### Added (codex-security-specialist)
