@@ -1,240 +1,257 @@
-<img width="1536" height="1024" alt="ChatGPT Image Feb 25, 2026, 03_25_19 AM" src="https://github.com/user-attachments/assets/66d28c0d-dece-48dc-ae33-2272a13d5e99" />
- # CodexAI Skill Pack
+# CodexAI Skill Pack
 
-A production-grade skill framework for OpenAI Codex.
-This pack standardizes how Codex handles engineering work from request intake to verified delivery.
+> **Production-ready instruction framework for Codex** — deterministic workflows, intelligent domain routing, pre-delivery quality gates, and persistent project memory across sessions.
 
-## Executive Summary
+[![Version](https://img.shields.io/badge/version-10.5.2-blue)]() [![Tests](https://img.shields.io/badge/pytest-39%2F39%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-32%2F32%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-CodexAI Skill Pack adds a structured operating model to Codex:
-- Understand intent before coding.
-- Use plans for complex work.
-- Apply domain-specific guidance only when relevant.
-- Enforce verification before completion claims.
-- Persist project memory across sessions.
-- Automate safe commit workflows with optional GPG signing.
+---
 
-Current baseline:
-- Pack version: `8.2.0`
-- Core skill folders: `11`
-- System skill folders: `2`
-- Core script inventory: `30`
-- Smoke test baseline: `32/32` checks passing
+## Overview
 
-## Why This Exists
+CodexAI Skill Pack transforms Codex from an ad-hoc code assistant into a **structured engineering partner**. Instead of relying on prompt quality, the pack enforces a repeatable pipeline: understand intent → plan → route to domain expertise → implement → verify → persist knowledge.
 
-Without explicit workflow constraints, AI coding tends to drift:
-- weak requirement interpretation
-- inconsistent validation
-- context loss across sessions
-- low trust in completion claims
+### Key Stats
 
-This pack addresses those failure modes with deterministic skill contracts (`SKILL.md`) and script-backed verification.
+| Metric | Value |
+| --- | --- |
+| Core Skills | 12 |
+| CLI Scripts | 30 |
+| Reference Docs | 127 (59 fullstack + 30 security + 38 other) |
+| Starter Templates | 29 (19 fullstack + 10 security) |
+| Test Coverage | 39 unit + 32 smoke = 71 tests |
+
+---
+
+## Why It Matters
+
+| Problem Without Pack | Solution With Pack |
+| --- | --- |
+| AI drifts from requirements mid-task | **Intent Analyzer** locks goal + constraints before code |
+| No pre-delivery verification | **Quality Gate** enforces lint, tests, security, a11y checks |
+| Knowledge lost between sessions | **Project Memory** persists decisions, context, handoff docs |
+| Generic advice, no domain depth | **Domain Specialist** routes to 59 focused references |
+| Security as afterthought | **Security Specialist** applies defense-in-depth from 30 references |
+| Inconsistent commit quality | **Git Autopilot** enforces conventional commits + GPG signing |
+
+---
 
 ## Architecture
 
-```text
-Master Instructions (P0)
-  -> Intent Context Analyzer
-  -> Plan Writer
-  -> Workflow Autopilot
-  -> Domain Specialist
-  -> Context Engine (Project Genome)
-  -> Execution Quality Gate
-  -> Project Memory
-  -> Docs Change Sync
-  -> Git Autopilot
-  -> Doc Renderer (optional)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    codex-master-instructions (P0)            │
+│        Global behavior rules, completion policy, evidence    │
+└──────────────┬──────────────────────────────────┬───────────┘
+               │                                  │
+     ┌─────────▼─────────┐             ┌─────────▼──────────┐
+     │  Intent Analyzer   │             │  Context Engine     │
+     │  Parse → Confirm   │             │  genome.md loader   │
+     └─────────┬─────────┘             └─────────────────────┘
+               │
+     ┌─────────▼─────────┐
+     │  Plan Writer       │  (medium/large tasks only)
+     └─────────┬─────────┘
+               │
+     ┌─────────▼─────────────────────────────────────────────┐
+     │             Workflow Autopilot                          │
+     │  build │ fix │ debug │ review │ docs │ deploy │ teach  │
+     └──┬──────────┬──────────┬──────────┬───────────────────┘
+        │          │          │          │
+  ┌─────▼────┐ ┌──▼────────┐│    ┌─────▼──────────┐
+  │ Domain   │ │ Security  ││    │ Doc Renderer    │
+  │Specialist│ │Specialist ││    │ (DOCX/PDF)      │
+  │ 59 refs  │ │ 30 refs   ││    └────────────────-┘
+  │ 19 start │ │ 10 start  ││
+  └──────────┘ └───────────┘│
+                             │
+     ┌───────────────────────▼───────────────────────────────┐
+     │              Execution Quality Gate                    │
+     │  lint │ test │ security │ a11y │ UX │ Lighthouse       │
+     └──────────────┬────────────────────────────────────────┘
+                    │
+     ┌──────────────▼──────┐     ┌──────────────────────┐
+     │  Docs Change Sync   │     │  Project Memory       │
+     │  code→docs mapping  │     │  decisions, genome,   │
+     └─────────────────────┘     │  summaries, handoff   │
+                                 └──────────┬───────────┘
+                                            │
+                               ┌────────────▼───────────┐
+                               │    Git Autopilot        │
+                               │  stage→gate→sign→push   │
+                               └─────────────────────────┘
 ```
 
-## What Is Included
+---
 
-### Core Skills
+## Skills Detail
 
-| Skill | Primary Role | Script Count |
+### Core Pipeline
+
+| Skill | What It Does | Key Feature |
 | --- | --- | --- |
-| `codex-master-instructions` | Global behavior, process rules, completion policy | 0 |
-| `codex-intent-context-analyzer` | Prompt normalization and intent structuring | 0 |
-| `codex-plan-writer` | Verifiable implementation plan authoring | 0 |
-| `codex-workflow-autopilot` | Task-to-workflow routing | 1 |
-| `codex-domain-specialist` | Domain routing with context boundaries | 0 |
-| `codex-context-engine` | Generate/load compressed project context maps | 0 |
-| `codex-execution-quality-gate` | Lint/test/security/quality verification | 15 |
-| `codex-project-memory` | Decisions, summaries, changelog, genome, analytics | 11 |
-| `codex-docs-change-sync` | Code-diff to documentation impact mapping | 1 |
-| `codex-git-autopilot` | Safe auto-commit pipeline with gate and push | 1 |
-| `codex-doc-renderer` | DOCX rendering utility for visual checks | 1 |
+| **master-instructions** | Global behavior rules loaded on every session | Evidence-based completion policy, circuit breaker on 3 consecutive failures |
+| **intent-context-analyzer** | Parses user request into structured JSON | Socratic Gate for ambiguous requests — asks before coding |
+| **context-engine** | Loads `.codex/context/genome.md` for project awareness | Auto-suggests genome generation for repos with 50+ files |
+| **plan-writer** | Creates bite-sized implementation plans | Each task: 2-5 min, with files/code/commands/verification |
+| **workflow-autopilot** | Routes to the right workflow (build, fix, debug, review, docs) | 8 behavioral modes including thinking-partner and devil's-advocate |
 
-### System Skills
+### Knowledge Packs
 
-| Skill | Role |
-| --- | --- |
-| `.system/skill-installer` | Install skills from curated list or GitHub |
-| `.system/skill-creator` | Author and evolve skills with consistent structure |
+| Skill | Scope | Refs | Starters | Routing |
+| --- | --- | ---: | ---: | --- |
+| **domain-specialist** | Full-stack development | 59 | 19 | 12 domains, 45+ signals, 10 combos |
+| **security-specialist** | Network → Infra → AppSec → DevSecOps → Compliance | 30 | 10 | 24 domains, defense-in-depth principles |
 
-## Repository Layout
+### Quality & Delivery
 
-```text
-CodexAI---Skills/
-|- skills/
-|  |- codex-*/
-|  |- .system/
-|  |- templates/
-|  |- tests/
-|  |- VERSION
-|  `- CHANGELOG.md
-|- docs/
-|- README.md
-`- LICENSE
-```
+| Skill | What It Does | Scripts |
+| --- | --- | ---: |
+| **execution-quality-gate** | Pre-commit checks, test selection, security scan, UX/a11y audit, Lighthouse | 16 |
+| **project-memory** | Decision log, session summary, handoff doc, genome, changelog, growth report | 11 |
+| **docs-change-sync** | Maps code diffs to impacted documentation | 1 |
+| **git-autopilot** | Conventional commits + GPG signing + pre-commit gate | 1 |
+| **doc-renderer** | DOCX → PDF → PNG rendering pipeline | 1 |
 
-## Quick Start (5 Minutes)
+---
 
-### 1. Install Into Codex Home
+## Quick Start
 
-Windows (PowerShell):
+### 1. Install
 
+**Windows (PowerShell):**
 ```powershell
 Copy-Item -Recurse -Force ".\skills\*" "$env:USERPROFILE\.codex\skills\"
 ```
 
-macOS/Linux:
-
+**macOS / Linux:**
 ```bash
 cp -R ./skills/* "$HOME/.codex/skills/"
 ```
 
-### 2. Validate Installation
-
-From repo root:
+### 2. Verify
 
 ```bash
+# Smoke test (32 checks: SKILL.md exists, scripts parse, refs present)
 python skills/tests/smoke_test.py --verbose
+
+# Unit tests (39 tests: parsing, security scan, impact prediction, etc.)
+python -m pytest skills/tests -v
 ```
 
-Expected on current release: `32/32 passed`.
+### 3. First Commands
 
-### 3. Run Your First Commands
-
-- Environment check: `$codex-doctor`
-- Generate project context map: `$codex-genome`
-- Run quality gate: `$codex-execution-quality-gate`
-- Log architectural decision: `$log-decision`
-
-## Common Workflows
-
-### Feature Development
-
-1. Intent analysis and constraints normalization.
-2. Plan generation for complex scope.
-3. Implementation in bounded steps.
-4. Quality gate execution.
-5. Optional auto-commit and push.
-
-### Bug Fixing
-
-1. Root-cause-oriented debugging flow.
-2. Smallest viable fix.
-3. Re-verification with fresh evidence.
-4. Feedback logging when AI correction is needed.
-
-### Documentation Sync
-
-1. Detect changed source files.
-2. Map impacted docs candidates.
-3. Review and apply documentation updates.
-
-## Key Commands
-
-| Intent | Command |
+| Command | What It Does |
 | --- | --- |
-| Doctor check | `$codex-doctor` |
-| Generate genome | `$codex-genome` |
-| Compact memory | `$compact-context` |
-| Run pre-commit style checks | `$pre-commit` |
-| Smart tests | `$smart-test` |
-| Predict blast radius | `$impact` |
-| Session summary | `$session-summary` |
-| Changelog generation | `$changelog` |
-| Auto commit | `python auto_commit.py --project-root <path> --files <file1> <file2>` |
+| `$codex-genome` | Generate project context document |
+| `$codex-intent-context-analyzer` | Parse your request into structured intent |
+| `$codex-workflow-autopilot` | Route to the right workflow |
+| `$codex-execution-quality-gate` | Run all verification checks |
+| `$log-decision` | Record an architecture decision |
+| `$session-summary` | Generate end-of-session summary |
+| `$codex-doctor` | Health check for skills installation |
 
-## Project Memory Model
+---
 
-Local memory artifacts are written under `<project-root>/.codex/`.
+## Recommended Workflow
 
-| Path | Purpose |
-| --- | --- |
-| `.codex/decisions/` | durable decision records |
-| `.codex/sessions/` | session summaries and handoff context |
-| `.codex/feedback/` | correction and feedback tracking |
-| `.codex/context/` | project genome and module maps |
-| `.codex/state/` | workflow state (for example gate counters) |
+```
+1. 🎯 INTENT      →  $codex-intent-context-analyzer
+                      Lock goal, constraints, and complexity.
 
-## Git Autopilot and Verified Commits
+2. 📋 PLAN        →  $codex-plan-writer  (medium/large tasks)
+                      Break into bite-sized, verifiable steps.
 
-`codex-git-autopilot` provides a guarded commit pipeline:
-1. collect task-scoped files
-2. stage selected files
-3. run pre-commit gate
-4. generate conventional commit message
-5. sign commit if GPG is configured
-6. push to current remote branch
+3. 🔀 ROUTE       →  Automatic domain/security routing
+                      Load only relevant references (max 4).
 
-Key options:
-- `--dry-run`
-- `--skip-tests`
-- `--no-push`
-- `--setup-gpg`
+4. 💻 IMPLEMENT   →  Code with bounded scope
+                      Follow plan steps, one at a time.
 
-Note:
-- GitHub `Verified` badge requires both local signing and public key registration in GitHub settings.
+5. ✅ VERIFY      →  $codex-execution-quality-gate
+                      Lint + tests + security + a11y.
+
+6. 📄 DOCS        →  Auto-detected docs candidates
+                      Review impacted documentation.
+
+7. 💾 PERSIST     →  $log-decision / $session-summary
+                      Preserve knowledge for next session.
+
+8. 🚀 COMMIT      →  Git Autopilot
+                      Conventional commit + sign + push.
+```
+
+---
+
+## Repository Layout
+
+```
+CodexAI---Skills/
+├── README.md                    ← You are here
+├── LICENSE                      ← MIT
+├── docs/
+│   └── huong-dan-vi.md          ← Hướng dẫn sử dụng (Tiếng Việt)
+└── skills/
+    ├── VERSION                  ← 10.5.2
+    ├── CHANGELOG.md             ← Full version history
+    ├── README.md                ← Technical internals
+    ├── pytest.ini
+    ├── requirements.txt
+    ├── tests/                   ← 39 unit + 32 smoke tests
+    ├── templates/               ← Shared templates
+    ├── codex-master-instructions/
+    ├── codex-intent-context-analyzer/
+    ├── codex-context-engine/
+    ├── codex-plan-writer/
+    ├── codex-workflow-autopilot/
+    ├── codex-domain-specialist/
+    │   ├── SKILL.md             ← Routing logic (22 KB)
+    │   ├── references/          ← 59 .md files
+    │   └── starters/            ← 19 template files
+    ├── codex-security-specialist/
+    │   ├── SKILL.md             ← Security routing (11 KB)
+    │   ├── references/          ← 30 .md files
+    │   └── starters/            ← 10 template files
+    ├── codex-execution-quality-gate/
+    │   ├── scripts/             ← 16 Python scripts
+    │   └── references/          ← 14 spec files
+    ├── codex-project-memory/
+    │   ├── scripts/             ← 11 Python scripts
+    │   └── references/          ← 10 spec files
+    ├── codex-docs-change-sync/
+    ├── codex-git-autopilot/
+    └── codex-doc-renderer/
+```
+
+---
 
 ## Dependencies
 
 ### Required
 
-- Python `3.10+` recommended
-- Git
+- **Python 3.10+** — all scripts use Python
+- **Git** — git-autopilot, genome, changelog, docs-sync
 
-### Optional (Feature-Specific)
+### Optional
 
-- Node.js/npm/npx for JS-focused quality scripts
-- GPG for signed commits
-- Poppler and `pdf2image` for DOCX rendering
+| Dependency | Used By | Install |
+| --- | --- | --- |
+| Node.js / npm | Lighthouse, Playwright wrappers | [nodejs.org](https://nodejs.org) |
+| GPG | Signed commits (Verified badge) | `winget install GnuPG.GnuPG` |
+| pdf2image + Poppler | Doc renderer | `pip install pdf2image` |
 
-Install doc-renderer Python dependency:
+---
 
-```bash
-pip install pdf2image
-```
+## Documentation
 
-## Quality and Safety Guarantees
+| Document | Language | Purpose |
+| --- | --- | --- |
+| `README.md` (this file) | English | Public overview and quick start |
+| `skills/README.md` | English | Technical internals, customization, all commands |
+| `docs/huong-dan-vi.md` | Tiếng Việt | Hướng dẫn sử dụng chi tiết |
+| `skills/CHANGELOG.md` | English | Complete version history (v1.0 → v10.5.2) |
 
-- JSON-first script output contracts for tool interoperability.
-- Timeout coverage on subprocess-heavy scripts to avoid indefinite hangs.
-- Error recovery and circuit-breaker guidance in master instructions.
-- No force-push behavior in Git autopilot workflow.
-
-## Release Management
-
-- Current version source of truth: `skills/VERSION`
-- Full release history: `skills/CHANGELOG.md`
-- Semantic versioning at pack level
-
-## Contributing
-
-1. Update `SKILL.md` contract first.
-2. Add scripts only when runtime/tool execution is required.
-3. Keep outputs deterministic and machine-readable.
-4. Update smoke tests for new scripts.
-5. Sync documentation with behavior changes.
-
-## Security and Data Handling
-
-- Memory files are local by default.
-- Review generated reports before sharing externally.
-- Avoid committing private `.codex/` artifacts from product repositories.
+---
 
 ## License
 
-MIT. See `LICENSE`.
+MIT — see [LICENSE](LICENSE).
