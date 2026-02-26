@@ -1,3 +1,4 @@
+<img width="1536" height="1024" alt="ChatGPT Image Feb 25, 2026, 03_25_19 AM" src="https://github.com/user-attachments/assets/88afea81-e3a8-47ef-82f2-9dd7845f8cb4" />
 # CodexAI Skill Pack
 
 > **Production-ready instruction framework for Codex** — deterministic workflows, intelligent domain routing, pre-delivery quality gates, and persistent project memory across sessions.
