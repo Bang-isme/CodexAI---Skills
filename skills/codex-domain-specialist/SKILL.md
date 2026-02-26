@@ -93,6 +93,7 @@ Route in this exact order:
 | login, signup, JWT, refresh token, RBAC, OAuth, identity provider | Auth/Identity |
 | dashboard, chart, report, aggregation, BI, analytics, export | Data/Analytics |
 | unit/integration/e2e, flaky test, regression coverage | Testing |
+| debug, stack trace, breakpoint, reproduce bug, root cause | Debugging |
 | architecture, monolith, microservice, clean arch, DDD, SOLID, event-driven | Architecture |
 | webhook, integration, third-party, API client, circuit breaker, retry | Integration |
 | Docker, CI/CD, deploy, rollback, observability | DevOps |
@@ -125,6 +126,7 @@ Route in this exact order:
 | Architecture | `architecture-rules.md` | `backend-rules.md`, `database-rules.md`, `design-patterns.md`, `integration-rules.md` | `react-patterns.md`, `seo-rules.md`, `css-architecture.md` |
 | Integration | `integration-rules.md`, `api-design-rules.md` | `backend-rules.md`, `security-rules.md`, `caching-patterns.md`, `message-queue-comparison.md` | `frontend-rules.md`, `mobile-rules.md`, `seo-rules.md` |
 | Testing | `testing-rules.md` | domain-specific rules matching code under test | unrelated domain rules |
+| Debugging | `debugging-rules.md` | `testing-rules.md`, `logging-patterns.md`, `error-handling-patterns.md` | `seo-rules.md`, `payment-integration.md`, `mobile-rules.md` |
 | DevOps | `devops-rules.md` | `container-orchestration.md`, `deployment-strategy.md`, `observability.md`, `security-rules.md` | `react-patterns.md`, `mobile-rules.md`, `seo-rules.md`, `form-patterns.md` |
 | Auth/Identity | `auth-patterns.md`, `security-rules.md` | `backend-rules.md`, `web-security-deep.md`, `oauth-social-login.md` | `seo-rules.md`, `data-visualization.md`, `mobile-rules.md` |
 | Data/Analytics | `database-aggregation.md`, `data-visualization.md` | `database-rules.md`, `data-export.md`, `caching-patterns.md`, `performance-rules.md` | `mobile-rules.md`, `seo-rules.md`, `auth-patterns.md` |
@@ -346,3 +348,24 @@ Rules:
 - `references/monorepo-patterns.md`: workspace structure and shared package conventions.
 - `references/message-queue-comparison.md`: broker selection and queue pattern guidance.
 - `references/database-aggregation.md`: MongoDB aggregation pipeline and analytics patterns.
+- `references/accessibility-rules.md`: accessibility standards, semantic patterns, and WCAG-aligned implementation.
+- `references/api-design-rules.md`: API contract design, versioning, and idempotency patterns.
+- `references/auth-patterns.md`: authentication and authorization implementation guidance.
+- `references/backend-rules.md`: backend architecture, service boundaries, and API implementation rules.
+- `references/css-architecture.md`: CSS structure, design tokens, and styling system conventions.
+- `references/database-rules.md`: database schema, query, and migration core rules.
+- `references/debugging-rules.md`: debugging workflow, hypothesis-driven investigation, and root-cause practices.
+- `references/devops-rules.md`: CI/CD, deployment reliability, and operational safeguards.
+- `references/error-handling-patterns.md`: consistent error taxonomy and handling patterns.
+- `references/file-structure.md`: repository and module structure conventions.
+- `references/frontend-rules.md`: frontend architecture and UI engineering baseline rules.
+- `references/mobile-rules.md`: mobile app architecture and performance/security constraints.
+- `references/nextjs-patterns.md`: Next.js routing, rendering, and data-fetching patterns.
+- `references/performance-rules.md`: performance budgets, profiling, and optimization priorities.
+- `references/react-patterns.md`: React composition, hooks usage, and state patterns.
+- `references/realtime-patterns.md`: realtime communication patterns (polling/SSE/WebSocket).
+- `references/security-rules.md`: baseline security controls and threat mitigation practices.
+- `references/seo-rules.md`: SEO technical implementation and discoverability patterns.
+- `references/state-management.md`: client state modeling and store selection patterns.
+- `references/testing-rules.md`: unit/integration/e2e testing baseline standards.
+- `references/typescript-rules.md`: TypeScript strictness, typing conventions, and API typing patterns.

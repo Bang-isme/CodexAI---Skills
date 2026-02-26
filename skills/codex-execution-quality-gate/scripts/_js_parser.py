@@ -181,6 +181,21 @@ def _match_function_name(line: str) -> Optional[str]:
     return None
 
 
+def _has_unclosed_block(lines: Sequence[str], start_idx: int, end_idx: int) -> bool:
+    """Best-effort detection for unterminated function/class blocks."""
+    state = JsBraceState()
+    depth = 0
+    opened = False
+    limit = min(end_idx + 1, len(lines))
+    for idx in range(start_idx, limit):
+        open_count, close_count, state = js_brace_counts(lines[idx], state)
+        if open_count > 0:
+            opened = True
+        depth += open_count
+        depth -= close_count
+    return opened and depth > 0
+
+
 def count_js_functions(lines: Sequence[str], rel_file: str, warnings: List[str]) -> Tuple[int, int]:
     total = 0
     long_count = 0
@@ -214,6 +229,8 @@ def extract_js_blocks(lines: Sequence[str], rel_file: str, warnings: List[str]) 
         if end_idx is None:
             warnings.append(f"JS/TS block parse failed for {rel_file}:{idx + 1}")
             continue
+        if _has_unclosed_block(lines, idx, end_idx):
+            warnings.append(f"JS/TS block parse failed for {rel_file}:{idx + 1}")
 
         line_start = idx + 1
         line_end = end_idx + 1

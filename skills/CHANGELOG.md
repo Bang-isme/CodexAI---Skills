@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.2] - 2026-02-27
+
+### Fixed
+- `tests/test_parsing.py`: updated `test_explain_parse_js_file_unclosed_block_warns` to match resilient parser behavior (partial function extraction + warning).
+- `codex-domain-specialist/SKILL.md`: added explicit Debugging primary domain detection and routing to `debugging-rules.md`.
+- `codex-domain-specialist/SKILL.md`: completed `Reference Files` section by adding all previously missing core references for maintainability and discoverability.
+
 ## [10.5.1] - 2026-02-27
 
 ### Fixed

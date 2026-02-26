@@ -402,7 +402,9 @@ def test_explain_parse_js_file_unclosed_block_warns(tmp_path: Path) -> None:
     write_text(file_path, "function broken(a) {\n  return a;\n")
     warnings: List[str] = []
     functions, _ = explain_code.parse_js_file(file_path, tmp_path, warnings)
-    assert functions == []
+    assert len(functions) == 1
+    assert functions[0]["name"] == "broken"
+    assert functions[0]["params"] == ["a"]
     assert any("JS/TS block parse failed" in item for item in warnings)
 
 
