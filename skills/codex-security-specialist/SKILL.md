@@ -114,4 +114,8 @@ Before any implementation, apply these principles:
 
 ## Reference Files
 
-(All files listed below — populated progressively v10.0 through v10.5)
+- `references/linux-hardening.md`: OS hardening, user management, kernel security, and audit logging.
+- `references/secret-management.md`: secret lifecycle, Vault/AWS SM/Docker secrets, rotation procedures.
+- `references/container-security.md`: Dockerfile hardening, image scanning, runtime security, K8s pod security.
+- `references/cloud-security-aws.md`: IAM, VPC, S3 security, encryption, monitoring and compliance.
+- `references/api-security-advanced.md`: multi-layer API protection, rate limiting tiers, output filtering.

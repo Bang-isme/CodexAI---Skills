@@ -1,0 +1,70 @@
+# ============================================
+# DOCKER SECURITY SCAN — GitHub Actions CI
+# ============================================
+name: Container Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build image
+      - name: Build Docker image
+        run: docker build -t app:${{ github.sha }} .
+
+      # Trivy scan — vulnerabilities
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'               # Fail CI on HIGH/CRITICAL
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+
+      # Trivy scan — misconfigurations (Dockerfile best practices)
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+
+      # Hadolint — Dockerfile linting
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      # Dockle — container best practices
+      - name: Dockle scan
+        uses: erzz/dockle-action@v1
+        with:
+          image: 'app:${{ github.sha }}'
+          exit-code: '1'
+          failure-threshold: WARN
+
+      # Upload results as artifact
+      - name: Trivy report (SARIF)
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

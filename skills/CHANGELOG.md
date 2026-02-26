@@ -1,5 +1,18 @@
 # Changelog
 
+## [10.1.0] - 2026-02-27
+
+### Added (codex-security-specialist)
+- 5 infrastructure hardening references:
+  - `linux-hardening.md`: user control, sudo, sysctl kernel params, auditd, file permissions, auto-updates
+  - `secret-management.md`: Vault setup, AWS Secrets Manager, Docker secrets, git-secrets, rotation
+  - `container-security.md`: secure Dockerfile, Trivy/Scout scanning, runtime hardening, K8s Pod Security
+  - `cloud-security-aws.md`: IAM policies, VPC architecture, S3 encryption, CloudTrail/GuardDuty
+  - `api-security-advanced.md`: 7-layer API security, request signing, rate limit tiers, output filtering
+- 2 starters:
+  - `docker-security-scan.yml`: CI pipeline with Trivy + Hadolint + Dockle
+  - `vault-setup.hcl`: HashiCorp Vault configuration with policies and AppRole
+
 ## [10.0.0] - 2026-02-27
 
 ### Added
