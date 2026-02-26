@@ -1,5 +1,22 @@
 # Changelog
 
+## [10.0.0] - 2026-02-27
+
+### Added
+- **NEW SKILL**: `codex-security-specialist` - dedicated security and network knowledge
+  - `SKILL.md`: routing table for 24 security domains with context boundaries
+  - 6 references (network fundamentals):
+    - `network-fundamentals.md`: OSI security, TCP/IP, ports, subnetting, attack vectors, tools
+    - `firewall-rules.md`: iptables, UFW, AWS Security Groups, Docker port binding
+    - `vpn-tunneling.md`: WireGuard setup (server+client), SSH tunnels, key management
+    - `dns-security.md`: DNSSEC, DoH/DoT, SPF/DKIM/DMARC, CAA records
+    - `ssl-tls-certificates.md`: TLS versions, Let's Encrypt, OCSP stapling, SSL testing
+    - `network-segmentation.md`: zone architecture, AWS VPC, Docker networks, K8s NetworkPolicy
+  - 3 starters:
+    - `iptables-rules.sh`: complete firewall script with anti-spoofing and rate limiting
+    - `nginx-ssl-hardened.conf`: grade A+ SSL config with security headers and CSP
+    - `ssh-hardening.sh`: automated SSH hardening with key-only auth and strong crypto
+
 ## [9.7.0] - 2026-02-27
 
 ### Fixed
