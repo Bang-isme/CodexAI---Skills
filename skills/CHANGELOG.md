@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.4.0] - 2026-02-27
+
+### Added (codex-security-specialist)
+- 5 compliance + cryptography references:
+  - `iso27001-checklist.md`: Annex A controls mapped to developer actions and evidence requirements
+  - `gdpr-compliance.md`: principles, lawful bases, user rights implementation patterns (export/delete/consent), breach timeline
+  - `soc2-checklist.md`: Trust Services Criteria coverage, control checklist, evidence and audit-ready quick wins
+  - `cryptography-guide.md`: algorithm decision table, AES-256-GCM and signature examples, key management rules
+  - `pki-certificates.md`: X.509 fields, certificate lifecycle, mTLS example, internal CA workflow
+- 1 starter:
+  - `csp-policy.js`: environment-aware CSP builder with report-only mode and trusted source toggles
+
 ## [10.3.0] - 2026-02-27
 
 ### Added (codex-security-specialist)
