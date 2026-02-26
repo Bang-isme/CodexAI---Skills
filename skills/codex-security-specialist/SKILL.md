@@ -74,6 +74,14 @@ Before any implementation, apply these principles:
 | DevSecOps | `devsecops-pipeline.md` | `sast-dast-sca.md`, `supply-chain-security.md` | `vpn-tunneling.md` |
 | Compliance | `iso27001-checklist.md` | relevant domain checklist | `pentest/`, `cryptography/` (details) |
 | Zero Trust | `zero-trust-architecture.md` | `network-segmentation.md`, `secret-management.md` | `dns-security.md` |
+| Vulnerability Scanning | `vulnerability-scanning.md` | `owasp-top10-deep.md`, `devsecops-pipeline.md` | `vpn-tunneling.md`, `compliance/` |
+| SIEM & Log Analysis | `siem-log-analysis.md` | `incident-response.md`, `ids-ips-patterns.md` | `vpn-tunneling.md`, `cryptography/` |
+| Threat Modeling | `threat-modeling.md` | `owasp-top10-deep.md`, `incident-response.md` | `firewall-rules.md`, `dns-security.md` |
+| PKI & Certificates | `pki-certificates.md` | `ssl-tls-certificates.md`, `cryptography-guide.md` | `firewall-rules.md`, `pentest/` |
+| DDoS Mitigation | `ddos-mitigation.md` | `firewall-rules.md`, `network-fundamentals.md` | `compliance/`, `cryptography/` |
+| IDS/IPS | `ids-ips-patterns.md` | `siem-log-analysis.md`, `network-fundamentals.md` | `compliance/`, `dns-security.md` |
+| Supply Chain Security | `supply-chain-security.md` | `devsecops-pipeline.md`, `sast-dast-sca.md` | `vpn-tunneling.md`, `firewall-rules.md` |
+| API Security | `api-security-advanced.md` | `owasp-top10-deep.md`, `zero-trust-architecture.md` | `dns-security.md`, `vpn-tunneling.md` |
 
 ## Context Boundary Enforcement
 
@@ -123,3 +131,24 @@ Before any implementation, apply these principles:
 - `references/ddos-mitigation.md`: 4-layer defense architecture, CDN/WAF/Nginx/app rate limiting.
 - `references/ids-ips-patterns.md`: detection patterns, host/network alerts, and Suricata-style rules.
 - `references/security-audit-framework.md`: audit checklists, access review, and reporting framework.
+- `references/network-fundamentals.md`: OSI model security, TCP/IP, common ports, CIDR subnetting, network security tools.
+- `references/firewall-rules.md`: iptables, UFW, AWS Security Groups, Docker port binding security.
+- `references/vpn-tunneling.md`: WireGuard configuration, SSH tunneling techniques, key rotation.
+- `references/dns-security.md`: DNSSEC, DoH/DoT, SPF/DKIM/DMARC, DNS threats and defenses.
+- `references/ssl-tls-certificates.md`: TLS configuration, Let's Encrypt, certificate chain, OCSP stapling.
+- `references/network-segmentation.md`: zone architecture, AWS VPC, Docker networks, K8s NetworkPolicy.
+- `references/owasp-top10-deep.md`: A01-A10 with vulnerable and fixed code examples.
+- `references/pentest-methodology.md`: 6-phase methodology, recon tools, exploitation, reporting.
+- `references/vulnerability-scanning.md`: scanner types, ZAP/Nmap commands, scanning schedule.
+- `references/incident-response.md`: NIST IR phases, severity levels, containment, post-mortem.
+- `references/siem-log-analysis.md`: ELK stack, security events, alert rules, retention policy.
+- `references/threat-modeling.md`: STRIDE/DREAD frameworks, trust boundaries, threat model template.
+- `references/devsecops-pipeline.md`: shift-left architecture, pre-commit hooks, CI/CD security stages.
+- `references/sast-dast-sca.md`: Semgrep/SonarQube/CodeQL, ZAP DAST, Snyk SCA, custom rules.
+- `references/iac-security.md`: tfsec/Checkov, common misconfigs, secure Terraform patterns.
+- `references/supply-chain-security.md`: attack vectors, defense layers, SBOM, package provenance.
+- `references/iso27001-checklist.md`: Annex A controls mapped to developer actions.
+- `references/gdpr-compliance.md`: 7 principles, user rights code, consent management, breach notification.
+- `references/soc2-checklist.md`: trust service criteria, control activities, evidence requirements.
+- `references/cryptography-guide.md`: algorithm decision tables, AES-256-GCM, key management.
+- `references/pki-certificates.md`: X.509 fields, cert types, mTLS setup, internal CA.

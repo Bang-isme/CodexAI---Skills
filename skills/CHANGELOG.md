@@ -1,5 +1,20 @@
 # Changelog
 
+## [10.5.1] - 2026-02-27
+
+### Fixed
+- `codex-domain-specialist`: standardized `starters/.env.example` starter template to ensure starter inventory completeness.
+- `codex-security-specialist/SKILL.md`: added 8 missing Routing Decision Table rows:
+  - Vulnerability Scanning
+  - SIEM & Log Analysis
+  - Threat Modeling
+  - PKI & Certificates
+  - DDoS Mitigation
+  - IDS/IPS
+  - Supply Chain Security
+  - API Security
+- `codex-security-specialist/SKILL.md`: expanded Reference Files section with all previously missing security references (network, offensive/defensive, DevSecOps, compliance, cryptography, PKI).
+
 ## [10.5.0] - 2026-02-27
 
 ### Added (codex-security-specialist - COMPLETE)
