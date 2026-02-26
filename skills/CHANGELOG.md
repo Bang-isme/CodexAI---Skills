@@ -1,5 +1,18 @@
 # Changelog
 
+## [10.2.0] - 2026-02-27
+
+### Added (codex-security-specialist)
+- 6 offensive + defensive references:
+  - `owasp-top10-deep.md`: A01-A10 with vulnerable/fixed code examples for each
+  - `pentest-methodology.md`: 6-phase methodology, recon tools, exploitation tests, report template
+  - `vulnerability-scanning.md`: scanner types, ZAP/Nmap/Snyk commands, scanning schedule, severity table
+  - `incident-response.md`: NIST 6-phase IR, severity levels, containment scripts, post-mortem template
+  - `siem-log-analysis.md`: ELK stack setup, security events to monitor, alert rules, retention policy
+  - `threat-modeling.md`: STRIDE framework, DREAD scoring, trust boundaries, threat model document template
+- 1 starter:
+  - `pentest-checklist.md`: 40+ pre-deployment security test items (auth, input, API, infra, data, monitoring)
+
 ## [10.1.0] - 2026-02-27
 
 ### Added (codex-security-specialist)
