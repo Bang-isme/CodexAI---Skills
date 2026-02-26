@@ -119,3 +119,7 @@ Before any implementation, apply these principles:
 - `references/container-security.md`: Dockerfile hardening, image scanning, runtime security, K8s pod security.
 - `references/cloud-security-aws.md`: IAM, VPC, S3 security, encryption, monitoring and compliance.
 - `references/api-security-advanced.md`: multi-layer API protection, rate limiting tiers, output filtering.
+- `references/zero-trust-architecture.md`: identity-centric security, risk scoring, microsegmentation, mTLS.
+- `references/ddos-mitigation.md`: 4-layer defense architecture, CDN/WAF/Nginx/app rate limiting.
+- `references/ids-ips-patterns.md`: detection patterns, host/network alerts, and Suricata-style rules.
+- `references/security-audit-framework.md`: audit checklists, access review, and reporting framework.

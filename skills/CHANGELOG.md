@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.5.0] - 2026-02-27
+
+### Added (codex-security-specialist - COMPLETE)
+- 4 advanced references:
+  - `zero-trust-architecture.md`: pillars (identity/device/network), risk scoring, microsegmentation, and rollout roadmap
+  - `ddos-mitigation.md`: L3-L7 attack model, layered defenses, edge/network/app/data controls, response playbook
+  - `ids-ips-patterns.md`: detection patterns for login anomalies, API abuse, file integrity, and severity-based triage
+  - `security-audit-framework.md`: audit domains, evidence model, access review workflow, and report template
+- 1 starter:
+  - `rate-limiter-advanced.js`: Redis-backed sliding window and token-bucket limiters with endpoint presets
+
+### Security Specialist Complete
+- 30 references + 10 starters = 40 security knowledge files.
+
 ## [10.4.0] - 2026-02-27
 
 ### Added (codex-security-specialist)
