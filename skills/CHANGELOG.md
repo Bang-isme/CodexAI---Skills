@@ -1,5 +1,114 @@
 # Changelog
 
+## [9.7.0] - 2026-02-27
+
+### Fixed
+- Expanded Routing Decision Table from 10 to 12 primary domains (added Auth/Identity and Data/Analytics)
+- Added newer references to `Load On Signal` columns (for example: `form-patterns.md`, `css-architecture.md`, `state-management.md`)
+- Resolved signal conflicts by making each keyword route to one primary specialized target
+- Reorganized Specialized Signal Routing by category (Frontend, Backend, Database, Auth/Security, Architecture/DevOps, Cross-Cutting)
+
+### Added
+- Starter Template Auto-Routing: 19 starters now have explicit trigger patterns
+- Common Combo Detection: 10 multi-domain task combos with pre-defined load sets
+- Signal Conflict Resolution rules (specificity, combo priority, deep-vs-general, starter+reference handling)
+- Expanded Feedback Category Mapping from 14 to 30 categories
+
+### Changed
+- Max specialized signal references per task set to 2 to prevent overload
+
+## [9.6.0] - 2026-02-27
+
+### Added
+- 8 niche references completing domain specialist knowledge:
+  - `data-visualization.md`: Recharts setup, chart type decision, dashboard layout, and chart color palettes
+  - `form-patterns.md`: React Hook Form + Zod, dynamic field arrays, multi-step forms, and UX rules
+  - `date-timezone.md`: Day.js patterns, UTC storage, timezone-aware queries, and birthday alert queries
+  - `data-export.md`: CSV streaming, Excel export (ExcelJS), client-side download, and escaping rules
+  - `oauth-social-login.md`: Google/GitHub Passport.js flows, account linking, Authorization Code flow
+  - `monorepo-patterns.md`: Turborepo setup, shared package patterns, workspace conventions
+  - `message-queue-comparison.md`: Redis Streams vs RabbitMQ vs Kafka decision table and usage patterns
+  - `database-aggregation.md`: MongoDB pipeline stages, dashboard summary, trend aggregation, pagination with totals
+- Skill pack completed: 59 references + 19 starters (100% full-stack coverage)
+
+## [9.5.0] - 2026-02-27
+
+### Added
+- 5 advanced enterprise references:
+  - `observability.md`: Prometheus metrics, custom counters/histograms, SLO/SLI, alerting rules, distributed tracing
+  - `api-gateway.md`: gateway architecture, proxy routing, gateway vs service mesh comparison
+  - `event-sourcing.md`: event store, CQRS, projections, optimistic concurrency, snapshots
+  - `container-orchestration.md`: multi-stage Dockerfile, K8s Deployment/Service/HPA, scaling decisions
+  - `payment-integration.md`: Stripe integration, webhook handler, refund pattern, PCI compliance
+- Updated `SKILL.md` routing for all advanced signal patterns
+- Skill pack reached 51 references + 19 starters (~99% full-stack coverage)
+
+## [9.4.0] - 2026-02-27
+
+### Added
+- 6 starters: `jest-setup.js`, `react-test.jsx` (RTL+MSW), `websocket-server.js` (Socket.IO), `health-check.js` (K8s), `graceful-shutdown.js`, `swagger-setup.js`
+- 10 references: `design-patterns.md` (JS), `web-security-deep.md` (CORS/CSP/XSS/injection), `i18n-patterns.md`, `testing-strategy.md` (pyramid+mocking), `api-documentation.md`, `git-workflow.md`, `pwa-patterns.md`, `performance-profiling.md` (Core Web Vitals), `deployment-strategy.md` (blue-green/canary), `code-review.md`
+- Updated `SKILL.md` routing for all new signal patterns
+
+## [9.3.0] - 2026-02-26
+
+### Added
+- `starters/nginx.conf`: reverse proxy, SSL, rate limiting, compression, security headers, WebSocket
+- `starters/.env.example`: complete environment variable template with security rules
+- 8 deep-dive references:
+  - `background-jobs.md`: Bull queue, scheduled jobs, priority, error handling
+  - `search-filter.md`: URL-driven filters, debounce, faceted search, regex safety
+  - `file-upload.md`: Multer setup, presigned URLs, image processing, security checklist
+  - `email-notification.md`: Nodemailer, template pattern, in-app notifications
+  - `data-migration.md`: seed scripts, ETL backfill, chunked operations, safety rules
+  - `multi-tenancy.md`: shared DB + tenant column, isolation rules, query safety
+  - `feature-flags.md`: simple implementation, rollout strategy, cleanup rules
+  - `graphql-patterns.md`: schema design, DataLoader, security, when to use vs REST
+- Updated `SKILL.md` routing for all new signal patterns
+
+## [9.2.0] - 2026-02-26
+
+### Added
+- `starters/sequelize-migration.js`: safe migration patterns (additive, phased, chunked backfill, create table)
+- `starters/env-config.js`: fail-fast env validation with typed helpers (required, optional, int, bool)
+- `references/caching-patterns.md`: cache-aside, TTL strategy, invalidation, in-memory vs Redis
+- `references/pagination-patterns.md`: offset vs cursor, SQL keyset, frontend URL-driven
+- `references/validation-patterns.md`: Joi/Zod setup, middleware factory, sanitization rules
+- `references/logging-patterns.md`: structured logging, correlation IDs, Winston setup, log levels
+- Updated `codex-domain-specialist/SKILL.md` routing for caching, pagination, validation, logging signals
+
+## [9.1.0] - 2026-02-26
+
+### Added
+- 8 starter templates: `design-system.css`, `dashboard-layout.css`, `express-api.js`, `mongoose-model.js`, `auth-flow.js`, `api-client.js`, `react-crud-page.jsx`, `docker-compose.yml`, `ci-pipeline.yml`
+- 6 deep-dive references: `auth-patterns.md`, `state-management.md`, `css-architecture.md`, `realtime-patterns.md`, `error-handling-patterns.md`, `file-structure.md`
+- Updated `codex-domain-specialist/SKILL.md` with starter template routing
+
+## [9.0.0] - 2026-02-26
+
+### Added
+- `architecture-rules.md`: monolith/microservice, clean architecture, SOLID, DDD, event-driven
+- `integration-rules.md`: API clients, circuit breaker, webhooks, multi-DB, caching
+- `frontend-rules.md`: visual design system (tokens, layout, animation, component specs)
+- `backend-rules.md`: clean architecture layers, middleware pipeline, error handling patterns
+- `database-rules.md`: MongoDB vs SQL schema design, embedding vs referencing, migration safety
+- Updated domain specialist routing for Architecture and Integration domains
+
+## [8.5.0] - 2026-02-26
+
+### Fixed
+- JS function parser: improved brace matching with scan cap and fallback heuristics for JSX/class components
+- Fixes parse failures for `ErrorBoundary.jsx`, `Skeletons.jsx`, `dashboard.controller.js`
+
+### Refactored
+- Extracted shared JS parser module (`_js_parser.py`) from 4 duplicated copies
+- DRY refactor: `quality_trend.py`, `suggest_improvements.py`, `tech_debt_scan.py`, `explain_code.py` now share one parser
+
+## [8.4.0] - 2026-02-26
+
+### Fixed
+- `predict_impact.py`: blast_radius_size now counts only target-reachable files instead of all project files - fixes false `escalate_to_epic` for every file
+
 ## [8.3.0] - 2026-02-25
 
 ### Security

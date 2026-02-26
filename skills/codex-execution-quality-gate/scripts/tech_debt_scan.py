@@ -20,10 +20,11 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
+
+from _js_parser import extract_js_blocks
 
 
 SKIP_DIRS = {
@@ -58,15 +59,6 @@ EXPORT_DECL_PATTERN = re.compile(
     re.MULTILINE,
 )
 EXPORT_INLINE_PATTERN = re.compile(r"\bexport\s*\{([^}]+)\}", re.MULTILINE)
-
-
-@dataclass
-class JsBraceState:
-    in_block_comment: bool = False
-    in_single: bool = False
-    in_double: bool = False
-    in_template: bool = False
-    escaped: bool = False
 
 
 def parse_args() -> argparse.Namespace:
@@ -322,103 +314,6 @@ def scan_python_functions(
     return issues
 
 
-def js_brace_counts(line: str, state: JsBraceState) -> Tuple[int, int, JsBraceState]:
-    opens = 0
-    closes = 0
-    i = 0
-    in_line_comment = False
-
-    while i < len(line):
-        ch = line[i]
-        nxt = line[i + 1] if i + 1 < len(line) else ""
-
-        if in_line_comment:
-            break
-
-        if state.in_block_comment:
-            if ch == "*" and nxt == "/":
-                state.in_block_comment = False
-                i += 2
-                continue
-            i += 1
-            continue
-
-        if state.in_single:
-            if state.escaped:
-                state.escaped = False
-            elif ch == "\\":
-                state.escaped = True
-            elif ch == "'":
-                state.in_single = False
-            i += 1
-            continue
-
-        if state.in_double:
-            if state.escaped:
-                state.escaped = False
-            elif ch == "\\":
-                state.escaped = True
-            elif ch == '"':
-                state.in_double = False
-            i += 1
-            continue
-
-        if state.in_template:
-            if state.escaped:
-                state.escaped = False
-            elif ch == "\\":
-                state.escaped = True
-            elif ch == "`":
-                state.in_template = False
-            i += 1
-            continue
-
-        if ch == "/" and nxt == "/":
-            in_line_comment = True
-            i += 2
-            continue
-        if ch == "/" and nxt == "*":
-            state.in_block_comment = True
-            i += 2
-            continue
-        if ch == "'":
-            state.in_single = True
-            i += 1
-            continue
-        if ch == '"':
-            state.in_double = True
-            i += 1
-            continue
-        if ch == "`":
-            state.in_template = True
-            i += 1
-            continue
-        if ch == "{":
-            opens += 1
-        elif ch == "}":
-            closes += 1
-        i += 1
-
-    state.escaped = False
-    return opens, closes, state
-
-
-def estimate_js_block_end(lines: List[str], start_idx: int) -> Optional[int]:
-    depth = 0
-    opened = False
-    state = JsBraceState()
-
-    for idx in range(start_idx, len(lines)):
-        open_count, close_count, state = js_brace_counts(lines[idx], state)
-        if open_count > 0:
-            opened = True
-        depth += open_count
-        depth -= close_count
-        if opened and depth <= 0:
-            return idx
-    return None
-
-
 def scan_js_ts_functions(
     file_path: Path,
     root: Path,
@@ -434,40 +329,15 @@ def scan_js_ts_functions(
     if not lines:
         return issues
 
-    patterns = [
-        re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\("),
-        re.compile(r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>"),
-        re.compile(r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?[A-Za-z_$][\w$]*\s*=>"),
-        re.compile(r"^\s*(?:public|private|protected|static|async|\s)*([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*\{"),
-    ]
-
-    reserved = {"if", "for", "while", "switch", "catch", "return", "new"}
-
-    for idx, line in enumerate(lines):
-        function_name = None
-        for pattern in patterns:
-            match = pattern.search(line)
-            if match:
-                candidate = match.group(1)
-                if candidate and candidate not in reserved:
-                    function_name = candidate
-                    break
-
-        if not function_name:
-            continue
-
-        end_idx = estimate_js_block_end(lines, idx)
-        if end_idx is None:
-            warnings.append(f"JS/TS block parse failed for {rel_path(file_path, root)}:{idx + 1}")
-            continue
-
-        length = end_idx - idx + 1
+    rel = rel_path(file_path, root)
+    for block in extract_js_blocks(lines, rel, warnings):
+        length = int(block["line_end"]) - int(block["line_start"]) + 1
         if length > max_function_lines:
             issues.append(
                 {
-                    "file": rel_path(file_path, root),
-                    "line": idx + 1,
-                    "name": function_name,
+                    "file": rel,
+                    "line": int(block["line_start"]),
+                    "name": str(block["name"]),
                     "lines": length,
                     "priority": "medium",
                 }

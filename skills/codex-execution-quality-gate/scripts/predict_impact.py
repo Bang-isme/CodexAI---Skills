@@ -473,19 +473,10 @@ def main() -> int:
     impact_scope = sorted(set(resolved_targets) | all_direct)
     tests = collect_tests(project_root)
     affected_tests = find_affected_tests(project_root, impact_scope, tests)
-    # Calculate true blast radius = all unique files touched.
-    all_affected: Set[str] = set(forward.keys()) | set(reverse.keys())
-    for deps in forward.values():
-        if isinstance(deps, (list, set)):
-            all_affected.update(deps)
-        elif isinstance(deps, str):
-            all_affected.add(deps)
-    for deps in reverse.values():
-        if isinstance(deps, (list, set)):
-            all_affected.update(deps)
-        elif isinstance(deps, str):
-            all_affected.add(deps)
-    blast_radius_size = len(all_affected)
+    # Calculate blast radius = target files + all direct + indirect dependents + affected tests.
+    blast_affected: Set[str] = set(resolved_targets) | all_direct | all_indirect
+    blast_affected.update(affected_tests)
+    blast_radius_size = len(blast_affected)
     escalate_to_epic = blast_radius_size > 20
     if escalate_to_epic:
         warnings.append(

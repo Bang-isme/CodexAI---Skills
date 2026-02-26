@@ -75,6 +75,202 @@ Out of scope:
 - Use optimistic updates only when rollback strategy exists.
 - Capture analytics and telemetry at meaningful UX milestones.
 
+## Visual Design System
+
+### Design Tokens
+
+Use centralized design tokens for all visual values. Never use magic numbers.
+
+#### Spacing Scale (8px grid)
+
+```css
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+  --space-12: 80px;
+}
+```
+
+#### Typography Scale
+
+```css
+:root {
+  /* 12px - captions, badges */
+  --font-xs-size: 0.75rem;
+  --font-xs-line: 1rem;
+  /* 14px - body small, table cells */
+  --font-sm-size: 0.875rem;
+  --font-sm-line: 1.25rem;
+  /* 16px - body default */
+  --font-base-size: 1rem;
+  --font-base-line: 1.5rem;
+  /* 18px - section headers */
+  --font-lg-size: 1.125rem;
+  --font-lg-line: 1.75rem;
+  /* 20px - page headers */
+  --font-xl-size: 1.25rem;
+  --font-xl-line: 1.75rem;
+  /* 24px - modal/card titles */
+  --font-2xl-size: 1.5rem;
+  --font-2xl-line: 2rem;
+  /* 30px - page titles */
+  --font-3xl-size: 1.875rem;
+  --font-3xl-line: 2.25rem;
+}
+```
+
+Font families: use system font stack or `Inter`, `Roboto`, `Outfit` from Google Fonts.
+
+#### Color System
+
+```css
+:root {
+  /* Brand */
+  --brand-primary: hsl(160, 100%, 20%);
+  /* Surfaces */
+  --surface-0: #ffffff;
+  --surface-1: #f8f9fa;
+  --surface-2: #f1f3f5;
+  /* Text */
+  --text-primary: #1a1a2e;
+  --text-secondary: #6c757d;
+  --text-muted: #adb5bd;
+  /* Status */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  /* Borders */
+  --border-light: #e9ecef;
+  --border-default: #dee2e6;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+```
+
+#### Border Radius
+
+```css
+:root {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+```
+
+### Layout Patterns
+
+#### Sidebar + Main (Enterprise Dashboard)
+
+```css
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-light);
+  padding: var(--space-4);
+}
+
+.main {
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+```
+
+#### Dashboard Grid
+
+```css
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+```
+
+#### Card Component
+
+```css
+.card {
+  background: var(--surface-0);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+```
+
+### Animation Patterns
+
+```css
+:root {
+  --transition-fast: 150ms ease;
+  --transition-default: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pressable:active {
+  transform: scale(0.98);
+}
+```
+
+### Component Specs
+
+| Component | Height | Padding | Font | Radius |
+| --- | --- | --- | --- | --- |
+| Button (sm) | 32px | 8px 12px | 14px/500 | radius-md |
+| Button (md) | 40px | 10px 16px | 14px/600 | radius-md |
+| Button (lg) | 48px | 12px 24px | 16px/600 | radius-md |
+| Input | 40px | 10px 12px | 14px | radius-md |
+| Badge | 22px | 2px 8px | 12px/500 | radius-full |
+| Table row | 48px | 12px 16px | 14px | none |
+
+### Responsive Breakpoints
+
+```css
+:root {
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+}
+```
+
 ## Anti-Patterns
 
 1. ❌ Bad: Building 300+ line components with mixed responsibilities.

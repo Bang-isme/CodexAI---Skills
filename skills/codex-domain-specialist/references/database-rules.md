@@ -70,6 +70,71 @@ Out of scope:
 - Validate data quality with consistency checks after migration.
 - Document schema ownership and change history.
 
+## Advanced Patterns
+
+### MongoDB Schema Design (Document Model)
+
+#### Embedding vs Referencing Decision
+
+| Criteria | Embed | Reference |
+| --- | --- | --- |
+| Read together always | Yes | |
+| Data changes independently | | Yes |
+| Array may grow unbounded | | Yes (or bucket) |
+| Need atomic updates | Yes | |
+| Many-to-many relationship | | Yes |
+| Document > 16MB risk | | Yes |
+
+#### Index Strategy
+
+```javascript
+// Compound index: most selective field first
+db.employees.createIndex({ departmentId: 1, lastName: 1 });
+
+// Covered query with partial filter
+db.employees.createIndex(
+  { status: 1, createdAt: -1 },
+  { partialFilterExpression: { status: 'active' } }
+);
+
+// Text search
+db.employees.createIndex({ firstName: 'text', lastName: 'text' });
+```
+
+### SQL Schema Design (Relational)
+
+#### Normalization Rules
+
+1. 1NF: No repeating groups, atomic values.
+2. 2NF: No partial dependencies on composite key.
+3. 3NF: No transitive dependencies.
+
+Denormalize only for proven performance needs with materialized views or summary tables.
+
+#### Migration Safety
+
+```sql
+-- SAFE: additive change
+ALTER TABLE employees ADD COLUMN middle_name VARCHAR(100);
+
+-- UNSAFE: requires backfill + deploy coordination
+ALTER TABLE employees ALTER COLUMN email SET NOT NULL;
+
+-- SAFE pattern for unsafe change:
+-- 1. Add column nullable
+-- 2. Backfill data
+-- 3. Add NOT NULL constraint
+-- 4. Update application code
+```
+
+#### Query Optimization
+
+- Run `EXPLAIN ANALYZE` for queries touching more than 1000 rows.
+- Avoid `SELECT *`; specify columns explicitly.
+- Use cursor-based pagination for large datasets instead of `OFFSET`.
+- Batch operations in chunks of 1000-5000 rows.
+- Use connection pooling (min: 5, max: 20 per service).
+
 ## Anti-Patterns
 
 1. ❌ Bad: Running destructive migrations without staged plan.

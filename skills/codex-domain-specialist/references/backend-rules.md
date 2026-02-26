@@ -71,6 +71,73 @@ Out of scope:
 - Maintain compatibility tests for shared API consumers.
 - Instrument performance-critical paths with traces.
 
+## Architecture Patterns
+
+### Layered Architecture (recommended default)
+
+Controller -> Service -> Repository -> Database  
+Middleware (auth, validation, logging) wraps request flow.
+
+Rules:
+- Controllers: HTTP parsing and response formatting only. No business logic.
+- Services: business rules, orchestration, validation. No HTTP awareness.
+- Repositories: data access abstraction. No business rules.
+- Never skip layers (controller direct to DB).
+
+### Clean Architecture
+
+Entities (core business objects, zero dependencies)  
+Use Cases (application-specific business rules)  
+Interface Adapters (controllers, presenters, gateways)  
+Frameworks and Drivers (Express, Mongoose, PostgreSQL)
+
+Rules:
+- Inner layers never import from outer layers.
+- Dependencies point inward only.
+- Use dependency injection for database and external services.
+
+### Middleware Pipeline Pattern (Express/Koa)
+
+```javascript
+// Order matters: auth -> validate -> rate-limit -> handler -> error-handler
+app.use(cors());
+app.use(helmet());
+app.use(authMiddleware);        // Parse JWT, attach req.user
+app.use(rateLimiter);           // Prevent abuse
+app.use('/api/v1', apiRouter);  // Route handlers
+app.use(errorHandler);          // Centralized error formatting
+```
+
+### Error Handling Pattern
+
+```javascript
+// AppError class for operational errors
+class AppError extends Error {
+  constructor(message, statusCode, code) {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = code;
+    this.isOperational = true;
+  }
+}
+
+// Use: throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+// Error handler middleware catches and formats consistently.
+```
+
+### Request Validation Pattern
+
+```javascript
+// Validate at boundary, trust internally
+const createUserSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).max(128).required(),
+  role: Joi.string().valid('user', 'admin').default('user'),
+});
+
+// Middleware: validate(createUserSchema) -> req.validated
+```
+
 ## Anti-Patterns
 
 1. ❌ Bad: Embedding complex business logic directly in controllers.
