@@ -74,6 +74,8 @@ Out of scope:
 - Add explicit empty-state content and actionable recovery options.
 - Use optimistic updates only when rollback strategy exists.
 - Capture analytics and telemetry at meaningful UX milestones.
+- **Viewport-fit sections**: Each page section must fit within one viewport (`100vh` / `100dvh`) at 100% zoom. Use `clamp()` for font sizes and padding. If a section overflows, split content or restructure to horizontal layout. See `ui-ux-design-principles.md` section 6 for Content Budget Table.
+- Use `min-height: 100dvh` for full-viewport sections, `clamp(2rem, 5vh, 5rem)` for responsive vertical padding, and `clamp(2rem, 5vw + 1rem, 5rem)` for heading font sizes.
 
 ## Visual Design System
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reasoning Rigor"
+  short_description: "Force deliberate, evidence-backed outputs"
+  default_prompt: "Use $codex-reasoning-rigor to avoid generic output and force evidence-backed, repo-specific reasoning."

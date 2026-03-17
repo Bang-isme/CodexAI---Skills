@@ -1,5 +1,191 @@
 # Changelog
 
+## [12.5.0] - 2026-03-18
+
+### Improved
+- `codex-execution-quality-gate/scripts/run_gate.py`: plan, review, and handoff deliverables now auto-enable strict output enforcement by default when an output file or text is provided, unless `--advisory-output` is used to downgrade them intentionally.
+- `codex-execution-quality-gate/scripts/run_gate.py`: gate runs now append quality events under `.codex/quality/gate-events.jsonl` so output quality and gate pass rate can be tracked over time.
+- `codex-execution-quality-gate/scripts/quality_trend.py`: trend reports now include gate pass rate, strict-output failure rate, average output-guard score, and deliverable-kind counts in addition to code-shape metrics.
+- `codex-plan-writer/SKILL.md`, `codex-reasoning-rigor/SKILL.md`, `codex-execution-quality-gate/SKILL.md`, and `codex-execution-quality-gate/references/*.md`: updated to document default strict-output expectations for plans, reviews, and handoffs.
+- `skills/tests/test_parsing.py` and pack docs: added single-snapshot gate-quality coverage and refreshed the published test totals to 83 unit + 47 smoke.
+
+### Tests
+- `tests/test_parsing.py`: expanded to 44 tests with auto-strict-output and gate-quality trend coverage.
+- `tests/smoke_test.py`: expanded to 47 smoke checks with CLI coverage for gate-aware quality trend reports.
+- Full suite status: `83` unit tests and `47` smoke checks passing
+
+## [12.4.0] - 2026-03-18
+
+### Added
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: native-agent scope support via `--native-scope project|personal|both`, so personal `~/.codex/agents` installs no longer require manual copying.
+- `codex-workflow-autopilot/references/workflow-routing-contract.json`: machine-checkable routing contract for workflow modes, Scrum overlay triggers, and required output fields.
+
+### Improved
+- `codex-scrum-subagents/scripts/validate_scrum_agent_kit.py`: validator now supports `--target-root` + `--install-dir`, reads the install stamp to resolve custom install directories correctly, and can validate project and personal native-agent scopes.
+- `codex-scrum-subagents/scripts/_scrum_agent_kit.py`: native agent validation now parses generated TOML with `tomllib` instead of relying on string-shape checks only.
+- `codex-scrum-subagents/scripts/run_scrum_alias.py`: installer aliases can now forward native-agent scope to install and validate flows.
+- `codex-workflow-autopilot/SKILL.md`: routing guidance now explicitly references the machine-checkable contract and no longer implies that subagent-aware execution is impossible.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed metrics, install guidance, and subagent/runtime notes.
+
+### Tests
+- `tests/test_scrum_subagents.py`: expanded to 28 tests with coverage for custom install directories, personal native-agent scope, and TOML validation.
+- `tests/smoke_test.py`: expanded to 46 smoke checks and now validates the workflow routing contract plus custom install-dir/native-scope installer paths.
+- Full suite status: `79` unit tests and `46` smoke checks passing
+
+## [12.3.0] - 2026-03-18
+
+### Added
+- `codex-scrum-subagents`: the installer now materializes native Codex custom agents into `<project-root>/.codex/agents` alongside the existing `.agent` workflow kit, so Scrum roles can align with the official Codex subagent discovery path.
+- `codex-scrum-subagents/scripts/_scrum_agent_kit.py`: added native custom-agent rendering, comparison, and copy helpers generated from the existing Scrum role briefs and manifests.
+
+### Improved
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: install, diff, and update flows now track both the `.agent` bundle and the generated `.codex/agents` native custom-agent layer in one report.
+- `codex-scrum-subagents/scripts/validate_scrum_agent_kit.py`: validator now detects drift in project-local native Codex agents as well as the `.agent` tree.
+- `codex-scrum-subagents/SKILL.md`, `README.md`, `skills/README.md`, `docs/huong-dan-vi.md`, `references/command-aliases.md`, and the bundled Scrum kit docs: refreshed to document the new native custom-agent install path.
+
+### Tests
+- `tests/test_scrum_subagents.py`: expanded to 24 tests covering native custom-agent rendering, installer creation, drift repair, and validator drift detection for `.codex/agents`.
+- `tests/smoke_test.py`: expanded to 45 smoke checks with JSON execution coverage for Scrum install and validate flows.
+- Full suite status: `75` unit tests and `45` smoke checks passing
+
+## [12.2.2] - 2026-03-18
+
+### Fixed
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: `--diff` and `--update` now render table output without crashing when the report comes from the operation path.
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: `--update` now recomputes the returned diff after repairing the installed `.agent` tree, so the report reflects the post-update state instead of stale pre-copy drift.
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: provenance stamps now preserve the real `--force` flag during update operations instead of hardcoding `true`.
+
+### Tests
+- `tests/test_scrum_subagents.py`: expanded to 20 tests with CLI regression coverage for `--diff`, `--update`, post-update diff reporting, and update stamp metadata.
+- Full suite status: `71` unit tests and `43` smoke checks passing
+
+## [12.2.1] - 2026-03-18
+
+### Changed
+- Source pack cleanup: removed the repo/global drift doctor from the repository so `D:\CodexAI---Skills` stays focused on the clean distributable pack, while that helper can remain global-only in `C:\Users\tranb\.codex\skills` if desired.
+- `codex-execution-quality-gate/SKILL.md`, `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: removed source-pack references to the repo/global drift helper and refreshed metrics for the clean source pack.
+
+### Tests
+- `tests/smoke_test.py`: reduced to `43` checks after removing the source-pack-only drift audit entry points.
+- Full suite status: `68` unit tests and `43` smoke checks passing
+
+## [12.2.0] - 2026-03-18
+
+### Improved
+- `codex-execution-quality-gate/scripts/output_guard.py`: added optional `--repo-root` grounding checks so file references and path-like command arguments can be verified against the real repo tree.
+- `codex-execution-quality-gate/scripts/run_gate.py`: added `--strict-output`, `--output-file`, and `--output-text` so weak deliverables can fail the gate instead of being advisory-only.
+- `codex-execution-quality-gate/references/output-guard-spec.md`: documented repo-aware grounding validation.
+- `codex-execution-quality-gate/references/run-gate-spec.md`: documented strict-output behavior.
+- `codex-execution-quality-gate/SKILL.md`: added strict-output usage and pack-maintenance routing guidance for deliverable quality checks.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed metrics, command surface, and quality-gate guidance.
+
+### Tests
+- `tests/test_output_rigor.py`: added repo-aware grounding coverage for valid vs stale artifact references.
+- `tests/test_parsing.py`: added strict-output gate coverage for pass/fail deliverables.
+- `tests/smoke_test.py`: expanded to cover `run_gate.py --strict-output` and repo-aware deliverable validation paths.
+- Full suite status: `68` unit tests and `43` smoke checks passing
+
+## [12.1.0] - 2026-03-18
+
+### Fixed
+- `codex-execution-quality-gate/scripts/output_guard.py`: command evidence now requires runnable command snippets instead of counting prose mentions like "git" or "python", and overlapping filler phrases are deduplicated so one phrase is not penalized twice.
+- `codex-reasoning-rigor/scripts/build_reasoning_brief.py`: strict mode now blocks placeholder-only briefs, adds the missing `quality_bar` field from the skill contract, and reserves `_TODO_` scaffolds for explicit `--allow-placeholders` mode.
+- `codex-scrum-subagents/scripts/generate_scrum_artifact.py`: artifact generation now validates all template fields before returning success, with explicit scaffold mode for intentional placeholders.
+- `codex-scrum-subagents/scripts/run_scrum_alias.py`: alias-driven artifact generation now rejects incomplete story/release artifacts by default and reports required or missing fields clearly.
+
+### Improved
+- `codex-execution-quality-gate/references/output-guard-spec.md`: clarified that only runnable command snippets count as verification evidence.
+- `codex-reasoning-rigor/SKILL.md`: documented strict brief generation and the explicit scaffold escape hatch.
+- `codex-scrum-subagents/SKILL.md` and `references/artifact-templates.md`: updated examples and guardrails so ceremony artifacts no longer imply success when they are still placeholders.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed metrics, examples, and validation guidance for the stricter anti-generic workflow.
+
+### Tests
+- `tests/test_output_rigor.py`: expanded to cover prose-only evidence rejection, overlapping filler dedupe, strict reasoning brief validation, and scaffold mode.
+- `tests/test_scrum_subagents.py`: added coverage for required-field enforcement and explicit scaffold mode in both artifact generation and alias dispatch.
+- `tests/smoke_test.py`: upgraded from help-only coverage to `42` checks including real JSON CLI execution for `output_guard.py`, `build_reasoning_brief.py`, `generate_scrum_artifact.py`, and `run_scrum_alias.py`.
+- Full suite status: `64` unit tests and `42` smoke checks passing
+
+## [12.0.0] - 2026-03-18
+
+### Added
+- **NEW SKILL**: `codex-reasoning-rigor`
+  - `SKILL.md`: anti-generic reasoning protocol focused on task contracts, evidence ladders, monitoring loops, and output contracts
+  - `scripts/build_reasoning_brief.py`: deterministic brief generator for complex, high-signal work
+  - `references/anti-generic-patterns.md`, `evidence-ladder.md`, `monitoring-loops.md`, `output-contracts.md`
+  - `assets/`: reasoning brief, output review, and monitoring checklist templates
+- `codex-execution-quality-gate/scripts/output_guard.py`: heuristic scorer for generic filler, weak evidence, and low-specificity deliverables
+- `codex-execution-quality-gate/references/output-guard-spec.md`: scoring expectations and use cases for output guard
+- `codex-scrum-subagents/scripts/run_scrum_alias.py`: runnable dispatcher for `$scrum-*`, `$story-*`, `$retro`, and `$release-readiness`
+- `codex-scrum-subagents/scripts/generate_scrum_artifact.py`: Scrum markdown artifact generator
+- `codex-scrum-subagents/references/artifact-templates.md` plus 6 bundled artifact templates for user story, sprint goal, daily scrum, retrospective, story delivery, and release readiness
+
+### Improved
+- `codex-master-instructions/SKILL.md`: added reasoning-rigor activation when users ask for deeper, less generic output
+- `codex-plan-writer/SKILL.md`: plans now explicitly call out required evidence and monitoring signals for medium/high-risk work
+- `codex-workflow-autopilot/SKILL.md`: added reasoning-rigor trigger and guidance to pair high-stakes outputs with `$output-guard`
+- `codex-execution-quality-gate/SKILL.md`: documented `$output-guard` and the new deliverable-quality route
+- `codex-scrum-subagents/SKILL.md`: documented runnable alias workflow and artifact templates
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed skill inventory, command surface, metrics, and anti-generic capabilities
+
+### Tests
+- `tests/test_output_rigor.py`: added 4 tests for output guard and reasoning brief generation
+- `tests/test_scrum_subagents.py`: expanded to 14 tests with artifact generation and alias workflow coverage
+- `tests/smoke_test.py`: expanded to 38 checks including output guard, reasoning brief, and Scrum artifact scripts
+- Full suite status: `57` unit tests and `38` smoke checks passing
+
+## [11.2.0] - 2026-03-18
+
+### Added
+- `codex-scrum-subagents/assets/scrum-agent-kit/services/commands.json`: machine-readable alias registry for installer actions and Scrum ceremony shortcuts.
+- `codex-scrum-subagents/references/command-aliases.md`: shorthand command reference for `$scrum-*`, `$story-*`, `$retro`, and `$release-readiness`.
+
+### Improved
+- `codex-scrum-subagents/SKILL.md`: documented the new shorthand command layer and when to load it.
+- `codex-workflow-autopilot/SKILL.md`: added explicit routing for Scrum shorthand aliases so ceremony-style requests can trigger the Scrum overlay faster.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed counts, command tables, and Scrum alias examples.
+
+### Tests
+- `tests/test_scrum_subagents.py`: expanded to 12 tests, including coverage for `commands.json` and updated bundle file counts.
+- Full suite status: `51` unit tests and `34` smoke checks passing
+
+## [11.1.0] - 2026-03-18
+
+### Added
+- `codex-scrum-subagents/scripts/validate_scrum_agent_kit.py`: validates the bundled Scrum kit and can compare an installed `.agent` tree against the source bundle.
+- `codex-scrum-subagents/scripts/_scrum_agent_kit.py`: shared helper module for diffing, validation, backups, and bundle metadata.
+- `codex-workflow-autopilot/references/workflow-scrum.md`: Scrum ceremony overlay for backlog refinement, sprint planning, daily scrum, review, retrospective, and release readiness.
+
+### Improved
+- `codex-scrum-subagents/scripts/install_scrum_subagents.py`: added `--diff`, `--update`, and `--backup-dir`; update mode now copies only missing or changed files and writes fresh bundle provenance.
+- `codex-scrum-subagents/SKILL.md`: expanded quick-start instructions with validate, diff, and update commands.
+- `codex-workflow-autopilot/SKILL.md`: added Scrum-aware activation, ceremony routing, and optional coordination overlay fields.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed counts and documented the validator plus update workflow.
+
+### Tests
+- `tests/test_scrum_subagents.py`: expanded from 5 to 11 tests covering validation, diffing, backups, and drift detection.
+- `tests/smoke_test.py`: added `codex-scrum-subagents/scripts/validate_scrum_agent_kit.py`
+- Full suite status: `50` unit tests and `34` smoke checks passing
+
+## [11.0.0] - 2026-03-18
+
+### Added
+- **NEW SKILL**: `codex-scrum-subagents`
+  - `SKILL.md`: Scrum-oriented routing rules for Product Owner, Scrum Master, architect, developer, QA, security, DevOps, and UX collaboration
+  - `references/scrum-role-routing.md`: role selection matrix and escalation guidance
+  - `references/scrum-ceremonies.md`: ceremony playbooks for refinement, planning, daily scrum, review, retrospective, and release readiness
+  - `references/delivery-contracts.md`: Definition of Ready/Done and role-to-role handoff contracts
+  - `references/subagent-boundaries.md`: ownership boundaries and escalation rules
+  - `scripts/install_scrum_subagents.py`: installer for a project-local `.agent` Scrum kit
+  - `assets/scrum-agent-kit/`: 10 role briefs, 7 workflows, 2 manifest files, and onboarding docs
+
+### Improved
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: updated public and technical docs for the new Scrum delivery kit, refreshed counts, and installation guidance.
+
+### Tests
+- `tests/test_scrum_subagents.py`: added 5 installer bundle tests
+- `tests/smoke_test.py`: added `codex-scrum-subagents/scripts/install_scrum_subagents.py`
+- Full suite status: `44` unit tests and `33` smoke checks passing
+
 ## [10.5.2] - 2026-02-27
 
 ### Fixed

@@ -1,0 +1,89 @@
+[
+  {
+    "name": "scrum-orchestrator",
+    "description": "Coordinates Scrum role handoffs for complex delivery",
+    "skills": [
+      "codex-workflow-autopilot",
+      "codex-plan-writer",
+      "codex-execution-quality-gate",
+      "codex-project-memory"
+    ]
+  },
+  {
+    "name": "product-owner",
+    "description": "Backlog, priority, acceptance criteria, MVP framing",
+    "skills": [
+      "codex-intent-context-analyzer",
+      "codex-plan-writer",
+      "codex-project-memory"
+    ]
+  },
+  {
+    "name": "scrum-master",
+    "description": "Ceremonies, blockers, sprint health, facilitation",
+    "skills": [
+      "codex-workflow-autopilot",
+      "codex-plan-writer",
+      "codex-project-memory"
+    ]
+  },
+  {
+    "name": "solution-architect",
+    "description": "System boundaries, trade-offs, technical approach",
+    "skills": [
+      "codex-context-engine",
+      "codex-domain-specialist",
+      "codex-security-specialist"
+    ]
+  },
+  {
+    "name": "frontend-developer",
+    "description": "UI implementation and frontend delivery",
+    "skills": [
+      "codex-domain-specialist",
+      "codex-execution-quality-gate"
+    ]
+  },
+  {
+    "name": "backend-developer",
+    "description": "API, service, and data delivery",
+    "skills": [
+      "codex-domain-specialist",
+      "codex-security-specialist",
+      "codex-execution-quality-gate"
+    ]
+  },
+  {
+    "name": "qa-engineer",
+    "description": "Verification, regression, release confidence",
+    "skills": [
+      "codex-execution-quality-gate",
+      "codex-workflow-autopilot"
+    ]
+  },
+  {
+    "name": "security-engineer",
+    "description": "Threat review and blocking security findings",
+    "skills": [
+      "codex-security-specialist",
+      "codex-execution-quality-gate"
+    ]
+  },
+  {
+    "name": "devops-engineer",
+    "description": "Deployment, environment, rollback, release mechanics",
+    "skills": [
+      "codex-domain-specialist",
+      "codex-security-specialist",
+      "codex-execution-quality-gate"
+    ]
+  },
+  {
+    "name": "ux-researcher",
+    "description": "User friction, discovery, and review feedback",
+    "skills": [
+      "codex-domain-specialist",
+      "codex-project-memory"
+    ]
+  }
+]

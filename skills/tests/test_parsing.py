@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Set
@@ -33,6 +34,10 @@ predict_impact = load_script_module(
 run_gate = load_script_module(
     "skills_run_gate",
     "codex-execution-quality-gate/scripts/run_gate.py",
+)
+quality_trend = load_script_module(
+    "skills_quality_trend",
+    "codex-execution-quality-gate/scripts/quality_trend.py",
 )
 smart_test_selector = load_script_module(
     "skills_smart_test_selector",
@@ -157,6 +162,237 @@ def test_gate_state_corrupted_file(tmp_path: Path) -> None:
     state_file.write_text("NOT VALID JSON", encoding="utf-8")
     loaded = run_gate.load_gate_state(tmp_path)
     assert loaded == {"consecutive_failures": 0}
+
+
+def test_run_gate_strict_output_blocks_generic_deliverable(tmp_path: Path) -> None:
+    output_file = tmp_path / "handoff.md"
+    write_text(
+        output_file,
+        "Decision: follow best practices.\nEvidence: note git discipline in prose.\nRisk: low.\nNext step: improve quality.\n",
+    )
+    report = run_gate.build_gate_report(
+        project_root=tmp_path,
+        timeout_lint=1,
+        timeout_test=1,
+        skip_lint=True,
+        skip_test=True,
+        output_file=str(output_file),
+        strict_output=True,
+        output_min_score=60,
+    )
+    assert report["gate_passed"] is False
+    assert "Written deliverable failed strict output quality checks." in report["blocking_issues"]
+    assert report["output_guard"]["status"] == "fail"
+
+
+def test_run_gate_strict_output_passes_grounded_deliverable(tmp_path: Path) -> None:
+    smoke_path = tmp_path / "skills" / "tests" / "smoke_test.py"
+    write_text(smoke_path, "print('ok')\n")
+    output_file = tmp_path / "handoff.md"
+    write_text(
+        output_file,
+        "\n".join(
+            [
+                "Decision: keep `skills/tests/smoke_test.py` in the final checklist.",
+                "Evidence: run `python skills/tests/smoke_test.py` before handoff.",
+                "Risk: stale test paths can drift from the repo.",
+                "Next step: re-run the smoke script after pack updates.",
+            ]
+        ),
+    )
+    report = run_gate.build_gate_report(
+        project_root=tmp_path,
+        timeout_lint=1,
+        timeout_test=1,
+        skip_lint=True,
+        skip_test=True,
+        output_file=str(output_file),
+        strict_output=True,
+        output_min_score=60,
+    )
+    assert report["gate_passed"] is True
+    assert report["output_guard"]["status"] == "pass"
+
+
+def test_run_gate_auto_strict_blocks_generic_plan_deliverable(tmp_path: Path) -> None:
+    output_file = tmp_path / "implementation-plan.md"
+    write_text(
+        output_file,
+        "\n".join(
+            [
+                "# Implementation Plan",
+                "## Overview",
+                "Use best practices to improve quality.",
+                "## Success Criteria",
+                "Ensure the system is robust.",
+                "## Task Breakdown",
+                "Optimize the flow.",
+                "## Phase X Verification",
+                "Done when it feels complete.",
+            ]
+        ),
+    )
+    report = run_gate.build_gate_report(
+        project_root=tmp_path,
+        timeout_lint=1,
+        timeout_test=1,
+        skip_lint=True,
+        skip_test=True,
+        output_file=str(output_file),
+        strict_output=False,
+        output_min_score=60,
+    )
+    assert report["deliverable_kind"] == "plan"
+    assert report["strict_output_effective"] is True
+    assert report["gate_passed"] is False
+
+
+def test_run_gate_advisory_output_can_opt_out_of_auto_strict(tmp_path: Path) -> None:
+    output_file = tmp_path / "handoff.md"
+    write_text(
+        output_file,
+        "Current state: use best practices.\nNext steps: improve quality.\nBlockers: none.\nHandoff: generic.\n",
+    )
+    report = run_gate.build_gate_report(
+        project_root=tmp_path,
+        timeout_lint=1,
+        timeout_test=1,
+        skip_lint=True,
+        skip_test=True,
+        output_file=str(output_file),
+        strict_output=False,
+        advisory_output=True,
+        output_min_score=60,
+    )
+    assert report["deliverable_kind"] == "handoff"
+    assert report["strict_output_effective"] is False
+    assert report["gate_passed"] is True
+    assert "Written deliverable failed advisory output quality checks." in report["warnings"]
+
+
+def test_append_gate_event_and_quality_trend_report_capture_output_quality(tmp_path: Path) -> None:
+    snapshots_dir = tmp_path / ".codex" / "quality" / "snapshots"
+    snapshots_dir.mkdir(parents=True, exist_ok=True)
+    (snapshots_dir / "2026-03-17.json").write_text(
+        json.dumps(
+            {
+                "date": "2026-03-17",
+                "metrics": {
+                    "total_code_files": 10,
+                    "total_lines": 100,
+                    "avg_file_lines": 10.0,
+                    "avg_functions_per_file": 1.0,
+                    "todo_count": 3,
+                    "long_functions": 1,
+                    "long_files": 0,
+                    "test_files": 2,
+                    "test_to_source_ratio": 0.2,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (snapshots_dir / "2026-03-18.json").write_text(
+        json.dumps(
+            {
+                "date": "2026-03-18",
+                "metrics": {
+                    "total_code_files": 10,
+                    "total_lines": 100,
+                    "avg_file_lines": 10.0,
+                    "avg_functions_per_file": 1.0,
+                    "todo_count": 2,
+                    "long_functions": 1,
+                    "long_files": 0,
+                    "test_files": 3,
+                    "test_to_source_ratio": 0.3,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    quality_dir = tmp_path / ".codex" / "quality"
+    (quality_dir / "gate-events.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-17T10:00:00+00:00",
+                        "gate_passed": True,
+                        "strict_output_effective": True,
+                        "deliverable_kind": "plan",
+                        "output_guard_status": "pass",
+                        "output_guard_score": 78,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-18T10:00:00+00:00",
+                        "gate_passed": False,
+                        "strict_output_effective": True,
+                        "deliverable_kind": "handoff",
+                        "output_guard_status": "fail",
+                        "output_guard_score": 52,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = quality_trend.build_report(quality_dir, 30)
+
+    assert report["status"] == "report_ready"
+    assert report["gate_quality"]["runs"] == 2
+    assert report["gate_quality"]["strict_output_failures"] == 1
+    assert report["gate_quality"]["avg_output_guard_score"] == 65.0
+    assert "Gate pass rate is 50%" in report["summary"]
+
+
+def test_quality_trend_single_snapshot_still_surfaces_gate_quality(tmp_path: Path) -> None:
+    quality_dir = tmp_path / ".codex" / "quality"
+    snapshots_dir = quality_dir / "snapshots"
+    snapshots_dir.mkdir(parents=True, exist_ok=True)
+    (snapshots_dir / "2026-03-18.json").write_text(
+        json.dumps(
+            {
+                "date": "2026-03-18",
+                "metrics": {
+                    "total_code_files": 0,
+                    "total_lines": 0,
+                    "avg_file_lines": 0.0,
+                    "avg_functions_per_file": 0.0,
+                    "todo_count": 0,
+                    "long_functions": 0,
+                    "long_files": 0,
+                    "test_files": 0,
+                    "test_to_source_ratio": 0.0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (quality_dir / "gate-events.jsonl").write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-03-18T10:00:00+00:00",
+                "gate_passed": False,
+                "strict_output_effective": True,
+                "deliverable_kind": "plan",
+                "output_guard_status": "fail",
+                "output_guard_score": 3,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = quality_trend.build_report(quality_dir, 30)
+
+    assert report["status"] == "report_ready"
+    assert "Current gate pass rate is 0%" in report["summary"]
+    assert "Avg output score is 3" in report["summary"]
 
 
 def test_predict_parse_imports_js() -> None:

@@ -32,6 +32,8 @@ Before acting, classify the request:
 | debug | error, bug, broken, not working | reproduce, isolate, root-cause, fix, test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
 
+If the user explicitly asks for deeper thinking, less generic output, stronger specificity, or repo-grounded reasoning, activate `codex-reasoning-rigor` alongside the normal workflow.
+
 ## Context Loading Rule
 
 Before acting on any code-change request:
@@ -69,6 +71,7 @@ Every complex task goes through this process. "Simple" projects are where unexam
 ## Universal Engineering Rules
 
 - Keep output concise and action-oriented.
+- Prefer repo-grounded evidence over reusable best-practice filler.
 - Prefer self-explanatory code over heavy comments.
 - Follow SRP, DRY, KISS, and YAGNI.
 - Prefer guard clauses over deep nesting.

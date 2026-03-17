@@ -1,0 +1,62 @@
+[
+  {
+    "command": "$scrum-install",
+    "alias_for": "codex-scrum-subagents.install",
+    "description": "Install the project-local Scrum subagent kit"
+  },
+  {
+    "command": "$scrum-diff",
+    "alias_for": "codex-scrum-subagents.diff",
+    "description": "Compare the installed Scrum kit against the source bundle"
+  },
+  {
+    "command": "$scrum-update",
+    "alias_for": "codex-scrum-subagents.update",
+    "description": "Update only missing or changed Scrum kit files"
+  },
+  {
+    "command": "$scrum-validate",
+    "alias_for": "codex-scrum-subagents.validate",
+    "description": "Validate the bundled or installed Scrum kit"
+  },
+  {
+    "command": "$backlog-refinement",
+    "alias_for": "backlog-refinement",
+    "description": "Refine a request into sprint-ready stories"
+  },
+  {
+    "command": "$sprint-plan",
+    "alias_for": "sprint-planning",
+    "description": "Create sprint goal, backlog, and ownership plan"
+  },
+  {
+    "command": "$daily-scrum",
+    "alias_for": "daily-scrum",
+    "description": "Run a lightweight progress and blocker check"
+  },
+  {
+    "command": "$story-ready-check",
+    "alias_for": "backlog-refinement",
+    "description": "Check whether a story is ready to implement"
+  },
+  {
+    "command": "$story-delivery",
+    "alias_for": "story-delivery",
+    "description": "Drive one story through implementation and verification"
+  },
+  {
+    "command": "$sprint-review",
+    "alias_for": "sprint-review",
+    "description": "Inspect the increment and collect feedback"
+  },
+  {
+    "command": "$retro",
+    "alias_for": "retrospective",
+    "description": "Capture process improvements for the next sprint"
+  },
+  {
+    "command": "$release-readiness",
+    "alias_for": "release-readiness",
+    "description": "Decide ship or no-ship with rollback evidence"
+  }
+]

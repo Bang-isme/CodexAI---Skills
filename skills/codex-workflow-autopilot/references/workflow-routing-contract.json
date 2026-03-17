@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "modes": [
+    "brainstorm",
+    "thinking-partner",
+    "implement",
+    "debug",
+    "review",
+    "devils-advocate",
+    "teach",
+    "ship"
+  ],
+  "workflow_types": [
+    "build",
+    "fix",
+    "review",
+    "debug",
+    "docs",
+    "refactor",
+    "deploy",
+    "handoff"
+  ],
+  "overlays": {
+    "scrum": {
+      "signals": [
+        "backlog",
+        "user story",
+        "acceptance criteria",
+        "refinement",
+        "sprint planning",
+        "sprint backlog",
+        "sprint goal",
+        "daily scrum",
+        "sprint review",
+        "retrospective",
+        "release readiness",
+        "product owner",
+        "scrum master"
+      ],
+      "aliases": [
+        "$scrum-install",
+        "$scrum-update",
+        "$sprint-plan",
+        "$story-ready-check",
+        "$story-delivery",
+        "$retro",
+        "$release-readiness"
+      ],
+      "coordination_overlay": "scrum"
+    },
+    "reasoning_rigor": {
+      "signals": [
+        "$codex-reasoning-rigor",
+        "don't be generic",
+        "go deeper",
+        "make it specific",
+        "use the repo, not generic advice"
+      ]
+    }
+  },
+  "output_contract": {
+    "required_fields": [
+      "mode",
+      "workflow_type",
+      "steps",
+      "exit_criteria",
+      "estimated_scope",
+      "phase",
+      "coordination_overlay",
+      "ceremony"
+    ]
+  },
+  "supports_native_codex_subagents": true,
+  "execution_model": {
+    "default": "sequential",
+    "subagents": "available when native Codex custom agents are installed and explicitly selected"
+  }
+}

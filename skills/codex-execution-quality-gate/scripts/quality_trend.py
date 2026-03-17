@@ -13,7 +13,7 @@ import re
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from _js_parser import count_js_functions
 
@@ -34,6 +34,7 @@ SKIP_DIRS = {
 }
 CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME)\b", re.IGNORECASE)
+STRICT_DELIVERABLE_KINDS = {"plan", "review", "handoff"}
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -184,9 +185,92 @@ def snapshot_path_for_day(output_dir: Path) -> Path:
     return output_dir / "snapshots" / f"{day}.json"
 
 
+def gate_events_path(output_dir: Path) -> Path:
+    return output_dir / "gate-events.jsonl"
+
+
+def parse_event_timestamp(raw: str) -> Optional[date]:
+    text = raw.strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def load_gate_events(output_dir: Path, days: int) -> List[Dict[str, object]]:
+    path = gate_events_path(output_dir)
+    if not path.exists() or not path.is_file():
+        return []
+    cutoff = date.today() - timedelta(days=max(1, days) - 1)
+    events: List[Dict[str, object]] = []
+    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        event_date = parse_event_timestamp(str(payload.get("timestamp", "")))
+        if event_date is None or event_date < cutoff:
+            continue
+        payload["date"] = event_date.isoformat()
+        events.append(payload)
+    return events
+
+
+def summarize_gate_events(events: List[Dict[str, object]]) -> Dict[str, object]:
+    if not events:
+        return {
+            "runs": 0,
+            "gate_pass_rate": 0.0,
+            "strict_output_runs": 0,
+            "strict_output_failures": 0,
+            "strict_output_failure_rate": 0.0,
+            "avg_output_guard_score": None,
+            "deliverable_kinds": {},
+        }
+
+    gate_passes = sum(1 for item in events if bool(item.get("gate_passed", False)))
+    strict_runs = sum(1 for item in events if bool(item.get("strict_output_effective", False)))
+    strict_failures = sum(
+        1
+        for item in events
+        if bool(item.get("strict_output_effective", False)) and str(item.get("output_guard_status", "")) != "pass"
+    )
+    output_scores = [
+        float(item["output_guard_score"])
+        for item in events
+        if isinstance(item.get("output_guard_score"), (int, float))
+    ]
+    deliverable_counts: Dict[str, int] = {}
+    for item in events:
+        kind = str(item.get("deliverable_kind", "none") or "none")
+        deliverable_counts[kind] = deliverable_counts.get(kind, 0) + 1
+
+    return {
+        "runs": len(events),
+        "gate_pass_rate": round(gate_passes / len(events), 2),
+        "strict_output_runs": strict_runs,
+        "strict_output_failures": strict_failures,
+        "strict_output_failure_rate": round(strict_failures / strict_runs, 2) if strict_runs else 0.0,
+        "avg_output_guard_score": round(sum(output_scores) / len(output_scores), 2) if output_scores else None,
+        "deliverable_kinds": deliverable_counts,
+        "latest_output_guard_status": str(events[-1].get("output_guard_status", "skipped")),
+    }
+
+
 def save_snapshot(project_root: Path, output_dir: Path) -> Dict[str, object]:
     metrics, warnings = scan_metrics(project_root)
-    payload = {"date": date.today().isoformat(), "metrics": metrics}
+    payload: Dict[str, object] = {"date": date.today().isoformat(), "metrics": metrics}
+    gate_events = load_gate_events(output_dir, 30)
+    gate_quality = summarize_gate_events(gate_events)
+    if int(gate_quality.get("runs", 0) or 0) > 0:
+        payload["gate_quality"] = gate_quality
 
     snapshots_dir = output_dir / "snapshots"
     snapshots_dir.mkdir(parents=True, exist_ok=True)
@@ -272,7 +356,11 @@ def clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
 
 
-def compute_health_score(first: Dict[str, float], latest: Dict[str, float]) -> int:
+def compute_health_score(
+    first: Dict[str, float],
+    latest: Dict[str, float],
+    gate_quality: Optional[Dict[str, object]] = None,
+) -> int:
     score = 100
     todo_count = int(latest.get("todo_count", 0))
     long_functions = int(latest.get("long_functions", 0))
@@ -302,6 +390,26 @@ def compute_health_score(first: Dict[str, float], latest: Dict[str, float]) -> i
         baseline = first_ratio if first_ratio > 0 else 0.01
         score += min(10, round(((ratio - first_ratio) / baseline) * 3))
 
+    if gate_quality:
+        pass_rate = float(gate_quality.get("gate_pass_rate", 0.0) or 0.0)
+        strict_failure_rate = float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0)
+        avg_output_score = gate_quality.get("avg_output_guard_score")
+        if pass_rate < 0.5:
+            score -= 15
+        elif pass_rate < 0.8:
+            score -= 8
+        elif pass_rate >= 0.95:
+            score += 3
+        if strict_failure_rate > 0.4:
+            score -= 10
+        elif strict_failure_rate > 0.2:
+            score -= 5
+        if isinstance(avg_output_score, (int, float)):
+            if avg_output_score < 60:
+                score -= 10
+            elif avg_output_score >= 75:
+                score += 4
+
     return clamp(int(score), 0, 100)
 
 
@@ -322,10 +430,18 @@ def build_summary(
     first: Dict[str, float],
     latest: Dict[str, float],
     trend_map: Dict[str, Dict[str, object]],
+    gate_quality: Optional[Dict[str, object]] = None,
 ) -> Tuple[str, List[str]]:
     recommendations: List[str] = []
     if snapshots_count <= 1:
         summary = "Trend report is limited because only one snapshot is available."
+        if gate_quality and int(gate_quality.get("runs", 0) or 0) > 0:
+            pass_rate = round(float(gate_quality.get("gate_pass_rate", 0.0) or 0.0) * 100)
+            summary += f" Current gate pass rate is {pass_rate}%."
+            if isinstance(gate_quality.get("avg_output_guard_score"), (int, float)):
+                summary += f" Avg output score is {float(gate_quality['avg_output_guard_score']):.0f}."
+            if float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0) > 0.2:
+                recommendations.append("Strict-output failures already appear in the baseline; tighten deliverable templates now.")
         recommendations.append("Record snapshots periodically to unlock directional trend analysis.")
         return summary, recommendations
 
@@ -375,18 +491,36 @@ def build_summary(
     if not recommendations:
         recommendations.append("Maintain current quality trajectory and continue periodic snapshots.")
 
-    summary = " ".join(part for part in [quality_line, todo_line, ratio_line, watch_line] if part)
+    gate_line = ""
+    if gate_quality and int(gate_quality.get("runs", 0) or 0) > 0:
+        pass_rate = float(gate_quality.get("gate_pass_rate", 0.0) or 0.0)
+        strict_failures = int(gate_quality.get("strict_output_failures", 0) or 0)
+        avg_output_score = gate_quality.get("avg_output_guard_score")
+        gate_line = f"Gate pass rate is {round(pass_rate * 100)}%."
+        if strict_failures:
+            gate_line += f" Strict deliverables failed {strict_failures} time(s)."
+        if isinstance(avg_output_score, (int, float)):
+            gate_line += f" Avg output score is {avg_output_score:.0f}."
+        if pass_rate < 0.8:
+            recommendations.append("Gate pass rate is below 80%; inspect recurring blockers before the next cycle.")
+        if float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0) > 0.2:
+            recommendations.append("Strict-output failures are recurring; tighten plan/review/handoff templates and evidence.")
+
+    summary = " ".join(part for part in [quality_line, todo_line, ratio_line, watch_line, gate_line] if part)
     return summary, recommendations[:4]
 
 
 def build_report(output_dir: Path, days: int) -> Dict[str, object]:
     snapshots = load_snapshots(output_dir, days)
+    gate_events = load_gate_events(output_dir, days)
+    gate_quality = summarize_gate_events(gate_events)
     if not snapshots:
         return {
             "status": "report_ready",
             "period": {"from": "", "to": ""},
             "snapshots_count": 0,
             "trends": {},
+            "gate_quality": gate_quality,
             "health_score": 0,
             "health_grade": "D",
             "summary": "No snapshots found in selected period. Run --record first.",
@@ -420,15 +554,16 @@ def build_report(output_dir: Path, days: int) -> Dict[str, object]:
             "trend": trend_label(key, first_value, latest_value),
         }
 
-    health_score = compute_health_score(first_metrics, latest_metrics)
+    health_score = compute_health_score(first_metrics, latest_metrics, gate_quality)
     health_grade = grade_for_score(health_score)
-    summary, recommendations = build_summary(len(snapshots), first_metrics, latest_metrics, trends)
+    summary, recommendations = build_summary(len(snapshots), first_metrics, latest_metrics, trends, gate_quality)
 
     return {
         "status": "report_ready",
         "period": {"from": str(first_snapshot.get("date", "")), "to": str(latest_snapshot.get("date", ""))},
         "snapshots_count": len(snapshots),
         "trends": trends,
+        "gate_quality": gate_quality,
         "health_score": health_score,
         "health_grade": health_grade,
         "summary": summary,
@@ -486,6 +621,10 @@ def print_human_summary(payload: Dict[str, object]) -> None:
         f"Snapshots: {snapshots}",
         f"Trend:     {trend}",
     ]
+    gate_quality = report_payload.get("gate_quality", {}) if report_payload else {}
+    if isinstance(gate_quality, dict) and int(gate_quality.get("runs", 0) or 0) > 0:
+        pass_rate = round(float(gate_quality.get("gate_pass_rate", 0.0) or 0.0) * 100)
+        rows.append(f"Gates:     {gate_quality.get('runs')} runs, {pass_rate}% pass")
     if str(payload.get("status", "")) == "error":
         rows.append(f"Error: {payload.get('message', '')}")
 

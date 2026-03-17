@@ -6,13 +6,13 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `10.5.2` |
-| Skills | 12 |
-| Scripts | 30 + 1 shared module (`_js_parser.py`) |
-| References | 127 |
+| Version | `12.5.0` |
+| Skills | 14 |
+| Scripts | 36 + 2 shared modules (`_js_parser.py`, `_scrum_agent_kit.py`) |
+| References | 146 |
 | Starters | 29 |
-| Pytest | 39/39 |
-| Smoke | 32/32 |
+| Pytest | 83/83 |
+| Smoke | 47/47 |
 
 ---
 
@@ -104,7 +104,8 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 
 **On-demand.** Creates `{task-slug}.md` with:
 - Overview, success criteria, tech stack rationale
-- Task breakdown (domain, priority, dependencies, verify method, rollback)
+- Task breakdown (domain, priority, dependencies, verify method, rollback, evidence)
+- Evidence and monitoring expectations for medium/high-risk work
 - Phase X verification checklist
 
 ### 5. `codex-workflow-autopilot` — Workflow Routing
@@ -124,9 +125,21 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 | Asset | Count |
 | --- | --- |
 | Scripts | 1 (`explain_code.py`) |
-| References | 9 (3 mode specs + 6 workflow templates) |
+| References | 11 (3 mode specs + 7 workflow templates + 1 routing contract) |
 
-### 6. `codex-domain-specialist` — Full-Stack Knowledge
+### 6. `codex-reasoning-rigor` — Anti-Generic Output Discipline
+
+**On-demand.** Forces deliberate, evidence-backed output when shallow advice is not acceptable:
+
+| Asset | Count |
+| --- | --- |
+| Scripts | 1 (`build_reasoning_brief.py`) |
+| References | 4 |
+| Assets | 3 templates |
+
+Primary use case: activate when the user asks for deeper thinking, less generic output, stronger tradeoffs, monitoring loops, or repo-grounded reasoning instead of reusable best-practice language. The brief generator is now strict by default and only emits `_TODO_` scaffolds when `--allow-placeholders` is explicitly set.
+
+### 7. `codex-domain-specialist` — Full-Stack Knowledge
 
 **On-demand.** The largest knowledge pack:
 
@@ -140,6 +153,7 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 | Cross-cutting (TypeScript, testing, Git, GraphQL, dates, export) | 9 |
 
 **Routing system:**
+- plus 7 creative/design-focused references currently present in the pack
 - 12 primary domains in detection table
 - 45+ signal entries across 9 categories
 - 10 common combo patterns (e.g. "Build new CRUD page" → 4 specific refs)
@@ -149,7 +163,7 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 
 **Starters:** 19 production-ready templates (Express API, React CRUD, Docker Compose, auth flow, etc.)
 
-### 7. `codex-security-specialist` — Security Knowledge
+### 8. `codex-security-specialist` — Security Knowledge
 
 **On-demand.** Defense-in-depth across 6 layers:
 
@@ -164,7 +178,7 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 
 **6 core principles:** defense-in-depth, least privilege, fail secure, zero trust, separation of duties, audit everything.
 
-### 8. `codex-execution-quality-gate` — Verification
+### 9. `codex-execution-quality-gate` — Verification
 
 **On-demand.** 16 scripts organized by priority:
 
@@ -178,16 +192,22 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 | P3 | `predict_impact.py` | ⚠️ Warning |
 | P4 | `tech_debt_scan.py` | ℹ️ Advisory |
 | P5 | `suggest_improvements.py` | ℹ️ Advisory |
-| P6 | `quality_trend.py` | ℹ️ Advisory |
-| P7 | `ux_audit.py` | ⚠️ Warning |
-| P8 | `accessibility_check.py` | ⚠️ Warning |
-| P9 | `lighthouse_audit.py` | ⚠️ Warning |
+| P6 | `output_guard.py` | ℹ️ Advisory |
+| P7 | `quality_trend.py` | ℹ️ Advisory |
+| P8 | `ux_audit.py` | ⚠️ Warning |
+| P9 | `accessibility_check.py` | ⚠️ Warning |
+| P10 | `lighthouse_audit.py` | ⚠️ Warning |
 | — | `playwright_runner.py` | E2E helper |
 | — | `with_server.py` | Server lifecycle |
 | — | `doctor.py` | Installation health |
 | — | `_js_parser.py` | Shared JS parser |
 
-### 9. `codex-project-memory` — Knowledge Persistence
+Highlights:
+- `output_guard.py` is now repo-aware when `--repo-root` is supplied, so stale file references can be caught instead of rewarded.
+- `run_gate.py` can now auto-enforce strict output for plans, reviews, and handoffs, or fail on weak deliverables explicitly via `--strict-output --output-file/--output-text`.
+- `quality_trend.py` now reports gate pass rate, strict-output failures, and average output-guard score in addition to code-shape trends.
+
+### 10. `codex-project-memory` — Knowledge Persistence
 
 **On-demand.** 11 scripts for cross-session memory:
 
@@ -205,19 +225,37 @@ Uses `codex-project-memory/scripts/generate_genome.py` for generation.
 | `track_skill_usage.py` | — | Skill effectiveness analytics |
 | `analyze_patterns.py` | — | Recurring pattern detection |
 
-### 10. `codex-docs-change-sync` — Docs Impact Mapping
+### 11. `codex-docs-change-sync` — Docs Impact Mapping
 
 **Lazy.** Maps code diffs to potentially impacted documentation. Report-only by default.
 
-### 11. `codex-git-autopilot` — Guarded Commits
+### 12. `codex-git-autopilot` — Guarded Commits
 
 **On-demand.** Pipeline: collect → stage → gate → message → sign → push.
 
 Safety: **never** commits if gate fails, **never** force pushes, falls back to unsigned if GPG unavailable.
 
-### 12. `codex-doc-renderer` — DOCX Rendering
+### 13. `codex-doc-renderer` — DOCX Rendering
 
 **Lazy.** DOCX → PDF → PNG pipeline for visual document review.
+
+### 14. `codex-scrum-subagents` — Scrum Delivery Kit
+
+**On-demand.** Installs a project-local `.agent` bundle plus native `.codex/agents` custom agents for Scrum delivery:
+
+| Asset | Count |
+| --- | --- |
+| Scripts | 4 entry points + 1 shared helper (`install_scrum_subagents.py`, `validate_scrum_agent_kit.py`, `generate_scrum_artifact.py`, `run_scrum_alias.py`, `_scrum_agent_kit.py`) |
+| References | 6 |
+| Installed Role Briefs | 10 |
+| Installed Native Codex Agents | 10 |
+| Installed Workflows | 7 |
+| Installed Manifests | 3 |
+| Installed Aliases | 12 |
+| Artifact Templates | 6 |
+
+Primary use case: add explicit Product Owner, Scrum Master, architect, developer, QA, security, DevOps, and UX subagent templates to projects that need ceremony-driven coordination and repeatable handoffs.
+The installer now supports `--diff`, `--update`, and backup creation across both `.agent` and `.codex/agents`, plus `--native-scope project|personal|both` for first-class personal-agent installs. `validate_scrum_agent_kit.py` can now verify bundled, project, and personal native Codex custom agents, and the bundle also ships a `commands.json` manifest so shorthand triggers like `$scrum-install`, `$story-ready-check`, `$retro`, and `$release-readiness` are documented and testable. The artifact generator still rejects placeholder-only ceremony outputs unless `--allow-placeholders` is explicitly requested.
 
 ---
 
@@ -227,10 +265,12 @@ Safety: **never** commits if gate fails, **never** force pushes, falls back to u
 | --- | --- | --- |
 | `$codex-intent-context-analyzer` | intent-context-analyzer | Parse request to intent JSON |
 | `$codex-workflow-autopilot` | workflow-autopilot | Route to workflow + mode |
+| `$codex-reasoning-rigor` | reasoning-rigor | Force deeper, non-generic reasoning |
 | `$codex-plan-writer` | plan-writer | Create implementation plan |
 | `$codex-execution-quality-gate` | execution-quality-gate | Run verification suite |
 | `$codex-doctor` | execution-quality-gate | Health check installation |
 | `$setup-check` | execution-quality-gate | Verify dependencies |
+| `$output-guard` | execution-quality-gate | Score deliverables for generic filler and weak evidence |
 | `$codex-genome` | context-engine / project-memory | Generate project context |
 | `$codex-genome --force` | context-engine / project-memory | Force regenerate |
 | `$log-decision` | project-memory | Record architecture decision |
@@ -245,6 +285,34 @@ Safety: **never** commits if gate fails, **never** force pushes, falls back to u
 | `$teach` | workflow-autopilot | Enter teaching mode |
 | `$e2e check` | execution-quality-gate | Run Playwright checks |
 | `$lighthouse <url>` | execution-quality-gate | Run Lighthouse audit |
+| `$scrum-install` | scrum-subagents | Install the local Scrum `.agent` kit plus native `.codex/agents` custom agents |
+| `$scrum-diff` | scrum-subagents | Compare installed `.agent` and `.codex/agents` files vs source bundle |
+| `$scrum-update` | scrum-subagents | Refresh missing or changed kit files across both install surfaces |
+| `$scrum-validate` | scrum-subagents | Validate the bundled or installed Scrum kit across `.agent` and `.codex/agents` |
+| `$backlog-refinement` | scrum-subagents | Turn a request into sprint-ready backlog |
+| `$sprint-plan` | scrum-subagents | Build sprint goal, scope, and ownership |
+| `$daily-scrum` | scrum-subagents | Run blocker and progress sync |
+| `$story-ready-check` | scrum-subagents | Check whether a story is ready to implement |
+| `$story-delivery` | scrum-subagents | Drive one story through delivery and verification |
+| `$sprint-review` | scrum-subagents | Review increment outcomes and feedback |
+| `$retro` | scrum-subagents | Capture process improvements |
+| `$release-readiness` | scrum-subagents | Decide ship or no-ship with evidence |
+
+Script-style entry point for the Scrum kit:
+
+```bash
+python codex-scrum-subagents/scripts/install_scrum_subagents.py --target-root <project-root>
+python codex-scrum-subagents/scripts/install_scrum_subagents.py --target-root <project-root> --diff --format json
+python codex-scrum-subagents/scripts/install_scrum_subagents.py --target-root <project-root> --update
+python codex-scrum-subagents/scripts/validate_scrum_agent_kit.py --install-root <project-root>/.agent
+python codex-scrum-subagents/scripts/run_scrum_alias.py --alias \$story-ready-check --artifact-output .codex/story.md --field title="Checkout validation" --field persona="Store admin" --field need="Validate address input before order creation" --field outcome="Reject invalid orders before payment" --field acceptance_criteria="- invalid addresses block submission" --field notes="- QA covers edge cases"
+python codex-scrum-subagents/scripts/generate_scrum_artifact.py --template retrospective --field title="Sprint 8 retrospective" --field sprint_name="Sprint 8" --field wins="- Release stabilized" --field pain_points="- QA joined late" --field actions="- Pull QA into story delivery earlier" --field owners="- scrum-master" --output .codex/retro.md
+```
+
+Shorthand alias reference for the Scrum kit:
+
+- `references/command-aliases.md`
+- `assets/scrum-agent-kit/services/commands.json`
 
 ---
 
@@ -280,15 +348,17 @@ python codex-execution-quality-gate/scripts/doctor.py --skills-root . --format t
 
 ```
 skills/
-├── VERSION                              ← 10.5.2
-├── CHANGELOG.md                         ← v1.0 → v10.5.2 history
+├── VERSION                              ← 12.5.0
+├── CHANGELOG.md                         ← v1.0 → v12.5.0 history
 ├── README.md                            ← This file
 ├── pytest.ini
 ├── requirements.txt
 ├── tests/
 │   ├── conftest.py
-│   ├── smoke_test.py                    ← 32 structural checks
-│   └── test_parsing.py                  ← 39 unit tests
+│   ├── smoke_test.py                    ← 47 CLI and structural checks
+│   ├── test_output_rigor.py             ← 10 output rigor / reasoning tests
+│   ├── test_parsing.py                  ← 41 unit tests
+│   └── test_scrum_subagents.py          ← 28 scrum installer/validator tests
 │
 ├── codex-master-instructions/
 │   ├── SKILL.md                         ← 18.8 KB, always loaded
@@ -309,12 +379,19 @@ skills/
 ├── codex-workflow-autopilot/
 │   ├── SKILL.md                         ← 7.4 KB
 │   ├── scripts/explain_code.py
-│   ├── references/ (9)
+│   ├── references/ (10)
+│   └── agents/
+│
+├── codex-reasoning-rigor/
+│   ├── SKILL.md                         ← Anti-generic reasoning protocol
+│   ├── scripts/build_reasoning_brief.py
+│   ├── references/ (4)
+│   ├── assets/ (3)
 │   └── agents/
 │
 ├── codex-domain-specialist/
 │   ├── SKILL.md                         ← 22.5 KB, routing logic
-│   ├── references/ (59)
+│   ├── references/ (66)
 │   ├── starters/ (19)
 │   └── agents/
 │
@@ -325,8 +402,8 @@ skills/
 │
 ├── codex-execution-quality-gate/
 │   ├── SKILL.md                         ← 10.1 KB
-│   ├── scripts/ (16)
-│   ├── references/ (14)
+│   ├── scripts/ (16 + helper)           ← includes output_guard.py and run_gate.py
+│   ├── references/ (15)
 │   └── agents/
 │
 ├── codex-project-memory/
@@ -345,9 +422,21 @@ skills/
 │   ├── SKILL.md                         ← 2.0 KB
 │   └── scripts/auto_commit.py
 │
-└── codex-doc-renderer/
-    ├── SKILL.md                         ← 3.2 KB
-    ├── scripts/
-    ├── assets/
-    └── agents/
+├── codex-doc-renderer/
+│   ├── SKILL.md                         ← 3.2 KB
+│   ├── scripts/
+│   ├── assets/
+│   └── agents/
+│
+└── codex-scrum-subagents/
+    ├── SKILL.md                         ← Scrum subagent routing + native Codex agent install
+    ├── scripts/install_scrum_subagents.py
+    ├── scripts/validate_scrum_agent_kit.py
+    ├── scripts/generate_scrum_artifact.py
+    ├── scripts/run_scrum_alias.py
+    ├── scripts/_scrum_agent_kit.py
+    ├── references/ (6)
+    ├── assets/scrum-agent-kit/          ← 10 role briefs + 7 workflows + 3 manifests + 12 aliases
+    └── assets/artifact-templates/       ← 6 repeatable Scrum artifacts
 ```
+

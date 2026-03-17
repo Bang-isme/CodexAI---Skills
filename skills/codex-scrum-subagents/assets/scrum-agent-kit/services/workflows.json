@@ -1,0 +1,30 @@
+[
+  {
+    "command": "/backlog-refinement",
+    "description": "Refine work into sprint-ready stories"
+  },
+  {
+    "command": "/sprint-planning",
+    "description": "Create sprint goal, backlog, and ownership plan"
+  },
+  {
+    "command": "/daily-scrum",
+    "description": "Track progress and blockers"
+  },
+  {
+    "command": "/story-delivery",
+    "description": "Drive one story through implementation and verification"
+  },
+  {
+    "command": "/sprint-review",
+    "description": "Inspect increment and capture feedback"
+  },
+  {
+    "command": "/retrospective",
+    "description": "Capture team improvements for next sprint"
+  },
+  {
+    "command": "/release-readiness",
+    "description": "Decide ship or no-ship with rollback evidence"
+  }
+]

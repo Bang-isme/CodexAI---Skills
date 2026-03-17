@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scrum Subagents"
+  short_description: "Install Scrum-ready subagents and workflows"
+  default_prompt: "Use $codex-scrum-subagents to install a Scrum-ready subagent kit for this project."

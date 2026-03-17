@@ -15,6 +15,10 @@ It provides one consolidated status used before completion.
 - Trigger on `$codex-execution-quality-gate` or "run quality gate".
 - Auto-run at the end of implementation workflows unless explicitly skipped.
 - Blocking behavior: non-zero lint/test failure blocks completion.
+- Strict-output behavior:
+  - when `--strict-output` is supplied with `--output-file` or `--output-text`, output-guard failures block completion
+  - when the deliverable looks like a `plan`, `review`, or `handoff`, strict-output should auto-enable by default
+  - `--advisory-output` is the explicit escape hatch when the caller wants those deliverables treated as advisory-only
 ## Output Intent
-- Provide aggregated lint and test status for completion decisions.
+- Provide aggregated lint, test, and optional output-quality status for completion decisions.
 - Caveat: if tooling is not detected, output may contain warnings instead of strict failures.

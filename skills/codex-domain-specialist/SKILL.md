@@ -7,6 +7,17 @@ load_priority: on-demand
 ## TL;DR
 Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.yaml` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references.
 
+## Output Quality Mandate (MANDATORY)
+
+> **Before generating ANY code, schema, API, or UI — load and apply `references/output-quality-gates.md`.** This reference is exempt from the 4-item context limit and domain isolation rules. It must be loaded on EVERY task.
+
+This reference prevents generic, tutorial-style output by enforcing:
+1. The **3-Second Rule**: 3 questions before any output.
+2. Domain-specific **Quality Gates** (FE / BE / DB).
+3. A **10-point Anti-Generic Checklist** after generating output.
+
+**If your output could be copy-pasted into any random project and still work without modification, it is generic. Generic = failure. Re-think and rewrite.**
+
 # Domain Specialist
 
 ## Activation
@@ -62,7 +73,14 @@ After determining the primary domain (via profile or detection), check for recur
 | validation | `references/validation-patterns.md` |
 | logging | `references/logging-patterns.md` |
 | forms | `references/form-patterns.md` |
+| creative | `references/creative-ui-ux.md` |
+| creative-dev | `references/creative-development.md` |
+| animation | `references/creative-ui-ux.md` |
+| gsap | `references/gsap-mastery.md` |
+| interactive | `references/interactive-elements.md` |
+| ui-design | `references/ui-ux-design-principles.md` |
 | visualization | `references/data-visualization.md` |
+| vietnamese | `references/vietnamese-typography.md` |
 | dates | `references/date-timezone.md` |
 | export | `references/data-export.md` |
 | upload | `references/file-upload.md` |
@@ -100,6 +118,7 @@ Route in this exact order:
 
 ## Context Boundary Enforcement
 
+0. **Mandatory pre-load**: Always load `references/output-quality-gates.md` regardless of domain or context limits. This does NOT count toward the 4-item limit.
 1. Max context load: load at most 4 items (references + starter templates) in the first pass. If more are needed, state clear reason and list additional files explicitly.
 2. Domain isolation:
    - Frontend-only tasks (component, styling, hooks): do not load `backend-rules.md`, `database-rules.md`, or `devops-rules.md`.
@@ -141,9 +160,15 @@ When task signals match keywords below, add the corresponding reference. If mult
 | --- | --- |
 | design tokens, color palette, spacing, CSS variables, theme, dark mode | `references/css-architecture.md` |
 | chart, graph, visualization, Recharts, D3, sparkline, bar chart, pie chart | `references/data-visualization.md` |
+| GSAP, Three.js, WebGL, Framer Motion, Awwwards, creative, storytelling, landing page, scrolltrigger | `references/creative-ui-ux.md` |
+| creative development, art direction, breakthrough design, brand experience, experimental, unique design, wow factor, premium feel, creative archetype | `references/creative-development.md` |
+| gsap.timeline, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, scrub, pin, tween, stagger | `references/gsap-mastery.md` |
+| interactive, fun, playful, hover effect, tilt card, confetti, particle, drag, ripple, Easter egg, cursor effect, magnetic button, text scramble | `references/interactive-elements.md` |
+| ui design, ux design, visual hierarchy, color theory, typography pair, layout, whitespace, gestalt, aesthetics, beautiful design, shadow depth | `references/ui-ux-design-principles.md` |
 | form, multi-step form, field array, form validation UX, React Hook Form | `references/form-patterns.md` |
 | Redux, Zustand, Context, React Query, state management, global state | `references/state-management.md` |
 | i18n, translation, locale, multi-language, RTL | `references/i18n-patterns.md` |
+| tiếng việt, vietnamese, dấu, diacritics, vietnamese font, vi locale | `references/vietnamese-typography.md` |
 | PWA, service worker, offline, manifest, installable | `references/pwa-patterns.md` |
 | lighthouse, bundle size, web vitals, LCP, CLS, INP | `references/performance-profiling.md` |
 | keyboard, focus, screen reader, WCAG, aria | `references/accessibility-rules.md` |
@@ -369,3 +394,10 @@ Rules:
 - `references/state-management.md`: client state modeling and store selection patterns.
 - `references/testing-rules.md`: unit/integration/e2e testing baseline standards.
 - `references/typescript-rules.md`: TypeScript strictness, typing conventions, and API typing patterns.
+- `references/vietnamese-typography.md`: Vietnamese font selection, UTF-8 encoding, diacritics handling, and locale-aware text processing.
+- `references/creative-ui-ux.md`: Advanced UI/UX, GSAP orchestration, Three.js integration, storytelling flow, and creative design principles.
+- `references/ui-ux-design-principles.md`: Visual hierarchy, Gestalt principles, color theory, typography scales, whitespace strategy, optical alignment, and developer design anti-patterns.
+- `references/gsap-mastery.md`: GSAP core architecture, easing, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, performance, React integration, and creative recipes.
+- `references/interactive-elements.md`: Fun interactive UI elements: custom cursors, tilt cards, magnetic buttons, confetti, particles, text scramble, hover effects, drag/swipe, Easter eggs.
+- `references/creative-development.md`: Creative Director's Brain — Creative Brief Decoder, 7 archetypes, experimental typography, glow/neon systems, purpose-driven animation, differentiation playbook, conversion-focused creative.
+- `references/output-quality-gates.md`: **MANDATORY** — Anti-generic guardrails: 3-Second Rule, FE/BE/DB Quality Gates, 10-point Anti-Generic Checklist, Why Mandate, Framework Defaults Override.
