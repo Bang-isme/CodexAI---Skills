@@ -10,6 +10,15 @@ from pathlib import Path
 import yaml
 
 MAX_SKILL_NAME_LENGTH = 64
+ALLOWED_FRONTMATTER_PROPERTIES = {
+    "name",
+    "description",
+    "license",
+    "allowed-tools",
+    "metadata",
+    "load_priority",
+    "version",
+}
 
 
 def validate_skill(skill_path):
@@ -37,11 +46,9 @@ def validate_skill(skill_path):
     except yaml.YAMLError as e:
         return False, f"Invalid YAML in frontmatter: {e}"
 
-    allowed_properties = {"name", "description", "license", "allowed-tools", "metadata"}
-
-    unexpected_keys = set(frontmatter.keys()) - allowed_properties
+    unexpected_keys = set(frontmatter.keys()) - ALLOWED_FRONTMATTER_PROPERTIES
     if unexpected_keys:
-        allowed = ", ".join(sorted(allowed_properties))
+        allowed = ", ".join(sorted(ALLOWED_FRONTMATTER_PROPERTIES))
         unexpected = ", ".join(sorted(unexpected_keys))
         return (
             False,

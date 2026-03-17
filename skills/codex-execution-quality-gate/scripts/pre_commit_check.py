@@ -117,6 +117,24 @@ def run_git(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
         )
 
 
+def run_git_bytes(project_root: Path, args: List[str]) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=["git", *args],
+            returncode=1,
+            stdout=b"",
+            stderr=b"git timeout",
+        )
+
+
 def git_ready(project_root: Path) -> bool:
     inside = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
     return inside.returncode == 0 and inside.stdout.strip().lower() == "true"
@@ -207,6 +225,13 @@ def contains_pyproject_section(project_root: Path, section: str) -> bool:
         return False
     content = pyproject.read_text(encoding="utf-8", errors="ignore")
     return section in content
+
+
+def read_staged_text(project_root: Path, rel: str) -> Optional[str]:
+    result = run_git_bytes(project_root, ["show", f":{rel}"])
+    if result.returncode != 0:
+        return None
+    return result.stdout.decode("utf-8", errors="replace")
 
 
 def make_command(parts: List[str], is_windows: bool, name: str) -> CommandSpec:
@@ -411,12 +436,16 @@ def mojibake_scan(project_root: Path, files: Iterable[str]) -> Tuple[Dict[str, o
     for rel in files:
         if Path(rel).suffix.lower() not in TEXT_EXTS:
             continue
-        full = project_root / rel
-        if not full.exists() or not full.is_file():
-            continue
-        try:
-            content = full.read_text(encoding="utf-8", errors="replace")
-        except OSError:
+        content = read_staged_text(project_root, rel)
+        if content is None:
+            full = project_root / rel
+            if not full.exists() or not full.is_file():
+                continue
+            try:
+                content = full.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+        if not content:
             continue
 
         for fragment in MOJIBAKE_FRAGMENTS:
@@ -518,7 +547,11 @@ def detect_runner_for_staged_tests(project_root: Path, buckets: Dict[str, List[s
             if "vitest" in content:
                 return "vitest"
     if buckets["python"]:
-        if (project_root / "pytest.ini").exists() or contains_pyproject_section(project_root, "[tool.pytest]"):
+        if (
+            (project_root / "pytest.ini").exists()
+            or contains_pyproject_section(project_root, "[tool.pytest]")
+            or contains_pyproject_section(project_root, "[tool.pytest.ini_options]")
+        ):
             return "pytest"
     return None
 
@@ -544,9 +577,10 @@ def run_related_tests(
         spec = make_command(["npx", "vitest", "related", *files], os.name == "nt", "vitest")
     else:
         test_files = [f for f in buckets["python"] if ("/tests/" in f or Path(f).name.startswith("test_"))]
-        if not test_files:
-            return ({"check": "tests", "status": "skip", "reason": "no staged python test files"}, False)
-        spec = make_command(["pytest", *test_files], os.name == "nt", "pytest")
+        if test_files:
+            spec = make_command([sys.executable, "-m", "pytest", *test_files], os.name == "nt", "pytest")
+        else:
+            spec = make_command([sys.executable, "-m", "pytest"], os.name == "nt", "pytest")
 
     result = run_command(project_root, spec)
     if not result["ok"]:
