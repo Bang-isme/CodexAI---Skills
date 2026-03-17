@@ -21,7 +21,22 @@ PY_EXTS = {".py"}
 STYLE_EXTS = {".css", ".scss"}
 DOC_EXTS = {".md"}
 JSON_EXTS = {".json"}
+TEXT_EXTS = DOC_EXTS | JSON_EXTS | {".txt", ".toml", ".yml", ".yaml"}
 CODE_EXTS = JS_TS_EXTS | PY_EXTS
+
+MOJIBAKE_FRAGMENTS = (
+    "Ãƒ",
+    "Ã¢",
+    "Ã†",
+    "Â°",
+    "â€",
+    "â†",
+    "â€¢",
+    "âœ",
+    "ðŸ",
+    "ï»¿",
+    "\ufffd",
+)
 
 SECRET_PATTERNS = [
     ("API_KEY=", re.compile(r"api[_-]?key\s*=", re.IGNORECASE)),
@@ -391,6 +406,48 @@ def scan_large_files(project_root: Path, files: Iterable[str], added: Dict[str, 
     return ({"check": "large_file", "status": status, "issues": issues}, strict)
 
 
+def mojibake_scan(project_root: Path, files: Iterable[str]) -> Tuple[Dict[str, object], bool]:
+    issues = []
+    for rel in files:
+        if Path(rel).suffix.lower() not in TEXT_EXTS:
+            continue
+        full = project_root / rel
+        if not full.exists() or not full.is_file():
+            continue
+        try:
+            content = full.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+
+        for fragment in MOJIBAKE_FRAGMENTS:
+            idx = content.find(fragment)
+            if idx == -1:
+                continue
+            line_no = content[:idx].count("\n") + 1
+            snippet = content[idx : idx + 120].splitlines()[0]
+            issues.append(
+                {
+                    "file": rel,
+                    "line": line_no,
+                    "fragment": fragment,
+                    "snippet": snippet,
+                }
+            )
+            break
+
+    if not issues:
+        return ({"check": "mojibake_scan", "status": "pass", "issues": 0}, True)
+    return (
+        {
+            "check": "mojibake_scan",
+            "status": "fail",
+            "files": len(sorted({item["file"] for item in issues})),
+            "issues": issues,
+        },
+        True,
+    )
+
+
 def secret_scan(added: Dict[str, List[Tuple[int, str]]]) -> Tuple[Dict[str, object], bool]:
     issues = []
     for file_path, rows in added.items():
@@ -561,6 +618,7 @@ def run_pre_commit(project_root: Path, strict: bool, skip_tests: bool) -> Tuple[
         lint_python(project_root, buckets["python"], strict),
         type_check(project_root, buckets["ts_only"], strict),
         run_related_tests(project_root, buckets, strict, skip_tests),
+        mojibake_scan(project_root, staged),
         scan_todos(added, code_files, strict),
         scan_large_files(project_root, staged, added, strict),
         secret_scan(added),

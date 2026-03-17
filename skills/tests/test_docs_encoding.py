@@ -7,6 +7,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 README = REPO_ROOT / "README.md"
 VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
+SKILLS_README = REPO_ROOT / "skills" / "README.md"
+CHANGELOG = REPO_ROOT / "skills" / "CHANGELOG.md"
 
 SUSPICIOUS_FRAGMENTS = [
     "\u00c3\u0192",
@@ -19,7 +21,7 @@ SUSPICIOUS_FRAGMENTS = [
 
 
 def test_public_docs_do_not_contain_known_mojibake_fragments() -> None:
-    for path in (README, VI_GUIDE):
+    for path in (README, VI_GUIDE, SKILLS_README, CHANGELOG):
         text = path.read_text(encoding="utf-8")
         for fragment in SUSPICIOUS_FRAGMENTS:
             assert fragment not in text, f"{path} still contains mojibake fragment {fragment!r}"
