@@ -28,6 +28,10 @@ reasoning_brief = load_script_module(
     "skills_build_reasoning_brief",
     "codex-reasoning-rigor/scripts/build_reasoning_brief.py",
 )
+editorial_review = load_script_module(
+    "skills_editorial_review",
+    "codex-execution-quality-gate/scripts/editorial_review.py",
+)
 
 
 def test_output_guard_flags_generic_text() -> None:
@@ -170,3 +174,36 @@ def test_reasoning_brief_build_mapping_scaffold_mode_uses_placeholders() -> None
     mapping = reasoning_brief.build_mapping(args)
     assert mapping["constraints"] == "- _TODO_"
     assert mapping["quality_bar"] == "_TODO_"
+
+
+def test_editorial_review_flags_ai_speak_and_hedging() -> None:
+    text = "\n".join(
+        [
+            "Here's a breakdown of what you may want to do.",
+            "It depends, and you could consider leveraging best practices.",
+            "Overall, the best approach is potentially to revisit this later.",
+        ]
+    )
+    report = editorial_review.analyze_text(text, min_score=65, deliverable_kind="review")
+    assert report["status"] == "fail"
+    assert "Tone still reads like AI-safe prose" in report["issues"]
+    assert report["counts"]["ai_speak_phrases"] >= 1
+    assert report["counts"]["hedge_phrases"] >= 2
+
+
+def test_editorial_review_passes_decision_ready_grounded_text(tmp_path: Path) -> None:
+    (tmp_path / "skills" / "tests").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "skills" / "tests" / "smoke_test.py").write_text("print('ok')\n", encoding="utf-8")
+    text = "\n".join(
+        [
+            "Decision: keep `skills/tests/smoke_test.py` in the release checklist.",
+            "Evidence: run `python skills/tests/smoke_test.py` after updating the gate scripts.",
+            "Risk: stale smoke expectations will make release notes look trustworthy when they are not.",
+            "Next step: assign the release owner to refresh the checklist after each gate change.",
+        ]
+    )
+    report = editorial_review.analyze_text(text, min_score=65, deliverable_kind="handoff", repo_root=tmp_path)
+    assert report["status"] == "pass"
+    assert report["rubric"]["decision_clarity"] >= 12
+    assert report["rubric"]["grounding"] >= 10
+    assert report["rubric"]["tradeoff_awareness"] >= 8

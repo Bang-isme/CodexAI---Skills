@@ -26,6 +26,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import output_guard as output_guard_script
+import editorial_review as editorial_review_script
 
 
 @dataclass
@@ -40,6 +41,11 @@ DEFAULT_STRICT_DELIVERABLE_SCORES: Dict[str, int] = {
     "plan": 70,
     "review": 70,
     "handoff": 65,
+}
+DEFAULT_EDITORIAL_DELIVERABLE_SCORES: Dict[str, int] = {
+    "plan": 68,
+    "review": 72,
+    "handoff": 62,
 }
 
 
@@ -225,6 +231,25 @@ def empty_output_guard_result() -> Dict[str, Any]:
     }
 
 
+def empty_editorial_review_result() -> Dict[str, Any]:
+    return {
+        "executed": False,
+        "status": "skipped",
+        "score": 0,
+        "min_score": 0,
+        "deliverable_kind": "generic",
+        "rubric": {
+            "decision_clarity": 0,
+            "grounding": 0,
+            "tradeoff_awareness": 0,
+            "structure": 0,
+            "editorial_tone": 0,
+        },
+        "issues": [],
+        "suggestions": [],
+    }
+
+
 def infer_deliverable_kind(output_file: Optional[str], text: str) -> str:
     source = (output_file or "").lower()
     lowered = text.lower()
@@ -348,6 +373,46 @@ def execute_output_guard(
     return report, deliverable_kind
 
 
+def execute_editorial_review(
+    project_root: Path,
+    output_file: Optional[str],
+    output_text: Optional[str],
+    deliverable_kind: str,
+    min_score: int,
+) -> Dict[str, Any]:
+    if output_file is None and output_text is None:
+        return empty_editorial_review_result()
+
+    try:
+        if output_text is not None:
+            text = output_text
+        else:
+            assert output_file is not None
+            text = resolve_optional_path(project_root, output_file).read_text(encoding="utf-8")
+    except (AssertionError, OSError, ValueError) as exc:
+        payload = empty_editorial_review_result()
+        payload.update(
+            {
+                "executed": True,
+                "status": "error",
+                "message": str(exc),
+            }
+        )
+        return payload
+
+    report = editorial_review_script.analyze_text(
+        text,
+        min_score=min_score,
+        deliverable_kind=deliverable_kind,
+        repo_root=project_root,
+    )
+    report["executed"] = True
+    if output_file:
+        resolved = resolve_optional_path(project_root, output_file)
+        report["source_file"] = resolved.as_posix() if resolved is not None else output_file
+    return report
+
+
 def build_gate_report(
     project_root: Path,
     timeout_lint: int,
@@ -358,6 +423,7 @@ def build_gate_report(
     output_text: Optional[str] = None,
     strict_output: bool = False,
     output_min_score: int = 60,
+    editorial_min_score: int = 60,
     deliverable_kind: str = "auto",
     advisory_output: bool = False,
 ) -> Dict[str, Any]:
@@ -370,6 +436,7 @@ def build_gate_report(
             "lint": empty_check_result(),
             "test": empty_check_result(),
             "output_guard": empty_output_guard_result(),
+            "editorial_review": empty_editorial_review_result(),
             "gate_passed": False,
             "blocking_issues": [f"Project root does not exist or is not a directory: {project_root}"],
             "warnings": [],
@@ -398,6 +465,7 @@ def build_gate_report(
     inferred_kind = "none"
     effective_deliverable_kind = deliverable_kind
     effective_output_min_score = output_min_score
+    effective_editorial_min_score = editorial_min_score
     if output_file is not None or output_text is not None:
         preview_text = output_text
         if preview_text is None and output_file is not None:
@@ -410,6 +478,11 @@ def build_gate_report(
             effective_output_min_score = max(
                 output_min_score,
                 DEFAULT_STRICT_DELIVERABLE_SCORES[effective_deliverable_kind],
+            )
+        if effective_deliverable_kind in DEFAULT_EDITORIAL_DELIVERABLE_SCORES:
+            effective_editorial_min_score = max(
+                editorial_min_score,
+                DEFAULT_EDITORIAL_DELIVERABLE_SCORES[effective_deliverable_kind],
             )
     effective_strict_output = strict_output or (
         (output_file is not None or output_text is not None)
@@ -426,6 +499,13 @@ def build_gate_report(
     if effective_deliverable_kind == "auto":
         effective_deliverable_kind = inferred_from_execution
     output_result["deliverable_kind"] = effective_deliverable_kind
+    editorial_result = execute_editorial_review(
+        project_root,
+        output_file,
+        output_text,
+        effective_deliverable_kind,
+        effective_editorial_min_score,
+    )
 
     lint_detected = bool(lint_result["detected"])
     test_detected = bool(test_result["detected"])
@@ -441,6 +521,13 @@ def build_gate_report(
             blocking_issues.append("Written deliverable failed strict output quality checks.")
         elif output_result.get("status") != "pass":
             warnings.append("Written deliverable failed advisory output quality checks.")
+    if editorial_result.get("executed"):
+        if editorial_result.get("status") == "error":
+            blocking_issues.append("Editorial review could not evaluate the deliverable.")
+        elif effective_strict_output and editorial_result.get("status") != "pass":
+            blocking_issues.append("Written deliverable failed editorial quality checks.")
+        elif editorial_result.get("status") != "pass":
+            warnings.append("Written deliverable failed advisory editorial quality checks.")
 
     if not lint_detected and not test_detected and not skip_lint and not skip_test:
         warnings.append("No lint/test tools detected. Consider adding linting and testing tools to your project.")
@@ -456,12 +543,14 @@ def build_gate_report(
         "lint": lint_result,
         "test": test_result,
         "output_guard": output_result,
+        "editorial_review": editorial_result,
         "strict_output_requested": strict_output,
         "strict_output_effective": effective_strict_output,
         "strict_output": effective_strict_output,
         "deliverable_kind": effective_deliverable_kind,
         "deliverable_kind_inferred": inferred_kind,
         "output_min_score_effective": effective_output_min_score,
+        "editorial_min_score_effective": effective_editorial_min_score,
         "advisory_output": advisory_output,
         "gate_passed": gate_passed,
         "blocking_issues": blocking_issues,
@@ -492,6 +581,7 @@ def append_gate_event(project_root: Path, report: Dict[str, Any]) -> None:
     quality_dir.mkdir(parents=True, exist_ok=True)
     event_path = quality_dir / "gate-events.jsonl"
     output_guard = report.get("output_guard", {})
+    editorial_review = report.get("editorial_review", {})
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": report.get("status"),
@@ -502,6 +592,9 @@ def append_gate_event(project_root: Path, report: Dict[str, Any]) -> None:
         "output_guard_status": output_guard.get("status") if isinstance(output_guard, dict) else "skipped",
         "output_guard_score": output_guard.get("score") if isinstance(output_guard, dict) else None,
         "output_guard_min_score": report.get("output_min_score_effective"),
+        "editorial_status": editorial_review.get("status") if isinstance(editorial_review, dict) else "skipped",
+        "editorial_score": editorial_review.get("score") if isinstance(editorial_review, dict) else None,
+        "editorial_min_score": report.get("editorial_min_score_effective"),
         "lint_detected": bool(report.get("lint", {}).get("detected", False)) if isinstance(report.get("lint"), dict) else False,
         "test_detected": bool(report.get("test", {}).get("detected", False)) if isinstance(report.get("test"), dict) else False,
         "blocking_issues": len(report.get("blocking_issues", [])) if isinstance(report.get("blocking_issues"), list) else 0,
@@ -535,6 +628,7 @@ def parse_args() -> argparse.Namespace:
     output_source.add_argument("--output-file", help="Deliverable file to evaluate with output_guard")
     output_source.add_argument("--output-text", help="Inline deliverable text to evaluate with output_guard")
     parser.add_argument("--output-min-score", type=int, default=60, help="Minimum passing score for output_guard")
+    parser.add_argument("--editorial-min-score", type=int, default=60, help="Minimum passing score for editorial review")
     parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
@@ -555,6 +649,7 @@ def print_human_summary(report: Dict[str, Any]) -> None:
     lint = report.get("lint", {})
     test = report.get("test", {})
     output_result = report.get("output_guard", {})
+    editorial_result = report.get("editorial_review", {})
     gate_passed = bool(report.get("gate_passed", False))
 
     def status_for(item: Dict[str, Any]) -> str:
@@ -568,6 +663,7 @@ def print_human_summary(report: Dict[str, Any]) -> None:
         f"Lint:     {status_for(lint)}",
         f"Tests:    {status_for(test)}",
         f"Output:   {status_for(output_result) if output_result.get('executed') else 'SKIP'}",
+        f"Editorial:{status_for(editorial_result) if editorial_result.get('executed') else 'SKIP'}",
         f"Gate:     {'PASS' if gate_passed else 'FAIL'}",
         f"Retries:  {report.get('consecutive_failures', 0)}",
     ]
@@ -595,6 +691,7 @@ def main() -> int:
         output_text=args.output_text,
         strict_output=args.strict_output,
         output_min_score=args.output_min_score,
+        editorial_min_score=args.editorial_min_score,
         deliverable_kind=args.deliverable_kind,
         advisory_output=args.advisory_output,
     )

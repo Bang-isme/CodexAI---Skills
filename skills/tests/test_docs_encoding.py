@@ -31,22 +31,19 @@ def test_public_readme_keeps_utf8_sections_intact() -> None:
     text = README.read_text(encoding="utf-8")
 
     assert (
-        "> **Production-ready instruction framework for Codex** \u2014 deterministic workflows"
+        "> Production-ready instruction framework for Codex - deterministic workflows"
         in text
     )
     assert (
-        "understand intent \u2192 plan \u2192 route to domain expertise \u2192 implement"
+        "Intent -> Plan -> Route -> Implement -> Verify -> Persist -> Commit"
         in text
     )
-    assert "\u251c\u2500\u2500 README.md                    \u2190 You are here" in text
+    assert "|-- README.md" in text
 
 
 def test_vietnamese_guide_keeps_utf8_sections_intact() -> None:
     text = VI_GUIDE.read_text(encoding="utf-8")
 
-    assert "# H\u01b0\u1edbng D\u1eabn S\u1eed D\u1ee5ng CodexAI Skill Pack" in text
-    assert "## 2. Ki\u1ebfn Tr\u00fac H\u1ec7 Th\u1ed1ng" in text
-    assert (
-        "2. \U0001f4cb L\u1eacP K\u1ebe HO\u1ea0CH  \u2192  Ch\u1ea1y Plan Writer"
-        in text
-    )
+    assert "# Hướng Dẫn Sử Dụng CodexAI Skill Pack" in text
+    assert "## 2. Điểm mạnh chính" in text
+    assert "`Phân tích yêu cầu -> Lập kế hoạch -> Route đúng domain -> Triển khai -> Kiểm tra -> Lưu tri thức -> Commit`" in text

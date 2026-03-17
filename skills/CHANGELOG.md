@@ -1,5 +1,23 @@
 # Changelog
 
+## [12.6.0] - 2026-03-18
+
+### Added
+- `codex-execution-quality-gate/scripts/editorial_review.py`: new editorial-quality rubric that scores decision clarity, grounding, tradeoff awareness, structure, and AI-safe tone drift for written deliverables.
+- `codex-execution-quality-gate/references/editorial-review-spec.md`: documented the new human-quality deliverable rubric and its fail conditions.
+
+### Improved
+- `codex-execution-quality-gate/scripts/run_gate.py`: strict deliverables (`plan`, `review`, `handoff`) now evaluate both output specificity and editorial quality before passing.
+- `codex-execution-quality-gate/scripts/quality_trend.py`: reports now include average editorial score and editorial failure rate in addition to gate pass rate and output-guard score.
+- `codex-reasoning-rigor/assets/output-review-template.md`: expanded to include decision and editorial checks, not just specificity.
+- `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: refreshed and simplified with current metrics, clearer workflow guidance, and cleaner rendering-safe formatting.
+
+### Tests
+- `tests/test_output_rigor.py`: added editorial rubric coverage for AI-speak rejection and decision-ready deliverables.
+- `tests/test_parsing.py`: added gate integration coverage for editorial review and trend aggregation.
+- `tests/smoke_test.py`: expanded to `49` smoke checks with JSON coverage for `editorial_review.py`.
+- Full suite status: `98` unit tests and `49` smoke checks passing
+
 ## [12.5.0] - 2026-03-18
 
 ### Improved

@@ -185,6 +185,36 @@ def test_run_gate_strict_output_blocks_generic_deliverable(tmp_path: Path) -> No
     assert report["output_guard"]["status"] == "fail"
 
 
+def test_run_gate_strict_output_blocks_editorially_weak_deliverable(tmp_path: Path) -> None:
+    write_text(tmp_path / "skills" / "tests" / "smoke_test.py", "print('ok')\n")
+    output_file = tmp_path / "review.md"
+    write_text(
+        output_file,
+        "\n".join(
+            [
+                "Here's a breakdown of the review.",
+                "Evidence: run `python skills/tests/smoke_test.py` after release.",
+                "Risk: low.",
+                "Next step: maybe consider revisiting this later.",
+            ]
+        ),
+    )
+    report = run_gate.build_gate_report(
+        project_root=tmp_path,
+        timeout_lint=1,
+        timeout_test=1,
+        skip_lint=True,
+        skip_test=True,
+        output_file=str(output_file),
+        strict_output=True,
+        output_min_score=60,
+    )
+    assert report["output_guard"]["status"] == "pass"
+    assert report["editorial_review"]["status"] == "fail"
+    assert report["gate_passed"] is False
+    assert "Written deliverable failed editorial quality checks." in report["blocking_issues"]
+
+
 def test_run_gate_strict_output_passes_grounded_deliverable(tmp_path: Path) -> None:
     smoke_path = tmp_path / "skills" / "tests" / "smoke_test.py"
     write_text(smoke_path, "print('ok')\n")
@@ -212,6 +242,7 @@ def test_run_gate_strict_output_passes_grounded_deliverable(tmp_path: Path) -> N
     )
     assert report["gate_passed"] is True
     assert report["output_guard"]["status"] == "pass"
+    assert report["editorial_review"]["status"] == "pass"
 
 
 def test_run_gate_auto_strict_blocks_generic_plan_deliverable(tmp_path: Path) -> None:
@@ -323,6 +354,8 @@ def test_append_gate_event_and_quality_trend_report_capture_output_quality(tmp_p
                         "deliverable_kind": "plan",
                         "output_guard_status": "pass",
                         "output_guard_score": 78,
+                        "editorial_status": "pass",
+                        "editorial_score": 82,
                     }
                 ),
                 json.dumps(
@@ -333,6 +366,8 @@ def test_append_gate_event_and_quality_trend_report_capture_output_quality(tmp_p
                         "deliverable_kind": "handoff",
                         "output_guard_status": "fail",
                         "output_guard_score": 52,
+                        "editorial_status": "fail",
+                        "editorial_score": 49,
                     }
                 ),
             ]
@@ -347,7 +382,10 @@ def test_append_gate_event_and_quality_trend_report_capture_output_quality(tmp_p
     assert report["gate_quality"]["runs"] == 2
     assert report["gate_quality"]["strict_output_failures"] == 1
     assert report["gate_quality"]["avg_output_guard_score"] == 65.0
+    assert report["gate_quality"]["avg_editorial_score"] == 65.5
+    assert report["gate_quality"]["editorial_failures"] == 1
     assert "Gate pass rate is 50%" in report["summary"]
+    assert "Avg editorial score is 66." in report["summary"]
 
 
 def test_quality_trend_single_snapshot_still_surfaces_gate_quality(tmp_path: Path) -> None:
@@ -382,6 +420,8 @@ def test_quality_trend_single_snapshot_still_surfaces_gate_quality(tmp_path: Pat
                 "deliverable_kind": "plan",
                 "output_guard_status": "fail",
                 "output_guard_score": 3,
+                "editorial_status": "fail",
+                "editorial_score": 12,
             }
         )
         + "\n",
@@ -393,6 +433,7 @@ def test_quality_trend_single_snapshot_still_surfaces_gate_quality(tmp_path: Pat
     assert report["status"] == "report_ready"
     assert "Current gate pass rate is 0%" in report["summary"]
     assert "Avg output score is 3" in report["summary"]
+    assert "Avg editorial score is 12" in report["summary"]
 
 
 def test_predict_parse_imports_js() -> None:

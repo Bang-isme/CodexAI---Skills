@@ -112,6 +112,7 @@ For medium or high-stakes work:
 3. Ground the answer in repo artifacts.
 4. State the monitoring loop.
 5. Run an output-quality pass with `$output-guard` before declaring the work complete.
+6. For plans, reviews, and handoffs, add an editorial pass with `$editorial-review` so the result reads like a human-made engineering deliverable instead of safe model prose.
 
 For plans, reviews, and handoffs, treat strict output validation as the default quality bar, not an optional extra.
 
@@ -124,4 +125,5 @@ For plans, reviews, and handoffs, treat strict output validation as the default 
 - `references/output-contracts.md`: response shapes that push outputs toward specificity and accountability.
 - `assets/reasoning-brief-template.md`: markdown template used by the brief generator.
 - `assets/output-review-template.md`: template for reviewing whether a deliverable is specific enough.
+- `assets/output-review-template.md`: template for reviewing whether a deliverable is specific, accountable, and editorially strong enough.
 - `assets/monitoring-checklist-template.md`: template for tracking healthy vs drifting workflow signals.

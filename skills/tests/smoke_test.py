@@ -22,6 +22,7 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-execution-quality-gate", "scripts/accessibility_check.py"),
     ("codex-execution-quality-gate", "scripts/bundle_check.py"),
     ("codex-execution-quality-gate", "scripts/doctor.py"),
+    ("codex-execution-quality-gate", "scripts/editorial_review.py"),
     ("codex-execution-quality-gate", "scripts/lighthouse_audit.py"),
     ("codex-execution-quality-gate", "scripts/playwright_runner.py"),
     ("codex-execution-quality-gate", "scripts/pre_commit_check.py"),
@@ -55,6 +56,16 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-doc-renderer", "scripts/render_docx.py"),
 ]
 JSON_CHECKS: List[Tuple[str, List[str]]] = [
+    (
+        "editorial_review",
+        [
+            "codex-execution-quality-gate/scripts/editorial_review.py",
+            "--text",
+            "# Review\nDecision: keep `skills/tests/test_output_rigor.py` in the suite.\nEvidence:\n- python skills/tests/smoke_test.py\nRisk: stale heuristics can drift from release quality.\nNext step: assign an owner to review failures after each gate change.",
+            "--format",
+            "json",
+        ],
+    ),
     (
         "output_guard",
         [

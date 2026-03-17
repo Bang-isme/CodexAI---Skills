@@ -1,70 +1,42 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> **Phiên bản**: `12.5.0` | **Cập nhật**: 2026-03-18
+> Phiên bản: `12.6.0` | Cập nhật: 2026-03-18
 
----
+## 1. Giới thiệu
 
-## 1. Giới Thiệu
+CodexAI Skill Pack giúp Codex làm việc giống một đối tác kỹ thuật có quy trình, thay vì chỉ phản hồi theo prompt.
 
-CodexAI Skill Pack là bộ kỹ năng giúp Codex hoạt động như **đối tác lập trình chuyên nghiệp** thay vì chỉ trả lời prompt đơn lẻ. Hệ thống này buộc Codex phải tuân theo quy trình rõ ràng: phân tích yêu cầu → lập kế hoạch → tra cứu kiến thức chuyên môn → triển khai → kiểm tra chất lượng → lưu trữ kiến thức.
+Luồng chuẩn của pack:
 
-### Tổng Quan Số Liệu
+`Phân tích yêu cầu -> Lập kế hoạch -> Route đúng domain -> Triển khai -> Kiểm tra -> Lưu tri thức -> Commit`
+
+### Số liệu hiện tại
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Kỹ năng (skills) | 14 |
-| Script CLI | 36 |
-| Tài liệu tham khảo (references) | 146 (66 fullstack + 30 bảo mật + 50 khác) |
-| Mẫu khởi tạo (starters) | 29 (19 fullstack + 10 bảo mật) |
-| Scrum subagent kit | 10 role briefs + 10 native Codex agents + 7 workflows + 12 aliases + 6 artifact templates |
-| Kiểm thử | 83 unit + 47 smoke = 130 bài test |
+| Core skills | 14 |
+| Entry-point scripts | 43 |
+| Shared helpers | 2 |
+| References | 149 |
+| Starters | 29 |
+| Artifact templates | 6 |
+| Kiểm thử | 98 unit + 49 smoke = 147 bài test |
 
----
+## 2. Điểm mạnh chính
 
-## 2. Kiến Trúc Hệ Thống
+| Vấn đề thường gặp | Pack giải quyết thế nào |
+| --- | --- |
+| AI hiểu sai ý hoặc trôi mục tiêu | `codex-intent-context-analyzer` khóa goal, scope, ambiguity |
+| Kế hoạch nghe hay nhưng khó làm | `codex-plan-writer` chia task nhỏ, có verify rõ |
+| Output generic, thiếu bằng chứng | `codex-reasoning-rigor` + `output_guard.py` |
+| Output không generic nhưng vẫn "mùi AI" | `editorial_review.py` chấm tone, decision, tradeoff, structure |
+| Không có gate trước khi kết thúc | `codex-execution-quality-gate` gom lint, test, security, output quality |
+| Mất context giữa các phiên | `codex-project-memory` lưu decision, handoff, summary, genome |
+| Scrum không được vận hành nhất quán | `codex-scrum-subagents` cài role kit, workflow, native custom agents |
 
-```
-┌──────────────────────────────────────────────┐
-│         Master Instructions (P0)              │
-│    Quy tắc hành vi chung, chính sách hoàn thành│
-└──────────────────┬───────────────────────────┘
-                   │
-         ┌─────────▼──────────┐
-         │  Intent Analyzer    │  Phân tích yêu cầu
-         │  Xác nhận trước khi │  viết code
-         └─────────┬──────────┘
-                   │
-         ┌─────────▼──────────┐
-         │  Plan Writer        │  (task vừa/lớn)
-         │  Chia nhỏ công việc │
-         └─────────┬──────────┘
-                   │
-         ┌─────────▼──────────┐
-         │  Workflow Autopilot │  Chọn luồng xử lý
-         │  build/fix/debug/...│
-         └──┬────────────┬────┘
-            │            │
-   ┌────────▼───┐  ┌────▼───────────┐
-   │  Domain    │  │  Security      │
-   │  Specialist│  │  Specialist    │
-   │  59 refs   │  │  30 refs       │
-   └────────────┘  └────────────────┘
-            │            │
-         ┌──▼────────────▼──────┐
-         │  Quality Gate         │  Kiểm tra trước khi xong
-         │  lint+test+security   │
-         └──────────┬───────────┘
-                    │
-         ┌──────────▼───────────┐
-         │  Memory + Git        │  Lưu + Commit
-         └──────────────────────┘
-```
+## 3. Cài đặt
 
----
-
-## 3. Cài Đặt
-
-### Windows (PowerShell)
+### Windows PowerShell
 
 ```powershell
 Copy-Item -Recurse -Force ".\skills\*" "$env:USERPROFILE\.codex\skills\"
@@ -76,235 +48,95 @@ Copy-Item -Recurse -Force ".\skills\*" "$env:USERPROFILE\.codex\skills\"
 cp -R ./skills/* "$HOME/.codex/skills/"
 ```
 
-### Xác Nhận Cài Đặt
+## 4. Kiểm tra sau cài đặt
 
 ```bash
-# Kiểm tra cấu trúc và CLI quan trọng (47 kiểm tra)
-python skills/tests/smoke_test.py --verbose
+# Unit tests
+python -m pytest skills/tests -q
 
-# Kiểm tra logic (82 bài test)
-python -m pytest skills/tests -v
+# Smoke checks
+python skills/tests/smoke_test.py
 ```
 
----
-
-## 4. Bắt Đầu Nhanh — Các Lệnh Quan Trọng
+## 5. Các lệnh nên dùng trước
 
 | Lệnh | Chức năng |
 | --- | --- |
-| `$codex-genome` | Tạo tài liệu ngữ cảnh dự án (genome) |
-| `$codex-intent-context-analyzer` | Phân tích yêu cầu thành JSON có cấu trúc |
-| `$codex-workflow-autopilot` | Chọn luồng làm việc phù hợp |
-| `$codex-reasoning-rigor` | Ép output bớt generic, tăng reasoning và evidence |
-| `$codex-execution-quality-gate` | Chạy kiểm tra chất lượng toàn diện |
-| `$output-guard` | Chấm độ generic và độ có-evidence của deliverable |
-| `$scrum-install` | Cài bộ Scrum `.agent` và native `.codex/agents` vào project |
-| `$story-ready-check` | Kiểm tra story đã đủ rõ để triển khai chưa |
+| `$codex-genome` | Tạo genome cho project |
+| `$codex-intent-context-analyzer` | Phân tích yêu cầu thành intent có cấu trúc |
+| `$codex-plan-writer` | Tạo plan có thể verify |
+| `$codex-workflow-autopilot` | Chọn workflow phù hợp |
+| `$codex-reasoning-rigor` | Ép output sâu hơn, bớt generic |
+| `$codex-execution-quality-gate` | Chạy quality gate |
+| `$output-guard` | Chấm độ cụ thể và mức evidence |
+| `editorial_review.py` | Kiểm tra output có đọc giống artifact do con người viết hay chưa |
+| `$scrum-install` | Cài Scrum `.agent` kit và native `.codex/agents` |
+| `$story-ready-check` | Kiểm tra story đã đủ rõ để làm chưa |
 | `$release-readiness` | Chạy ceremony quyết định ship hay chưa |
-| `$codex-doctor` | Kiểm tra sức khỏe hệ thống skill |
-| `$log-decision` | Ghi lại quyết định kiến trúc |
-| `$session-summary` | Tạo báo cáo tổng kết phiên làm việc |
-| `$changelog` | Tạo changelog từ lịch sử commit |
-| `$teach` | Chế độ giảng dạy — giải thích code |
+| `$log-decision` | Lưu quyết định kỹ thuật |
+| `$session-summary` | Tạo handoff cuối phiên |
+| `$codex-doctor` | Kiểm tra môi trường cài skill |
 
----
+## 6. Quy trình khuyến nghị
 
-## 5. Quy Trình Làm Việc Khuyến Nghị
+### Với task code bình thường
 
-### A. Tạo Tính Năng Mới
+1. Chạy intent analyzer.
+2. Nếu task không nhỏ, tạo plan.
+3. Route đúng domain/security context.
+4. Triển khai theo từng bước nhỏ.
+5. Chạy quality gate trước khi chốt.
+6. Ghi decision hoặc session summary nếu context quan trọng.
 
-```
-1. 🎯 PHÂN TÍCH  →  Chạy Intent Analyzer
-                     Xác định mục tiêu, ràng buộc, độ phức tạp
+### Với plan, review, handoff
 
-2. 📋 LẬP KẾ HOẠCH  →  Chạy Plan Writer (nếu task vừa/lớn)
-                        Chia thành bước nhỏ 2-5 phút, mỗi bước có cách kiểm tra
+Đây là nơi pack khác biệt nhất:
 
-3. 🔀 TRA CỨU  →  Domain/Security routing tự động
-                   Tải tối đa 4 tài liệu tham khảo phù hợp
+1. Bật `codex-reasoning-rigor`
+2. Chạy `output_guard.py`
+3. Chạy `editorial_review.py`
+4. Chạy `run_gate.py --strict-output`
 
-4. 💻 TRIỂN KHAI  →  Code theo từng bước trong kế hoạch
+Mục tiêu là output không chỉ đúng, mà còn:
 
-5. ✅ KIỂM TRA  →  Chạy Quality Gate
-                    Lint + Tests + Security scan + Accessibility
+- có quyết định rõ
+- có file/command/evidence thật
+- có risk/tradeoff/follow-up
+- đọc giống một deliverable kỹ thuật do con người chịu trách nhiệm viết
 
-6. 📄 TÀI LIỆU  →  Docs Change Sync tự phát hiện docs cần cập nhật
+## 7. Các nhóm skill
 
-7. 💾 LƯU  →  Ghi decision, tạo session summary
-               Giữ kiến thức cho phiên tiếp theo
+### Core pipeline
 
-8. 🚀 COMMIT  →  Git Autopilot
-                  Conventional commit + ký GPG + push
-```
+- `codex-master-instructions`
+- `codex-intent-context-analyzer`
+- `codex-context-engine`
+- `codex-plan-writer`
+- `codex-workflow-autopilot`
+- `codex-reasoning-rigor`
+- `codex-scrum-subagents`
 
-### B. Sá»­a Lá»—i (Bugfix)
+### Knowledge packs
 
-1. **Tái tạo lỗi** — xác nhận lỗi xảy ra ổn định
-2. **Khoanh vùng** — tìm file/function liên quan
-3. **Route** — tải tham khảo debugging + domain phù hợp
-4. **Sửa tối thiểu** — ưu tiên thay đổi nhỏ để giảm regression
-5. **Test** — chạy test liên quan + quality gate
-6. **Ghi gốc rễ** — `$log-decision` ghi nguyên nhân vào memory
+- `codex-domain-specialist`: 66 references, 19 starters
+- `codex-security-specialist`: 30 references, 10 starters
 
-### C. Phát Hành (Release)
+### Quality, memory, delivery
 
-1. Chạy `pytest` + `smoke_test`
-2. Chạy quality gate cho project
-3. Kiểm tra VERSION và CHANGELOG đồng bộ
-4. Commit có ký (signed) + push
+- `codex-execution-quality-gate`
+- `codex-project-memory`
+- `codex-docs-change-sync`
+- `codex-git-autopilot`
+- `codex-doc-renderer`
 
----
+## 8. Ghi chú vận hành
 
-## 6. Chi Tiết 14 Kỹ Năng
+- `plan`, `review`, `handoff` hiện mặc định bị kiểm tra strict-output nếu bạn đưa file hoặc text deliverable vào `run_gate.py`.
+- `quality_trend.py` bây giờ theo dõi thêm gate pass rate, output score, editorial score.
+- Scrum kit hỗ trợ `project`, `personal`, và `both` cho native custom agents.
 
-### Nhóm Core — Luôn hoạt động
+## 9. Tài liệu liên quan
 
-| Kỹ năng | Nhiệm vụ |
-| --- | --- |
-| **master-instructions** | Quy tắc hành vi tổng quan — chính sách "xong" phải có bằng chứng, tự dừng sau 3 lần thất bại liên tiếp |
-| **intent-context-analyzer** | Phân tích yêu cầu → JSON có cấu trúc. Cổng Socratic: hỏi ≥3 câu cho yêu cầu phức tạp |
-| **context-engine** | Tải genome dự án (nếu có) — giúp Codex hiểu cấu trúc, tech stack, convention |
-
-### Nhóm Lập Kế Hoạch
-
-| Kỹ năng | Nhiệm vụ |
-| --- | --- |
-| **plan-writer** | Tạo kế hoạch chi tiết: mỗi task 2-5 phút, có file cụ thể, cách kiểm tra, cách rollback |
-| **workflow-autopilot** | Chọn luồng (build/fix/debug/review/docs) + chế độ hành vi (thinking-partner, devil's-advocate, teach) |
-| **reasoning-rigor** | Chống output generic: ép task contract, evidence ladder, monitoring loop, và output contract có thể kiểm chứng |
-
-### Nhóm Scrum & Điều Phối
-
-| Kỹ năng | Nhiệm vụ |
-| --- | --- |
-| **scrum-subagents** | Cài bộ `.agent` theo SCRUM cho từng dự án, đồng thời render native Codex custom agents vào `.codex/agents`: Product Owner, Scrum Master, architect, dev, QA, security, DevOps, UX + 7 workflow ceremony/release, kèm validator, lệnh `diff/update`, và 12 command alias như `$scrum-install`, `$story-ready-check`, `$retro`, `$release-readiness` |
-
-### Nhóm Kiến Thức Chuyên Sâu
-
-| Kỹ năng | Phạm vi | Refs | Starters |
-| --- | --- | ---: | ---: |
-| **domain-specialist** | Full-stack: Frontend, Backend, DB, Auth, Architecture, DevOps, Testing | 66 | 19 |
-| **security-specialist** | Bảo mật: Network → Infra → Offensive/Defensive → DevSecOps → Compliance → Advanced | 30 | 10 |
-
-**Domain Specialist** routing:
-- 12 domain chính (React, Next.js, Backend, Database, Mobile, Security, Auth, Data, Testing, Architecture, Integration, DevOps)
-- 45+ tín hiệu routing (ví dụ: "chart, graph" → tải `data-visualization.md`)
-- 10 combo (ví dụ: "Build CRUD page" → tải `react-crud-page.jsx` + 3 refs)
-- Tối đa 4 tài liệu mỗi lần tải
-
-**Security Specialist** phạm vi:
-- v10.0: Network (TCP/IP, firewall, VPN, DNS, SSL, phân đoạn mạng)
-- v10.1: Infrastructure (Linux hardening, secrets, containers, cloud)
-- v10.2: Offensive/Defensive (OWASP, pentest, vulnerability scan, incident response)
-- v10.3: DevSecOps (CI/CD security, SAST/DAST/SCA, IaC, supply chain)
-- v10.4: Compliance (ISO 27001, GDPR, SOC 2, mã hóa, PKI)
-- v10.5: Advanced (Zero Trust, DDoS, IDS/IPS, audit framework)
-
-### Nhóm Kiểm Tra & Chất Lượng
-
-| Kỹ năng | Nhiệm vụ | Scripts |
-| --- | --- | ---: |
-| **execution-quality-gate** | Kiểm tra chất lượng: lint, test, security scan, output guard repo-aware, strict-output mặc định cho plan/review/handoff, UX, a11y, Lighthouse, tech debt, quality trend có gate/output signals | 16 |
-| **project-memory** | Lưu trữ xuyên phiên: quyết định, tóm tắt, handoff, genome, changelog, growth report | 11 |
-| **docs-change-sync** | Phát hiện tài liệu cần cập nhật khi code thay đổi | 1 |
-| **git-autopilot** | Commit tự động: Conventional Commits + ký GPG + gate trước khi push | 1 |
-| **doc-renderer** | Chuyển DOCX → PDF → PNG để kiểm tra layout | 1 |
-
----
-
-## 7. Kiểm Soát Chất Lượng
-
-Quality Gate gồm các lớp kiểm tra:
-
-| Ưu tiên | Kiểm tra | Chặn hoàn thành? |
-| --- | --- | --- |
-| P0 | Lint, phát hiện secret, kiểm tra debug code | ✅ Có |
-| P1 | Chạy test liên quan (smart selection) | ✅ Có |
-| P2 | Security scan | ✅ Có |
-| P3 | Dự đoán ảnh hưởng (blast radius) | ⚠️ Cảnh báo |
-| P4-P6 | Tech debt, đề xuất cải thiện, xu hướng chất lượng | ℹ️ Tham khảo |
-| P7-P9 | UX audit, accessibility, Lighthouse | ⚠️ Cảnh báo |
-
-**Quy tắc vàng**: Không được kết luận "xong" nếu kiểm tra blocking chưa pass.
-
----
-
-## 8. Xử Lý Sự Cố
-
-### Skill không được nhận diện
-- Kiểm tra đường dẫn `~/.codex/skills/`
-- Đảm bảo mỗi skill có file `SKILL.md` với YAML frontmatter hợp lệ
-- Mở phiên Codex mới (skill chỉ được tải khi khởi tạo phiên)
-
-### Script lỗi do thiếu git context
-- Truyền đúng `--project-root` trỏ đến thư mục gốc project
-- Đảm bảo chạy trong repo có thư mục `.git`
-- Kiểm tra `git status` — một số script cần staged changes
-
-### Badge "Verified" không hiện trên GitHub
-- Khóa GPG phải được thêm vào GitHub: Settings → SSH and GPG Keys
-- Commit phải được ký (`git commit -S`)
-- Email trên commit phải khớp với identity GitHub
-
-### Quality Gate liên tục fail
-- Chạy `$codex-doctor` để kiểm tra cài đặt
-- Kiểm tra xem script có thiếu dependency không (Node.js, npm packages)
-- Circuit breaker: sau 3 lần thất bại liên tiếp, Codex tự dừng và yêu cầu đánh giá lại
-
-### Genome cũ / không chính xác
-- Kiểm tra timestamp trong `genome.md`
-- Sử dụng `$codex-genome --force` để tạo lại
-- Nếu số file thực tế khác >20% so với genome, Codex sẽ tự đề xuất refresh
-
----
-
-## 9. Thực Hành Tốt
-
-1. **Bắt đầu bằng intent, không code ngay** — Intent Analyzer giúp tránh hiểu nhầm từ đầu
-2. **Task lớn bắt buộc có plan** — Plan Writer chia task thành bước có thể kiểm tra
-3. **Chạy gate trước khi commit** — Quality Gate bắt lỗi trước khi code lên production
-4. **Ghi decision khi đổi kiến trúc** — `$log-decision` giúp team hiểu "tại sao" không chỉ "cái gì"
-5. **Giữ VERSION, CHANGELOG, genome đồng bộ** — tránh mismatch gây nhầm lẫn
-6. **Dùng genome cho project lớn** — giảm hallucination đáng kể cho repo 50+ files
-7. **Handoff cuối phiên** — `$session-summary` hoặc `$handoff` để phiên sau tiếp tục mượt
-
----
-
-## 10. Cấu Trúc Repository
-
-```
-CodexAI---Skills/
-├── README.md                     ← Tổng quan (English)
-├── LICENSE                       ← MIT
-├── docs/
-│   └── huong-dan-vi.md           ← File này
-└── skills/
-├── VERSION                   ← 12.5.0
-    ├── CHANGELOG.md              ← Lịch sử phiên bản
-    ├── README.md                 ← Chi tiết kỹ thuật
-    ├── tests/                    ← 130 bài test
-    ├── codex-reasoning-rigor/
-    ├── codex-master-instructions/
-    ├── codex-intent-context-analyzer/
-    ├── codex-context-engine/
-    ├── codex-plan-writer/
-    ├── codex-workflow-autopilot/
-    ├── codex-domain-specialist/  ← 59 refs + 19 starters
-    ├── codex-security-specialist/← 30 refs + 10 starters
-    ├── codex-execution-quality-gate/ ← 16 scripts
-    ├── codex-project-memory/     ← 11 scripts
-    ├── codex-docs-change-sync/
-    ├── codex-git-autopilot/
-    ├── codex-doc-renderer/
-    └── codex-scrum-subagents/
-```
-
----
-
-## 11. Tài Liệu Liên Quan
-
-| Tài liệu | Nội dung |
-| --- | --- |
-| [README.md](../README.md) | Tổng quan công khai (English) |
-| [skills/README.md](../skills/README.md) | Chi tiết kỹ thuật nội bộ, tất cả lệnh, hướng dẫn tuỳ chỉnh |
-| [CHANGELOG.md](../skills/CHANGELOG.md) | Lịch sử phiên bản từ v1.0 đến v12.5.0 |
+- README public: [../README.md](../README.md)
+- README kỹ thuật: [../skills/README.md](../skills/README.md)
+- Changelog: [../skills/CHANGELOG.md](../skills/CHANGELOG.md)

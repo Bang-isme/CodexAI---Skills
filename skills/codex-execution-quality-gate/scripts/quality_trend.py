@@ -232,6 +232,9 @@ def summarize_gate_events(events: List[Dict[str, object]]) -> Dict[str, object]:
             "strict_output_failures": 0,
             "strict_output_failure_rate": 0.0,
             "avg_output_guard_score": None,
+            "avg_editorial_score": None,
+            "editorial_failures": 0,
+            "editorial_failure_rate": 0.0,
             "deliverable_kinds": {},
         }
 
@@ -247,6 +250,12 @@ def summarize_gate_events(events: List[Dict[str, object]]) -> Dict[str, object]:
         for item in events
         if isinstance(item.get("output_guard_score"), (int, float))
     ]
+    editorial_scores = [
+        float(item["editorial_score"])
+        for item in events
+        if isinstance(item.get("editorial_score"), (int, float))
+    ]
+    editorial_failures = sum(1 for item in events if str(item.get("editorial_status", "")) == "fail")
     deliverable_counts: Dict[str, int] = {}
     for item in events:
         kind = str(item.get("deliverable_kind", "none") or "none")
@@ -259,8 +268,12 @@ def summarize_gate_events(events: List[Dict[str, object]]) -> Dict[str, object]:
         "strict_output_failures": strict_failures,
         "strict_output_failure_rate": round(strict_failures / strict_runs, 2) if strict_runs else 0.0,
         "avg_output_guard_score": round(sum(output_scores) / len(output_scores), 2) if output_scores else None,
+        "avg_editorial_score": round(sum(editorial_scores) / len(editorial_scores), 2) if editorial_scores else None,
+        "editorial_failures": editorial_failures,
+        "editorial_failure_rate": round(editorial_failures / len(events), 2),
         "deliverable_kinds": deliverable_counts,
         "latest_output_guard_status": str(events[-1].get("output_guard_status", "skipped")),
+        "latest_editorial_status": str(events[-1].get("editorial_status", "skipped")),
     }
 
 
@@ -394,6 +407,7 @@ def compute_health_score(
         pass_rate = float(gate_quality.get("gate_pass_rate", 0.0) or 0.0)
         strict_failure_rate = float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0)
         avg_output_score = gate_quality.get("avg_output_guard_score")
+        avg_editorial_score = gate_quality.get("avg_editorial_score")
         if pass_rate < 0.5:
             score -= 15
         elif pass_rate < 0.8:
@@ -409,6 +423,16 @@ def compute_health_score(
                 score -= 10
             elif avg_output_score >= 75:
                 score += 4
+        if isinstance(avg_editorial_score, (int, float)):
+            if avg_editorial_score < 60:
+                score -= 10
+            elif avg_editorial_score >= 75:
+                score += 4
+        editorial_failure_rate = float(gate_quality.get("editorial_failure_rate", 0.0) or 0.0)
+        if editorial_failure_rate > 0.4:
+            score -= 8
+        elif editorial_failure_rate > 0.2:
+            score -= 4
 
     return clamp(int(score), 0, 100)
 
@@ -440,8 +464,12 @@ def build_summary(
             summary += f" Current gate pass rate is {pass_rate}%."
             if isinstance(gate_quality.get("avg_output_guard_score"), (int, float)):
                 summary += f" Avg output score is {float(gate_quality['avg_output_guard_score']):.0f}."
+            if isinstance(gate_quality.get("avg_editorial_score"), (int, float)):
+                summary += f" Avg editorial score is {float(gate_quality['avg_editorial_score']):.0f}."
             if float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0) > 0.2:
                 recommendations.append("Strict-output failures already appear in the baseline; tighten deliverable templates now.")
+            if float(gate_quality.get("editorial_failure_rate", 0.0) or 0.0) > 0.2:
+                recommendations.append("Editorial quality is weak even in the baseline; sharpen decision framing and tone.")
         recommendations.append("Record snapshots periodically to unlock directional trend analysis.")
         return summary, recommendations
 
@@ -496,15 +524,20 @@ def build_summary(
         pass_rate = float(gate_quality.get("gate_pass_rate", 0.0) or 0.0)
         strict_failures = int(gate_quality.get("strict_output_failures", 0) or 0)
         avg_output_score = gate_quality.get("avg_output_guard_score")
+        avg_editorial_score = gate_quality.get("avg_editorial_score")
         gate_line = f"Gate pass rate is {round(pass_rate * 100)}%."
         if strict_failures:
             gate_line += f" Strict deliverables failed {strict_failures} time(s)."
         if isinstance(avg_output_score, (int, float)):
             gate_line += f" Avg output score is {avg_output_score:.0f}."
+        if isinstance(avg_editorial_score, (int, float)):
+            gate_line += f" Avg editorial score is {avg_editorial_score:.0f}."
         if pass_rate < 0.8:
             recommendations.append("Gate pass rate is below 80%; inspect recurring blockers before the next cycle.")
         if float(gate_quality.get("strict_output_failure_rate", 0.0) or 0.0) > 0.2:
             recommendations.append("Strict-output failures are recurring; tighten plan/review/handoff templates and evidence.")
+        if float(gate_quality.get("editorial_failure_rate", 0.0) or 0.0) > 0.2:
+            recommendations.append("Editorial failures are recurring; add explicit decisions, tradeoffs, and stronger tone control.")
 
     summary = " ".join(part for part in [quality_line, todo_line, ratio_line, watch_line, gate_line] if part)
     return summary, recommendations[:4]

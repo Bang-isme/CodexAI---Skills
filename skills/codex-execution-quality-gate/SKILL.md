@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-11-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1). Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
+12-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1), and strict deliverable failures. Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
 
 # Execution Quality Gate
 
@@ -29,6 +29,7 @@ load_priority: on-demand
 16. Activate on `$codex-doctor`.
 17. Activate on `$setup-check`.
 18. Activate on `$output-guard` or "check if this output is too generic".
+19. Activate on `$editorial-review` or "make this read less like AI / more like a human deliverable".
 
 ## Decision Tree Routing
 
@@ -63,12 +64,13 @@ Task type -> Pre-flight/setup?
 | P4 | tech debt scan | `scripts/tech_debt_scan.py` | warning only |
 | P5 | improvement suggester (post-task) | `scripts/suggest_improvements.py` | warning only |
 | P6 | output rigor guard | `scripts/output_guard.py` | warning only |
-| P7 | quality trend tracker (periodic) | `scripts/quality_trend.py` | warning only |
-| P8 | UX static audit (pre-UI delivery) | `scripts/ux_audit.py` | warning only |
-| P9 | accessibility static checker | `scripts/accessibility_check.py` | warning only |
-| P10 | Lighthouse runtime audit | `scripts/lighthouse_audit.py` | warning only |
-| P11 | Playwright setup/run helper | `scripts/playwright_runner.py` | warning only |
-| P12 | server lifecycle helper (optional) | `scripts/with_server.py` | warning only |
+| P7 | editorial review | `scripts/editorial_review.py` | warning only unless strict deliverable gate is active |
+| P8 | quality trend tracker (periodic) | `scripts/quality_trend.py` | warning only |
+| P9 | UX static audit (pre-UI delivery) | `scripts/ux_audit.py` | warning only |
+| P10 | accessibility static checker | `scripts/accessibility_check.py` | warning only |
+| P11 | Lighthouse runtime audit | `scripts/lighthouse_audit.py` | warning only |
+| P12 | Playwright setup/run helper | `scripts/playwright_runner.py` | warning only |
+| P13 | server lifecycle helper (optional) | `scripts/with_server.py` | warning only |
 
 ## Execution
 
@@ -78,14 +80,15 @@ Task type -> Pre-flight/setup?
 4. Optionally run `tech_debt_scan.py` with project root.
 5. Optionally run `suggest_improvements.py` after complex tasks.
 6. Optionally run `output_guard.py` on plans, summaries, or recommendations that must avoid generic filler.
-7. Optionally run `predict_impact.py` before high-risk edits.
-8. Optionally run `quality_trend.py --record` on periodic cadence.
-9. Optionally run `ux_audit.py` before UI handoff.
-10. Optionally run `accessibility_check.py` for public-facing surfaces.
-11. Optionally run `lighthouse_audit.py` before deploy (requires running server URL).
-12. Optionally run `playwright_runner.py` for E2E setup/check/run flows.
-13. Optionally run `with_server.py` to bootstrap local server(s) before Lighthouse/Playwright checks.
-14. Merge results and decide pass/fail.
+7. Optionally run `editorial_review.py` when the output must sound accountable, decision-ready, and less AI-generic.
+8. Optionally run `predict_impact.py` before high-risk edits.
+9. Optionally run `quality_trend.py --record` on periodic cadence.
+10. Optionally run `ux_audit.py` before UI handoff.
+11. Optionally run `accessibility_check.py` for public-facing surfaces.
+12. Optionally run `lighthouse_audit.py` before deploy (requires running server URL).
+13. Optionally run `playwright_runner.py` for E2E setup/check/run flows.
+14. Optionally run `with_server.py` to bootstrap local server(s) before Lighthouse/Playwright checks.
+15. Merge results and decide pass/fail.
 
 ### Decision Rules
 
@@ -96,6 +99,7 @@ Task type -> Pre-flight/setup?
 - Improvement suggestions are advisory and do not block completion.
 - Impact prediction is advisory and does not block completion.
 - Output rigor guard is advisory for generic writing, but plans, reviews, and handoffs should default to strict-output enforcement unless the caller intentionally downgrades them with `--advisory-output`.
+- Editorial review is advisory by itself, but strict plans, reviews, and handoffs should also satisfy the editorial rubric so the deliverable reads like a human-made artifact.
 - Quality trend reporting is periodic/advisory and does not block completion.
 - UX static audit is advisory and does not block completion.
 - Accessibility static checker is advisory and does not block completion.
@@ -146,6 +150,14 @@ Task type -> Pre-flight/setup?
 - Repo-aware grounding check:
   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\output_guard.py" --file <path/to/deliverable.md> --repo-root <project-root>`
 
+### Editorial Review Command
+
+- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --file <path/to/deliverable.md>`
+- Inline text:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --text "Decision: ..."`
+- Repo-aware editorial pass:
+  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --file <path/to/deliverable.md> --repo-root <project-root> --deliverable-kind review`
+
 ### Strict Output Gate Command
 
 - `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root <path> --strict-output --output-file <deliverable.md>`
@@ -167,7 +179,7 @@ Task type -> Pre-flight/setup?
 - Report:
   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root <path> --report --days 30`
 - Gate-aware report:
-  gate runs now feed `.codex/quality/gate-events.jsonl`, so reports can include gate pass rate and average output quality.
+  gate runs now feed `.codex/quality/gate-events.jsonl`, so reports can include gate pass rate, average output quality, and average editorial quality.
 
 ### UX Audit Command
 
@@ -204,6 +216,7 @@ Task type -> Pre-flight/setup?
 - `references/impact-predictor-spec.md`: pre-edit blast-radius analysis guidance.
 - `references/quality-trend-spec.md`: periodic quality trend workflow and interpretation.
 - `references/output-guard-spec.md`: heuristics for detecting generic filler and weak evidence in deliverables.
+- `references/editorial-review-spec.md`: rubric for checking whether a deliverable reads like a human, accountable engineering artifact.
 - `references/ux-audit-spec.md`: static UX audit checks and scoring.
 - `references/accessibility-check-spec.md`: WCAG static checks and compliance scoring.
 - `references/lighthouse-audit-spec.md`: Lighthouse wrapper behavior and graceful fallback.

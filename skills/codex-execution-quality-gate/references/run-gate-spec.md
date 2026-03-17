@@ -18,7 +18,8 @@ It provides one consolidated status used before completion.
 - Strict-output behavior:
   - when `--strict-output` is supplied with `--output-file` or `--output-text`, output-guard failures block completion
   - when the deliverable looks like a `plan`, `review`, or `handoff`, strict-output should auto-enable by default
+  - editorial-review failures should also block those strict deliverables when the writing is too hedgey, weakly framed, or low-accountability
   - `--advisory-output` is the explicit escape hatch when the caller wants those deliverables treated as advisory-only
 ## Output Intent
-- Provide aggregated lint, test, and optional output-quality status for completion decisions.
+- Provide aggregated lint, test, and optional output/editorial quality status for completion decisions.
 - Caveat: if tooling is not detected, output may contain warnings instead of strict failures.
