@@ -4,12 +4,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shlex
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
+
+DEFAULT_LLM_MODEL = "gpt-4o-mini"
+DEFAULT_MAX_TOKENS = 500
+DEFAULT_LLM_COST_ESTIMATE_USD = 0.001
+LLM_JUDGE_TIMEOUT_SECONDS = 20
+LLM_JUDGE_MAX_INPUT_CHARS = 8000
+LLM_TRUNCATION_MARKER = "...[truncated]..."
 
 GENERIC_PHRASES = (
     "best practice",
@@ -50,6 +60,18 @@ GENERIC_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = tuple(
     )
     for phrase in sorted(GENERIC_PHRASES, key=len, reverse=True)
 )
+JUDGE_PROMPT = """You are an output quality judge. Evaluate the following deliverable on a scale of 0-100.
+Criteria:
+1. Specificity (0-25): Does it reference specific files, commands, numbers, or concrete artifacts? Or is it generic advice?
+2. Evidence (0-25): Does it include proof, verification commands, test results, or measurable conditions?
+3. Actionability (0-25): Can someone execute the recommendations immediately? Or are they vague?
+4. Completeness (0-25): Does it cover decision, evidence, risks, and next steps?
+Respond with JSON only:
+{{"score": <0-100>, "specificity": <0-25>, "evidence": <0-25>, "actionability": <0-25>, "completeness": <0-25>, "issues": ["..."], "suggestions": ["..."]}}
+Deliverable to evaluate:
+---
+{text}
+---"""
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +84,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", help="Optional repo root used to verify file and command path grounding")
     parser.add_argument("--min-score", type=int, default=60, help="Minimum passing score (default: 60)")
     parser.add_argument("--format", choices=("json", "table"), default="json", help="Output format")
+    parser.add_argument("--llm-judge", action="store_true", help="Use LLM judging when API credentials are available")
+    parser.add_argument("--model", default=DEFAULT_LLM_MODEL, help=f"LLM judge model (default: {DEFAULT_LLM_MODEL})")
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOKENS,
+        help=f"Maximum response tokens for LLM judge mode (default: {DEFAULT_MAX_TOKENS})",
+    )
     return parser.parse_args()
 
 
@@ -221,7 +251,185 @@ def validate_command_paths(command_hits: Sequence[str], repo_root: Path | None) 
     return resolved, missing
 
 
-def analyze_text(text: str, min_score: int = 60, repo_root: Path | None = None) -> Dict[str, object]:
+def merge_unique_strings(*groups: Sequence[str]) -> List[str]:
+    merged: List[str] = []
+    seen = set()
+    for group in groups:
+        for item in group:
+            normalized = str(item).strip()
+            if not normalized:
+                continue
+            key = normalized.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(normalized)
+    return merged
+
+
+def truncate_for_judge(text: str, max_chars: int = LLM_JUDGE_MAX_INPUT_CHARS) -> Tuple[str, bool]:
+    if len(text) <= max_chars:
+        return text, False
+    marker = LLM_TRUNCATION_MARKER
+    remaining = max_chars - len(marker)
+    if remaining <= 0:
+        return text[:max_chars], True
+    head = remaining // 2
+    tail = remaining - head
+    return f"{text[:head]}{marker}{text[-tail:]}", True
+
+
+def get_judge_api_key() -> str:
+    return os.environ.get("CODEX_JUDGE_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+
+
+def judge_api_url() -> str:
+    base_url = os.environ.get("CODEX_JUDGE_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+    return base_url.rstrip("/") + "/chat/completions"
+
+
+def unwrap_json_response(content: str) -> str:
+    stripped = content.strip()
+    if stripped.startswith("```"):
+        match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", stripped, re.DOTALL)
+        if match:
+            return match.group(1)
+    return stripped
+
+
+def extract_choice_content(payload: Dict[str, Any]) -> str:
+    choices = payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("Judge response did not include choices")
+    choice = choices[0]
+    if not isinstance(choice, dict):
+        raise ValueError("Judge response choice is invalid")
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        raise ValueError("Judge response message is invalid")
+    content = message.get("content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: List[str] = []
+        for item in content:
+            if isinstance(item, dict) and isinstance(item.get("text"), str):
+                parts.append(item["text"])
+        if parts:
+            return "\n".join(parts)
+    raise ValueError("Judge response content is missing")
+
+
+def coerce_score(value: Any, minimum: int, maximum: int) -> int:
+    try:
+        score = int(round(float(value)))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid judge score: {value!r}") from exc
+    return max(minimum, min(maximum, score))
+
+
+def request_llm_judgment(prompt: str, model: str, max_tokens: int, api_key: str) -> Dict[str, Any]:
+    if max_tokens <= 0:
+        raise ValueError("--max-tokens must be a positive integer")
+    payload = {
+        "model": model,
+        "temperature": 0,
+        "max_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": "Return valid JSON only. Do not include markdown fences."},
+            {"role": "user", "content": prompt},
+        ],
+    }
+    request = urllib.request.Request(
+        judge_api_url(),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=LLM_JUDGE_TIMEOUT_SECONDS) as response:
+            raw_payload = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Judge API HTTP {exc.code}: {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Judge API unavailable: {exc.reason}") from exc
+    payload_json = json.loads(raw_payload)
+    content = extract_choice_content(payload_json)
+    parsed = json.loads(unwrap_json_response(content))
+    if not isinstance(parsed, dict):
+        raise ValueError("Judge response JSON must be an object")
+    return parsed
+
+
+def evaluate_with_llm(
+    text: str,
+    prompt_template: str,
+    breakdown_keys: Sequence[str],
+    *,
+    model: str = DEFAULT_LLM_MODEL,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    api_key: str | None = None,
+) -> Dict[str, Any]:
+    key = api_key or get_judge_api_key()
+    if not key:
+        raise RuntimeError("No CODEX_JUDGE_API_KEY or OPENAI_API_KEY was found")
+    judged_text, truncated = truncate_for_judge(text)
+    prompt = prompt_template.format(text=judged_text)
+    payload = request_llm_judgment(prompt, model=model, max_tokens=max_tokens, api_key=key)
+    score = coerce_score(payload.get("score"), 0, 100)
+    breakdown = {key_name: coerce_score(payload.get(key_name), 0, 25) for key_name in breakdown_keys}
+    issues = [str(item).strip() for item in payload.get("issues", []) if str(item).strip()]
+    suggestions = [str(item).strip() for item in payload.get("suggestions", []) if str(item).strip()]
+    return {
+        "score": score,
+        "breakdown": breakdown,
+        "issues": issues,
+        "suggestions": suggestions,
+        "truncated": truncated,
+        "judged_chars": len(judged_text),
+        "estimated_cost_usd": DEFAULT_LLM_COST_ESTIMATE_USD,
+        "model": model,
+    }
+
+
+def maybe_run_llm_judge(
+    text: str,
+    prompt_template: str,
+    breakdown_keys: Sequence[str],
+    *,
+    llm_judge: bool,
+    model: str = DEFAULT_LLM_MODEL,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+) -> Tuple[Dict[str, Any] | None, List[str]]:
+    if not llm_judge:
+        return None, []
+    api_key = get_judge_api_key()
+    if not api_key:
+        return None, [
+            "LLM judge requested but no CODEX_JUDGE_API_KEY or OPENAI_API_KEY was found; falling back to heuristic mode."
+        ]
+    try:
+        return (
+            evaluate_with_llm(
+                text,
+                prompt_template,
+                breakdown_keys,
+                model=model,
+                max_tokens=max_tokens,
+                api_key=api_key,
+            ),
+            [],
+        )
+    except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        return None, [f"LLM judge unavailable ({exc}); falling back to heuristic mode."]
+
+
+def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | None = None) -> Dict[str, Any]:
     generic_hits = find_generic_phrases(text)
     backtick_refs = INLINE_CODE_PATTERN.findall(text)
     file_refs = FILE_PATTERN.findall(text)
@@ -310,13 +518,59 @@ def analyze_text(text: str, min_score: int = 60, repo_root: Path | None = None) 
     }
 
 
-def format_table(report: Dict[str, object]) -> str:
+def analyze_text(
+    text: str,
+    min_score: int = 60,
+    repo_root: Path | None = None,
+    llm_judge: bool = False,
+    model: str = DEFAULT_LLM_MODEL,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+) -> Dict[str, Any]:
+    report = analyze_text_heuristic(text, min_score=min_score, repo_root=repo_root)
+    heuristic_score = int(report["score"])
+    report["evaluation_mode"] = "heuristic"
+    report["llm_score"] = None
+    report["heuristic_score"] = heuristic_score
+    report["estimated_cost_usd"] = 0.0
+    report["warnings"] = []
+
+    llm_result, warnings = maybe_run_llm_judge(
+        text,
+        JUDGE_PROMPT,
+        ("specificity", "evidence", "actionability", "completeness"),
+        llm_judge=llm_judge,
+        model=model,
+        max_tokens=max_tokens,
+    )
+    report["warnings"] = warnings
+    if llm_result is None:
+        return report
+
+    llm_score = int(llm_result["score"])
+    final_score = int(round((llm_score * 0.7) + (heuristic_score * 0.3)))
+    report["status"] = "pass" if final_score >= min_score else "fail"
+    report["score"] = final_score
+    report["evaluation_mode"] = "llm"
+    report["llm_score"] = llm_score
+    report["heuristic_score"] = heuristic_score
+    report["estimated_cost_usd"] = llm_result["estimated_cost_usd"]
+    report["llm_breakdown"] = llm_result["breakdown"]
+    report["judged_chars"] = llm_result["judged_chars"]
+    report["input_truncated"] = llm_result["truncated"]
+    report["model"] = llm_result["model"]
+    report["issues"] = merge_unique_strings(report.get("issues", []), llm_result["issues"])
+    report["suggestions"] = merge_unique_strings(report.get("suggestions", []), llm_result["suggestions"])[:6]
+    return report
+
+
+def format_table(report: Dict[str, Any]) -> str:
     counts = report["counts"]
     assert isinstance(counts, dict)
     lines = [
         f"status       : {report['status']}",
         f"score        : {report['score']}",
         f"min_score    : {report['min_score']}",
+        f"mode         : {report.get('evaluation_mode', 'heuristic')}",
         f"generic      : {counts['generic_phrases']}",
         f"artifacts    : {counts['artifact_refs']}",
         f"resolved art : {counts.get('resolved_artifact_refs', 0)}",
@@ -327,6 +581,12 @@ def format_table(report: Dict[str, object]) -> str:
         f"numbers      : {counts['numbers']}",
         f"sections     : {counts['sections']}",
     ]
+    if report.get("llm_score") is not None:
+        lines.append(f"llm_score    : {report['llm_score']}")
+        lines.append(f"heuristic    : {report['heuristic_score']}")
+    warnings = report.get("warnings", [])
+    if isinstance(warnings, list) and warnings:
+        lines.extend(f"warning      : {item}" for item in warnings)
     issues = report.get("issues", [])
     if isinstance(issues, list) and issues:
         lines.append("issues       : " + "; ".join(str(item) for item in issues))
@@ -338,6 +598,14 @@ def main() -> int:
     try:
         text = load_text(args)
         repo_root = Path(args.repo_root).expanduser().resolve() if args.repo_root else None
+        report = analyze_text(
+            text,
+            min_score=args.min_score,
+            repo_root=repo_root,
+            llm_judge=args.llm_judge,
+            model=args.model,
+            max_tokens=args.max_tokens,
+        )
     except (OSError, ValueError) as exc:
         payload = {"status": "error", "message": str(exc)}
         if args.format == "json":
@@ -346,7 +614,6 @@ def main() -> int:
             print(f"status       : error\nmessage      : {exc}")
         return 1
 
-    report = analyze_text(text, min_score=args.min_score, repo_root=repo_root)
     if args.format == "json":
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:

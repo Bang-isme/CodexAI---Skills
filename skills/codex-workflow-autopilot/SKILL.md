@@ -12,21 +12,29 @@ Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teach
 ## Activation
 
 1. Activate after intent analysis is confirmed.
-2. Activate on explicit `$codex-workflow-autopilot`.
+2. Activate on explicit `$codex-workflow-autopilot` or `$route`.
 3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 4. Activate Scrum overlay on backlog, story, sprint, review, retrospective, release-readiness, or shorthand commands such as `$sprint-plan`, `$story-ready-check`, `$retro`, and `$release-readiness`.
-5. Activate reasoning rigor on `$codex-reasoning-rigor`, "don't be generic", "go deeper", "make it specific", or "use the repo, not generic advice".
+5. Activate reasoning rigor on `$codex-reasoning-rigor`, `$rigor`, "don't be generic", "go deeper", "make it specific", or "use the repo, not generic advice".
+6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$review`, `$deploy`, `$handoff`.
+7. When activated via alias, load the corresponding `.workflows/<name>.md` file before executing the flow.
 
 ## Behavioral Protocol Decision Tree
 
 ```
-Task complexity?
-    |- Complex (architecture/design/multi-file) -> activate Thinking Partner mode
-    |   `- Before presenting solution -> activate Devil's Advocate mode
+Agent context loaded?
+    |- Yes -> apply agent behavioral rules + file_ownership boundaries
+    |   `- Then route to the matching workflow mode or alias file
     |
-    |- Teaching request -> activate Teaching Mode + explain_code.py
-    |
-    `- Simple (single file fix) -> direct execution
+    `- No -> fallback to existing keyword-based mode detection
+        |
+        `- Task complexity?
+            |- Complex (architecture/design/multi-file) -> activate Thinking Partner mode
+            |   `- Before presenting solution -> activate Devil's Advocate mode
+            |
+            |- Teaching request -> activate Teaching Mode + explain_code.py
+            |
+            `- Simple (single file fix) -> direct execution
 ```
 
 ## Behavioral Modes
@@ -145,7 +153,7 @@ Use BMAD when intent analysis marks `complexity: complex`.
 
 ### Phase 2: Planning (no code)
 
-- create plan via `$codex-plan-writer`
+- create plan via `$codex-plan-writer` or `$plan`
 - define task-level input/output/verify
 
 Checkpoint: wait for explicit user approval before Phase 3.
@@ -162,7 +170,7 @@ Checkpoint: wait for explicit user approval before Phase 3.
 
 ### Phase X: Verification (always last)
 
-1. Run `$codex-execution-quality-gate`.
+1. Run `$codex-execution-quality-gate` or `$gate`.
 2. If gate fails, fix blockers and rerun.
 3. Do not declare completion before gate decision.
 
@@ -179,14 +187,17 @@ Checkpoint: wait for explicit user approval before Phase 3.
 - `references/workflow-refactor.md`: execution template for refactoring workflows.
 - `references/workflow-deploy.md`: execution template for deployment workflows.
 - `references/workflow-handoff.md`: execution template for session handoff workflows.
+- `../.workflows/plan.md`: alias workflow for planning and BMAD Phase 1-2.
+- `../.workflows/debug.md`: alias workflow for 4-phase debugging.
+- `../.workflows/create.md`: alias workflow for build-mode execution.
+- `../.workflows/review.md`: alias workflow for review plus written-output quality checks.
+- `../.workflows/deploy.md`: alias workflow for ship preparation and full gate.
+- `../.workflows/handoff.md`: alias workflow for session transfer and summary generation.
 
 ## Helper Script
 
-- `scripts/explain_code.py`:
-  - Windows:
-    `python "$env:USERPROFILE\.codex\skills\codex-workflow-autopilot\scripts\explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
-  - macOS/Linux:
-    `python "$HOME/.codex/skills/codex-workflow-autopilot/scripts/explain_code.py" --project-root <path> --file <relative-or-absolute-file>`
+- `scripts/explain_code.py`: optional context helper for functions, imports, and imported-by mapping.
+- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
 
 ## Script Invocation Discipline
 

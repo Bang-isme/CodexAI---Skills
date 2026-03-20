@@ -7,7 +7,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -40,7 +40,7 @@ HEDGE_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
 )
 AI_SPEAK_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
     ("as an ai", re.compile(r"\bas an ai\b", re.IGNORECASE)),
-    ("here's a breakdown", re.compile(r"\bhere(?:'|’)s a breakdown\b", re.IGNORECASE)),
+    ("here's a breakdown", re.compile(r"\bhere(?:'|â€™)s a breakdown\b", re.IGNORECASE)),
     ("in conclusion", re.compile(r"\bin conclusion\b", re.IGNORECASE)),
     ("overall, the best approach", re.compile(r"\boverall,\s+the best approach\b", re.IGNORECASE)),
     ("utilize", re.compile(r"\butilize\b", re.IGNORECASE)),
@@ -51,6 +51,18 @@ DELIVERABLE_MARKERS = {
     "review": ("findings", "severity", "risk", "open questions"),
     "handoff": ("current state", "blockers", "next steps", "owner"),
 }
+EDITORIAL_JUDGE_PROMPT = """You are an editorial quality judge. Evaluate the following deliverable on a scale of 0-100.
+Criteria:
+1. Decision Clarity (0-25): Is the chosen path, verdict, or current state explicit and easy to find?
+2. Accountability Tone (0-25): Does the writing sound direct, accountable, and human rather than hedged or AI-safe?
+3. Tradeoff Awareness (0-25): Does it name risks, tradeoffs, blockers, or follow-up conditions concretely?
+4. Scanability/Structure (0-25): Is the content easy to scan with clear sections, bullets, or labeled lines?
+Respond with JSON only:
+{{"score": <0-100>, "decision_clarity": <0-25>, "accountability_tone": <0-25>, "tradeoff_awareness": <0-25>, "scanability_structure": <0-25>, "issues": ["..."], "suggestions": ["..."]}}
+Deliverable to evaluate:
+---
+{text}
+---"""
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,6 +81,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--min-score", type=int, default=65, help="Minimum passing score (default: 65)")
     parser.add_argument("--format", choices=("json", "table"), default="json", help="Output format")
+    parser.add_argument("--llm-judge", action="store_true", help="Use LLM judging when API credentials are available")
+    parser.add_argument(
+        "--model",
+        default=output_guard.DEFAULT_LLM_MODEL,
+        help=f"LLM judge model (default: {output_guard.DEFAULT_LLM_MODEL})",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=output_guard.DEFAULT_MAX_TOKENS,
+        help=f"Maximum response tokens for LLM judge mode (default: {output_guard.DEFAULT_MAX_TOKENS})",
+    )
     return parser.parse_args()
 
 
@@ -100,7 +124,7 @@ def infer_deliverable_kind(text: str, requested: str) -> str:
     return "generic"
 
 
-def score_decision_clarity(text: str, deliverable_kind: str, guard_report: Dict[str, object]) -> Tuple[int, List[str]]:
+def score_decision_clarity(text: str, deliverable_kind: str, guard_report: Dict[str, Any]) -> Tuple[int, List[str]]:
     lowered = text.lower()
     hits: List[str] = []
     score = 0
@@ -118,7 +142,7 @@ def score_decision_clarity(text: str, deliverable_kind: str, guard_report: Dict[
     return min(20, score), hits
 
 
-def score_grounding(guard_report: Dict[str, object]) -> int:
+def score_grounding(guard_report: Dict[str, Any]) -> int:
     counts = guard_report.get("counts", {})
     if not isinstance(counts, dict):
         return 0
@@ -131,7 +155,7 @@ def score_grounding(guard_report: Dict[str, object]) -> int:
     return min(25, score)
 
 
-def score_tradeoff_awareness(text: str, guard_report: Dict[str, object]) -> Tuple[int, int, int]:
+def score_tradeoff_awareness(text: str, guard_report: Dict[str, Any]) -> Tuple[int, int, int]:
     tradeoff_hits = len(TRADEOFF_PATTERN.findall(text))
     next_hits = len(NEXT_STEP_PATTERN.findall(text))
     section_hits = guard_report.get("section_hits", [])
@@ -183,12 +207,12 @@ def score_tone(text: str, decision_score: int) -> Tuple[int, List[str], List[str
     return max(0, min(15, score)), ai_speak_hits, hedge_hits
 
 
-def analyze_text(
+def analyze_text_heuristic(
     text: str,
     min_score: int = 65,
     deliverable_kind: str = "auto",
     repo_root: Path | None = None,
-) -> Dict[str, object]:
+) -> Dict[str, Any]:
     kind = infer_deliverable_kind(text, deliverable_kind)
     guard_report = output_guard.analyze_text(text, min_score=0, repo_root=repo_root)
     decision_score, decision_hits = score_decision_clarity(text, kind, guard_report)
@@ -259,7 +283,58 @@ def analyze_text(
     }
 
 
-def format_table(report: Dict[str, object]) -> str:
+def analyze_text(
+    text: str,
+    min_score: int = 65,
+    deliverable_kind: str = "auto",
+    repo_root: Path | None = None,
+    llm_judge: bool = False,
+    model: str = output_guard.DEFAULT_LLM_MODEL,
+    max_tokens: int = output_guard.DEFAULT_MAX_TOKENS,
+) -> Dict[str, Any]:
+    report = analyze_text_heuristic(
+        text,
+        min_score=min_score,
+        deliverable_kind=deliverable_kind,
+        repo_root=repo_root,
+    )
+    heuristic_score = int(report["score"])
+    report["evaluation_mode"] = "heuristic"
+    report["llm_score"] = None
+    report["heuristic_score"] = heuristic_score
+    report["estimated_cost_usd"] = 0.0
+    report["warnings"] = []
+
+    llm_result, warnings = output_guard.maybe_run_llm_judge(
+        text,
+        EDITORIAL_JUDGE_PROMPT,
+        ("decision_clarity", "accountability_tone", "tradeoff_awareness", "scanability_structure"),
+        llm_judge=llm_judge,
+        model=model,
+        max_tokens=max_tokens,
+    )
+    report["warnings"] = warnings
+    if llm_result is None:
+        return report
+
+    llm_score = int(llm_result["score"])
+    final_score = int(round((llm_score * 0.7) + (heuristic_score * 0.3)))
+    report["status"] = "pass" if final_score >= min_score else "fail"
+    report["score"] = final_score
+    report["evaluation_mode"] = "llm"
+    report["llm_score"] = llm_score
+    report["heuristic_score"] = heuristic_score
+    report["estimated_cost_usd"] = llm_result["estimated_cost_usd"]
+    report["llm_breakdown"] = llm_result["breakdown"]
+    report["judged_chars"] = llm_result["judged_chars"]
+    report["input_truncated"] = llm_result["truncated"]
+    report["model"] = llm_result["model"]
+    report["issues"] = output_guard.merge_unique_strings(report.get("issues", []), llm_result["issues"])
+    report["suggestions"] = output_guard.merge_unique_strings(report.get("suggestions", []), llm_result["suggestions"])[:6]
+    return report
+
+
+def format_table(report: Dict[str, Any]) -> str:
     rubric = report.get("rubric", {})
     counts = report.get("counts", {})
     assert isinstance(rubric, dict)
@@ -268,6 +343,7 @@ def format_table(report: Dict[str, object]) -> str:
         f"status          : {report['status']}",
         f"score           : {report['score']}",
         f"min_score       : {report['min_score']}",
+        f"mode            : {report.get('evaluation_mode', 'heuristic')}",
         f"kind            : {report['deliverable_kind']}",
         f"decision        : {rubric['decision_clarity']}",
         f"grounding       : {rubric['grounding']}",
@@ -279,6 +355,12 @@ def format_table(report: Dict[str, object]) -> str:
         f"hedges          : {counts['hedge_phrases']}",
         f"ai_speak        : {counts['ai_speak_phrases']}",
     ]
+    if report.get("llm_score") is not None:
+        lines.append(f"llm_score       : {report['llm_score']}")
+        lines.append(f"heuristic_score : {report['heuristic_score']}")
+    warnings = report.get("warnings", [])
+    if isinstance(warnings, list) and warnings:
+        lines.extend(f"warning         : {item}" for item in warnings)
     issues = report.get("issues", [])
     if isinstance(issues, list):
         lines.extend(f"issue           : {item}" for item in issues)
@@ -299,6 +381,9 @@ def main() -> int:
         min_score=args.min_score,
         deliverable_kind=args.deliverable_kind,
         repo_root=repo_root,
+        llm_judge=args.llm_judge,
+        model=args.model,
+        max_tokens=args.max_tokens,
     )
     if args.format == "table":
         print(format_table(report))

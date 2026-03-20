@@ -14,12 +14,12 @@ Generate `.codex/context/genome.md` for macro project understanding. Load `genom
 
 1. **Auto-load:** If `.codex/context/genome.md` exists in the project, load it at session start.
 2. **Auto-suggest:** If project has 50+ files and no `genome.md` exists, suggest generating one.
-3. **Explicit:** On `$codex-genome` or `$generate-genome` command.
+3. **Explicit:** On `$codex-genome`, `$generate-genome`, or `$genome` command.
 
 ## Quick Commands
 
-- `$codex-genome` - Generate/refresh project genome
-- `$codex-genome --force` - Force regeneration
+- `$codex-genome` / `$genome` - Generate or refresh project genome
+- `$codex-genome --force` / `$genome --force` - Force regeneration
 
 ## When to Generate
 
@@ -48,8 +48,8 @@ After loading `genome.md`:
 
 ## Script Invocation
 
-- Windows: `python "%USERPROFILE%\.codex\skills\codex-project-memory\scripts\generate_genome.py" --project-root <path>`
-- macOS/Linux: `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
+- Use `generate_genome.py` from `codex-project-memory`.
+- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
 
 ## Script Invocation Discipline
 
@@ -75,4 +75,3 @@ After loading `genome.md`:
 - `genome.md`: always (~2000-2400 tokens)
 - Module maps: max 3 at a time (~600-1200 tokens each)
 - Total context overhead: <5000 tokens (<4% of context window)
-

@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-12.6.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-98%2F98%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-49%2F49%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-13.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-102%2F102%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-49%2F49%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -31,7 +31,9 @@ The pack is designed for 3 outcomes:
 | Reference Docs | 149 |
 | Starter Templates | 29 |
 | Scrum Artifact Templates | 6 |
-| Verification | 98 unit + 49 smoke = 147 tests |
+| Agent Personas | 8 |
+| Workflow Aliases | 6 |
+| Verification | 102 unit + 49 smoke = 151 tests |
 
 ---
 
@@ -70,7 +72,32 @@ The pack is designed for 3 outcomes:
 8. `codex-project-memory` + `codex-git-autopilot`
    Persist what matters, then commit and ship with discipline.
 
-### Human-Quality Output Layer
+## Agent System
+
+The pack now supports additive agent routing without breaking the old flow:
+
+1. `codex-intent-context-analyzer` classifies the request and may emit `suggested_agent`.
+2. `codex-master-instructions` loads `skills/.agents/<agent>.md` when that file exists.
+3. The loaded agent contributes behavioral rules plus `file_ownership` boundaries.
+4. If the agent file or `.agents/` folder is missing, the pack falls back to legacy routing through `codex-domain-specialist`.
+5. `codex-workflow-autopilot` then routes execution mode as usual, optionally loading a workflow alias file.
+
+This keeps the pack fully backward compatible: if you never use agents or workflow aliases, the previous skill-only pipeline still works exactly the same way.
+
+## Quick Aliases
+
+| Alias | File | Equivalent |
+| --- | --- | --- |
+| `$plan` | `skills/.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
+| `$debug` | `skills/.workflows/debug.md` | `workflow-debug.md` + 4-phase |
+| `$create` | `skills/.workflows/create.md` | `workflow-create.md` |
+| `$review` | `skills/.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
+| `$deploy` | `skills/.workflows/deploy.md` | `workflow-deploy.md` + full gate |
+| `$handoff` | `skills/.workflows/handoff.md` | `workflow-handoff.md` + session summary |
+
+Aliases are shortcuts, not replacements. All legacy triggers such as `$codex-plan-writer`, `$codex-workflow-autopilot`, and `$codex-execution-quality-gate` remain supported in parallel.
+
+## Human-Quality Output Layer
 
 This is the biggest differentiator of the pack today:
 
@@ -200,6 +227,9 @@ CodexAI---Skills/
     |-- README.md
     |-- pytest.ini
     |-- requirements.txt
+    |-- .agents/
+    |-- .workflows/
+    |-- .system/
     |-- tests/
     |-- codex-master-instructions/
     |-- codex-intent-context-analyzer/

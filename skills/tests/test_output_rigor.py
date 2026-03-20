@@ -117,6 +117,73 @@ def test_output_guard_repo_root_rewards_real_grounding(tmp_path: Path) -> None:
     assert report["counts"]["resolved_command_paths"] >= 1
 
 
+def test_output_guard_llm_judge_without_api_key_falls_back(monkeypatch) -> None:
+    monkeypatch.delenv("CODEX_JUDGE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    report = output_guard.analyze_text(
+        "Decision: follow best practices. Evidence: prose only. Risk: low. Next step: improve quality.",
+        min_score=60,
+        llm_judge=True,
+    )
+    assert report["evaluation_mode"] == "heuristic"
+    assert report["llm_score"] is None
+    assert report["heuristic_score"] == report["score"]
+    assert report["warnings"]
+    assert "falling back to heuristic mode" in report["warnings"][0]
+
+
+def test_output_guard_llm_judge_merges_scores(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    heuristic_report = output_guard.analyze_text(
+        "\n".join(
+            [
+                "Decision: keep `scripts/output_guard.py` in the quality gate.",
+                "Evidence: run `python skills/tests/smoke_test.py` and `pytest skills/tests -q`.",
+                "Risk: stale thresholds can drift from the pack.",
+                "Next step: tune the score floor after each release.",
+            ]
+        ),
+        min_score=60,
+    )
+
+    def fake_evaluate_with_llm(text: str, prompt_template: str, breakdown_keys, **kwargs):
+        return {
+            "score": 80,
+            "breakdown": {
+                "specificity": 20,
+                "evidence": 22,
+                "actionability": 19,
+                "completeness": 19,
+            },
+            "issues": ["Need slightly stronger evidence"],
+            "suggestions": ["Add the exact smoke command output"],
+            "truncated": False,
+            "judged_chars": len(text),
+            "estimated_cost_usd": 0.001,
+            "model": kwargs["model"],
+        }
+
+    monkeypatch.setattr(output_guard, "evaluate_with_llm", fake_evaluate_with_llm)
+    report = output_guard.analyze_text(
+        "\n".join(
+            [
+                "Decision: keep `scripts/output_guard.py` in the quality gate.",
+                "Evidence: run `python skills/tests/smoke_test.py` and `pytest skills/tests -q`.",
+                "Risk: stale thresholds can drift from the pack.",
+                "Next step: tune the score floor after each release.",
+            ]
+        ),
+        min_score=60,
+        llm_judge=True,
+    )
+    assert report["evaluation_mode"] == "llm"
+    assert report["llm_score"] == 80
+    assert report["heuristic_score"] == heuristic_report["score"]
+    assert report["score"] == round((80 * 0.7) + (heuristic_report["score"] * 0.3))
+    assert report["llm_breakdown"]["specificity"] == 20
+    assert report["estimated_cost_usd"] == 0.001
+
+
 def test_reasoning_brief_renders_expected_sections() -> None:
     markdown = reasoning_brief.render_template(
         Path(reasoning_brief.TEMPLATE_PATH).read_text(encoding="utf-8"),
@@ -207,3 +274,65 @@ def test_editorial_review_passes_decision_ready_grounded_text(tmp_path: Path) ->
     assert report["rubric"]["decision_clarity"] >= 12
     assert report["rubric"]["grounding"] >= 10
     assert report["rubric"]["tradeoff_awareness"] >= 8
+
+
+def test_editorial_review_llm_judge_without_api_key_falls_back(monkeypatch) -> None:
+    monkeypatch.delenv("CODEX_JUDGE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    report = editorial_review.analyze_text(
+        "Here's a breakdown. Risk: low. Next step: maybe revisit later.",
+        min_score=65,
+        deliverable_kind="review",
+        llm_judge=True,
+    )
+    assert report["evaluation_mode"] == "heuristic"
+    assert report["llm_score"] is None
+    assert report["warnings"]
+    assert "falling back to heuristic mode" in report["warnings"][0]
+
+
+def test_editorial_review_llm_judge_merges_scores(monkeypatch) -> None:
+    monkeypatch.setenv("CODEX_JUDGE_API_KEY", "test-key")
+    text = "\n".join(
+        [
+            "Decision: keep `skills/tests/smoke_test.py` in the release checklist.",
+            "Evidence: run `python skills/tests/smoke_test.py` after updating the gate scripts.",
+            "Risk: stale smoke expectations will make release notes look trustworthy when they are not.",
+            "Next step: assign the release owner to refresh the checklist after each gate change.",
+        ]
+    )
+    heuristic_report = editorial_review.analyze_text(
+        text,
+        min_score=65,
+        deliverable_kind="handoff",
+    )
+
+    def fake_evaluate_with_llm(text: str, prompt_template: str, breakdown_keys, **kwargs):
+        return {
+            "score": 90,
+            "breakdown": {
+                "decision_clarity": 23,
+                "accountability_tone": 22,
+                "tradeoff_awareness": 22,
+                "scanability_structure": 23,
+            },
+            "issues": [],
+            "suggestions": ["Add the exact owner name for the next-step item"],
+            "truncated": False,
+            "judged_chars": len(text),
+            "estimated_cost_usd": 0.001,
+            "model": kwargs["model"],
+        }
+
+    monkeypatch.setattr(editorial_review.output_guard, "evaluate_with_llm", fake_evaluate_with_llm)
+    report = editorial_review.analyze_text(
+        text,
+        min_score=65,
+        deliverable_kind="handoff",
+        llm_judge=True,
+    )
+    assert report["evaluation_mode"] == "llm"
+    assert report["llm_score"] == 90
+    assert report["heuristic_score"] == heuristic_report["score"]
+    assert report["score"] == round((90 * 0.7) + (heuristic_report["score"] * 0.3))
+    assert report["llm_breakdown"]["accountability_tone"] == 22

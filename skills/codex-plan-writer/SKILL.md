@@ -12,7 +12,7 @@ Create `{task-slug}.md` plan file for complex requests. Required sections: Overv
 ## Activation
 
 1. Activate during workflow planning phases.
-2. Activate on explicit `$codex-plan-writer`.
+2. Activate on explicit `$codex-plan-writer` or `$plan`.
 3. Mandatory for complex requests with scope `medium` or `large`.
 
 ## Output File Naming

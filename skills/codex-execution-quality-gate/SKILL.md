@@ -11,8 +11,8 @@ load_priority: on-demand
 
 ## Activation
 
-1. Activate during final `gate` steps.
-2. Activate on explicit `$codex-execution-quality-gate`.
+1. Activate during final `$gate` steps.
+2. Activate on explicit `$codex-execution-quality-gate` or `$gate`.
 3. Run before saying work is complete.
 4. Activate on `$pre-commit` or "check before commit".
 5. Activate on `$smart-test` or "which tests to run".
@@ -26,10 +26,15 @@ load_priority: on-demand
 13. Activate on `$e2e check`.
 14. Activate on `$e2e generate <url>`.
 15. Activate on `$e2e run`.
-16. Activate on `$codex-doctor`.
+16. Activate on `$codex-doctor` or `$doctor`.
 17. Activate on `$setup-check`.
-18. Activate on `$output-guard` or "check if this output is too generic".
-19. Activate on `$editorial-review` or "make this read less like AI / more like a human deliverable".
+18. Activate on `$install-hooks` or "install git hooks".
+19. Activate on `$install-ci` or "install CI gate".
+20. Activate on `$output-guard` or `$guard` or "check if this output is too generic".
+21. Activate on `$editorial-review` or `$editorial` or "make this read less like AI / more like a human deliverable".
+22. Activate on `$check` or "run quick gate".
+23. Activate on `$check-full` or "run full gate".
+24. Activate on `$check-deploy` or "run deploy gate".
 
 ## Decision Tree Routing
 
@@ -52,162 +57,25 @@ Task type -> Pre-flight/setup?
         `- No code -> skip quality gate
 ```
 
-## Phase X Verification Order
+## Runtime Enforcement
 
-| Priority | Check | Script | Blocking |
-| --- | --- | --- | --- |
-| P-1 | impact predictor (pre-edit advisory) | `scripts/predict_impact.py` | warning only |
-| P0 | security scan | `scripts/security_scan.py` | yes for critical findings |
-| P1 | lint | `scripts/run_gate.py` | yes when detected lint exits 1 |
-| P2 | tests | `scripts/run_gate.py` | yes when detected tests exit 1 |
-| P3 | bundle/dependency check | `scripts/bundle_check.py` | warning only |
-| P4 | tech debt scan | `scripts/tech_debt_scan.py` | warning only |
-| P5 | improvement suggester (post-task) | `scripts/suggest_improvements.py` | warning only |
-| P6 | output rigor guard | `scripts/output_guard.py` | warning only |
-| P7 | editorial review | `scripts/editorial_review.py` | warning only unless strict deliverable gate is active |
-| P8 | quality trend tracker (periodic) | `scripts/quality_trend.py` | warning only |
-| P9 | UX static audit (pre-UI delivery) | `scripts/ux_audit.py` | warning only |
-| P10 | accessibility static checker | `scripts/accessibility_check.py` | warning only |
-| P11 | Lighthouse runtime audit | `scripts/lighthouse_audit.py` | warning only |
-| P12 | Playwright setup/run helper | `scripts/playwright_runner.py` | warning only |
-| P13 | server lifecycle helper (optional) | `scripts/with_server.py` | warning only |
+- Advisory mode is the default: the AI must decide which gate scripts to run and report fresh evidence before completion.
+- `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names.
+- Runtime enforcement is available through `install_hooks.py`, which installs a managed `pre-commit` hook that runs `security_scan.py` and `pre_commit_check.py` automatically before commit.
+- Use `--with-lint-test` only when the team wants heavier local enforcement that also runs `run_gate.py`.
+- Use `install_ci_gate.py` to generate CI enforcement for GitHub Actions or GitLab CI when the project should block pushes and pull requests in automation as well as locally.
+- Hooks and CI templates are additive. They do not replace the normal gate decision tree, and uninstall should remove only the managed CodexAI block.
+- If runtime enforcement is not installed, the AI must continue to self-enforce the gate manually.
 
-## Execution
+## Rules
 
-1. Run `run_gate.py` with project root.
-2. Run `security_scan.py` with project root.
-3. Optionally run `bundle_check.py` with project root.
-4. Optionally run `tech_debt_scan.py` with project root.
-5. Optionally run `suggest_improvements.py` after complex tasks.
-6. Optionally run `output_guard.py` on plans, summaries, or recommendations that must avoid generic filler.
-7. Optionally run `editorial_review.py` when the output must sound accountable, decision-ready, and less AI-generic.
-8. Optionally run `predict_impact.py` before high-risk edits.
-9. Optionally run `quality_trend.py --record` on periodic cadence.
-10. Optionally run `ux_audit.py` before UI handoff.
-11. Optionally run `accessibility_check.py` for public-facing surfaces.
-12. Optionally run `lighthouse_audit.py` before deploy (requires running server URL).
-13. Optionally run `playwright_runner.py` for E2E setup/check/run flows.
-14. Optionally run `with_server.py` to bootstrap local server(s) before Lighthouse/Playwright checks.
-15. Merge results and decide pass/fail.
-
-### Decision Rules
-
-- Completion allowed only if no blocking failures remain.
-- Blocking failures must be fixed, then checks rerun.
-- Warning-only outcomes may proceed with explicit warning to user.
-- Tech debt scan is advisory in MVP and does not block completion.
-- Improvement suggestions are advisory and do not block completion.
-- Impact prediction is advisory and does not block completion.
-- Output rigor guard is advisory for generic writing, but plans, reviews, and handoffs should default to strict-output enforcement unless the caller intentionally downgrades them with `--advisory-output`.
-- Editorial review is advisory by itself, but strict plans, reviews, and handoffs should also satisfy the editorial rubric so the deliverable reads like a human-made artifact.
-- Quality trend reporting is periodic/advisory and does not block completion.
-- UX static audit is advisory and does not block completion.
-- Accessibility static checker is advisory and does not block completion.
-- Lighthouse wrapper is advisory and must fail gracefully when tool/server is unavailable.
-- Playwright wrapper is advisory and must fail gracefully when tool/setup is unavailable.
-- Server lifecycle helper is advisory and should be used only when runtime checks need controlled startup/shutdown.
-
-## Script Invocation Discipline
-
-1. Always run `--help` before invoking a script.
-2. Treat scripts as black-box helpers and prefer direct execution over source inspection.
-3. Read script source only when customization or bug fixing is required.
-
-## Script Paths
-
-- Windows:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\<script>.py" --project-root <path>`
-- macOS/Linux:
-  `python "$HOME/.codex/skills/codex-execution-quality-gate/scripts/<script>.py" --project-root <path>`
-
-### Environment Doctor Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\doctor.py" --skills-root "$env:USERPROFILE\.codex\skills" --format json`
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\doctor.py" --format table`
-
-### Tech Debt Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\tech_debt_scan.py" --project-root <path>`
-
-### Pre-Commit Intelligence Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\pre_commit_check.py" --project-root <path>`
-
-### Smart Test Selector Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\smart_test_selector.py" --project-root <path> --source staged`
-
-### Improvement Suggester Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\suggest_improvements.py" --project-root <path> --source last-commit`
-- In proactive mode, run after complex tasks and present top 3 suggestions.
-
-### Output Guard Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\output_guard.py" --file <path/to/deliverable.md>`
-- Inline text:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\output_guard.py" --text "..." --format table`
-- Repo-aware grounding check:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\output_guard.py" --file <path/to/deliverable.md> --repo-root <project-root>`
-
-### Editorial Review Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --file <path/to/deliverable.md>`
-- Inline text:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --text "Decision: ..."`
-- Repo-aware editorial pass:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\editorial_review.py" --file <path/to/deliverable.md> --repo-root <project-root> --deliverable-kind review`
-
-### Strict Output Gate Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root <path> --strict-output --output-file <deliverable.md>`
-- Inline text:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root <path> --skip-lint --skip-test --strict-output --output-text "Decision: ..."`
-- Auto-strict defaults:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root <path> --output-file implementation-plan.md`
-- Downgrade intentionally:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root <path> --output-file handoff.md --advisory-output`
-
-### Impact Predictor Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\predict_impact.py" --project-root <path> --files <file1,file2> --depth 2`
-
-### Quality Trend Commands
-
-- Record:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root <path> --record`
-- Report:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root <path> --report --days 30`
-- Gate-aware report:
-  gate runs now feed `.codex/quality/gate-events.jsonl`, so reports can include gate pass rate, average output quality, and average editorial quality.
-
-### UX Audit Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\ux_audit.py" --project-root <path>`
-
-### Accessibility Check Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\accessibility_check.py" --project-root <path> --level AA`
-
-### Lighthouse Audit Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\lighthouse_audit.py" --url <http://localhost:3000> --device mobile --runs 1`
-- Requires a running URL and Lighthouse availability through `npx`.
-
-### Playwright Runner Commands
-
-- Check setup:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode check`
-- Generate skeleton:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode generate --url <http://localhost:3000/page>`
-- Run tests:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode run --browser chromium`
-
-### Server Lifecycle Helper Command
-
-- `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\with_server.py" --help`
-- Example:
-  `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\with_server.py" --server "npm run dev" --port 3000 -- python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\lighthouse_audit.py" --url http://localhost:3000`
+- Follow the verification order, execution flow, and blocking policy in `references/gate-execution-flow.md`.
+- Blocking failures must be fixed and rerun; warning-only signals may proceed only with explicit user-facing warnings.
+- Run `--help` before invoking a script, treat scripts as black-box helpers, and inspect source only for customization or bug fixing.
+- Use `with_server.py` only when runtime audits need controlled startup and shutdown.
+- If user says `skip gate` or `force complete`, comply and warn: "Quality gate skipped. Lint/test/security status is unknown."
+- For each invoked script, capture output, summarize passes/warnings/blockers, ask whether to fix blocking errors when present, and rerun after fixes to verify.
+- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
 
 ## Reference Files
 
@@ -224,20 +92,9 @@ Task type -> Pre-flight/setup?
 - `references/run-gate-spec.md`: lint and test orchestration behavior for pass/fail decisions.
 - `references/security-scan-spec.md`: severity-aware security scan integration and blocking criteria.
 - `references/bundle-check-spec.md`: dependency and bundle signal interpretation guidance.
+- `references/script-commands.md`: script CLI examples, including runtime hook and CI installers.
 - `references/pre-commit-check-spec.md`: staged-file fast feedback behavior and blocker handling.
 - `references/smart-test-selector-spec.md`: test selection strategy for changed files.
 - `references/tech-debt-scan-spec.md`: advisory technical debt signal interpretation and prioritization.
-
-## Override
-
-If user says `skip gate` or `force complete`, comply and warn:
-"Quality gate skipped. Lint/test/security status is unknown."
-
-## Output Handling
-
-For each script:
-
-1. capture output
-2. summarize errors/warnings/passes
-3. ask whether to fix blocking errors when present
-4. rerun after fixes to verify
+- `references/gate-execution-flow.md`: verification order, execution steps, overrides, and output-handling rules.
+- `references/output-schemas.md`: JSON status contracts for gate helper scripts, including hook and CI installers.

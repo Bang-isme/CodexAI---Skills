@@ -1,0 +1,58 @@
+{
+  "version": "13.0.0",
+  "skills": [
+    "codex-master-instructions",
+    "codex-intent-context-analyzer",
+    "codex-context-engine",
+    "codex-plan-writer",
+    "codex-workflow-autopilot",
+    "codex-reasoning-rigor",
+    "codex-domain-specialist",
+    "codex-security-specialist",
+    "codex-execution-quality-gate",
+    "codex-project-memory",
+    "codex-docs-change-sync",
+    "codex-git-autopilot",
+    "codex-doc-renderer",
+    "codex-scrum-subagents"
+  ],
+  "agents": [
+    "frontend-specialist",
+    "backend-specialist",
+    "security-auditor",
+    "debugger",
+    "test-engineer",
+    "devops-engineer",
+    "planner",
+    "scrum-master"
+  ],
+  "workflows": [
+    "plan",
+    "debug",
+    "create",
+    "review",
+    "deploy",
+    "handoff"
+  ],
+  "scripts_registry": ".system/REGISTRY.md",
+  "load_order": {
+    "always": [
+      "codex-master-instructions",
+      "codex-intent-context-analyzer",
+      "codex-context-engine"
+    ],
+    "on-demand": [
+      "codex-plan-writer",
+      "codex-workflow-autopilot",
+      "codex-reasoning-rigor",
+      "codex-domain-specialist",
+      "codex-security-specialist",
+      "codex-execution-quality-gate",
+      "codex-project-memory",
+      "codex-docs-change-sync",
+      "codex-git-autopilot",
+      "codex-doc-renderer",
+      "codex-scrum-subagents"
+    ]
+  }
+}

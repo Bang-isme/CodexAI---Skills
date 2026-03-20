@@ -6,14 +6,16 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `12.6.0` |
+| Version | `13.0.0` |
 | Core Skills | 14 |
-| Entry-point Scripts | 43 |
+| Entry-point Scripts | 48 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 149 |
+| References | 160 |
 | Starters | 29 |
 | Artifact Templates | 6 |
-| Pytest | 98/98 |
+| Agent Personas | 8 |
+| Workflow Aliases | 6 |
+| Pytest | 112/112 |
 | Smoke | 49/49 |
 
 ---
@@ -69,7 +71,7 @@ Reasoning Rigor
 | Skill | Notes |
 | --- | --- |
 | `codex-execution-quality-gate` | 17 runtime scripts including gate orchestration, security scan, smart tests, output guard, editorial review, quality trends, UX/a11y, and Lighthouse |
-| `codex-project-memory` | 11 scripts for decisions, handoffs, session summaries, changelogs, and growth reporting |
+| `codex-project-memory` | 11 scripts plus the `genome_builder.py` helper for multi-role genome generation across Architecture, API Surface, Data Layer, Security Posture, Test Coverage, and File Map |
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
 | `codex-git-autopilot` | Commit automation with gate awareness |
 | `codex-doc-renderer` | DOCX rendering and verification helpers |
@@ -82,10 +84,13 @@ Reasoning Rigor
 
 | Script | Purpose |
 | --- | --- |
+| `auto_gate.py` | Single entry point for quick, full, and deploy verification modes |
 | `run_gate.py` | Aggregate lint, test, and deliverable quality into a single gate decision |
 | `pre_commit_check.py` | Fast staged-file checks before commit |
 | `smart_test_selector.py` | Run only relevant tests for the current change surface |
 | `security_scan.py` | Secret, debug, HTTP, and placeholder security checks |
+| `install_hooks.py` | Install managed pre-commit enforcement hooks |
+| `install_ci_gate.py` | Generate GitHub Actions or GitLab CI quality gate files |
 | `output_guard.py` | Detect generic filler and weak evidence |
 | `editorial_review.py` | Score decision clarity, grounding, tradeoffs, structure, and tone |
 | `quality_trend.py` | Track code-shape, gate pass rate, output score, and editorial score over time |
@@ -121,6 +126,38 @@ Supported native-agent scopes:
 - `project`
 - `personal`
 - `both`
+
+---
+
+## Agent Personas
+
+The agent layer adds scoped personas on top of the normal skill pipeline. Current personas:
+
+- `frontend-specialist`
+- `backend-specialist`
+- `security-auditor`
+- `debugger`
+- `test-engineer`
+- `devops-engineer`
+- `planner`
+- `scrum-master`
+
+These files live under `skills/.agents/` and are loaded when intent analysis suggests a matching persona.
+
+---
+
+## Workflow Aliases
+
+Workflow aliases are shorthand entry points that load `skills/.workflows/*.md` before running the richer underlying flow.
+
+| Alias | Workflow File | Equivalent |
+| --- | --- | --- |
+| `$plan` | `.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
+| `$debug` | `.workflows/debug.md` | `workflow-debug.md` + 4-phase debugging |
+| `$create` | `.workflows/create.md` | `workflow-create.md` |
+| `$review` | `.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
+| `$deploy` | `.workflows/deploy.md` | `workflow-deploy.md` + full gate |
+| `$handoff` | `.workflows/handoff.md` | `workflow-handoff.md` + session summary |
 
 ---
 

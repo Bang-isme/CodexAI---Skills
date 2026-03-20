@@ -12,6 +12,8 @@ Activate it when the task is important enough that "sounds right" is not good en
 
 ## Activation
 
+Activate on explicit `$codex-reasoning-rigor` or `$rigor`.
+
 Activate when the user says or implies:
 
 - "don't be generic"
