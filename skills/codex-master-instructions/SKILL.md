@@ -36,6 +36,7 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$route` | `$codex-workflow-autopilot` | codex-workflow-autopilot |
 | `$memory` | `$codex-project-memory` | codex-project-memory |
 | `$rigor` | `$codex-reasoning-rigor` | codex-reasoning-rigor |
+| `$design` | `$codex-design-system` | codex-design-system |
 | `$genome` | `$codex-genome` | codex-project-memory |
 | `$doctor` | `$codex-doctor` | codex-execution-quality-gate |
 | `$check` | `auto_gate.py --mode quick` | codex-execution-quality-gate |
