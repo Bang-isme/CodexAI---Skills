@@ -199,11 +199,10 @@ def parse_event_timestamp(raw: str) -> Optional[date]:
         return None
 
 
-def load_gate_events(output_dir: Path, days: int) -> List[Dict[str, object]]:
+def read_gate_events(output_dir: Path) -> List[Dict[str, object]]:
     path = gate_events_path(output_dir)
     if not path.exists() or not path.is_file():
         return []
-    cutoff = date.today() - timedelta(days=max(1, days) - 1)
     events: List[Dict[str, object]] = []
     for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw_line.strip()
@@ -216,11 +215,21 @@ def load_gate_events(output_dir: Path, days: int) -> List[Dict[str, object]]:
         if not isinstance(payload, dict):
             continue
         event_date = parse_event_timestamp(str(payload.get("timestamp", "")))
-        if event_date is None or event_date < cutoff:
+        if event_date is None:
             continue
         payload["date"] = event_date.isoformat()
         events.append(payload)
     return events
+
+
+def load_gate_events(output_dir: Path, days: int, anchor_date: Optional[date] = None) -> List[Dict[str, object]]:
+    cutoff = (anchor_date or date.today()) - timedelta(days=max(1, days) - 1)
+    return [
+        payload
+        for payload in read_gate_events(output_dir)
+        if parse_event_timestamp(str(payload.get("date", ""))) is not None
+        and parse_event_timestamp(str(payload.get("date", ""))) >= cutoff
+    ]
 
 
 def summarize_gate_events(events: List[Dict[str, object]]) -> Dict[str, object]:
@@ -310,12 +319,12 @@ def parse_snapshot_date(snapshot: Dict[str, object], fallback_name: str) -> Opti
         return None
 
 
-def load_snapshots(output_dir: Path, days: int) -> List[Dict[str, object]]:
+def load_snapshots(output_dir: Path, days: int, anchor_date: Optional[date] = None) -> List[Dict[str, object]]:
     snapshots_dir = output_dir / "snapshots"
     if not snapshots_dir.exists() or not snapshots_dir.is_dir():
         return []
 
-    cutoff = date.today() - timedelta(days=max(1, days) - 1)
+    cutoff = (anchor_date or date.today()) - timedelta(days=max(1, days) - 1)
     loaded: List[Dict[str, object]] = []
     for path in sorted(snapshots_dir.glob("*.json")):
         try:
@@ -334,6 +343,30 @@ def load_snapshots(output_dir: Path, days: int) -> List[Dict[str, object]]:
 
     loaded.sort(key=lambda item: str(item.get("date", "")))
     return loaded
+
+
+def resolve_report_anchor_date(output_dir: Path) -> date:
+    candidates: List[date] = []
+
+    snapshots_dir = output_dir / "snapshots"
+    if snapshots_dir.exists() and snapshots_dir.is_dir():
+        for path in snapshots_dir.glob("*.json"):
+            try:
+                snapshot = json.loads(read_text(path))
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(snapshot, dict):
+                continue
+            snap_date = parse_snapshot_date(snapshot, path.stem)
+            if snap_date:
+                candidates.append(snap_date)
+
+    for payload in read_gate_events(output_dir):
+        event_date = parse_event_timestamp(str(payload.get("date", "")))
+        if event_date:
+            candidates.append(event_date)
+
+    return max(candidates) if candidates else date.today()
 
 
 def change_percent(first: float, latest: float) -> float:
@@ -544,8 +577,9 @@ def build_summary(
 
 
 def build_report(output_dir: Path, days: int) -> Dict[str, object]:
-    snapshots = load_snapshots(output_dir, days)
-    gate_events = load_gate_events(output_dir, days)
+    anchor_date = resolve_report_anchor_date(output_dir)
+    snapshots = load_snapshots(output_dir, days, anchor_date)
+    gate_events = load_gate_events(output_dir, days, anchor_date)
     gate_quality = summarize_gate_events(gate_events)
     if not snapshots:
         return {

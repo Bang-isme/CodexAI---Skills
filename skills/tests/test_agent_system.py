@@ -13,6 +13,7 @@ SKILLS_ROOT = Path(__file__).resolve().parents[1]
 AGENTS_ROOT = SKILLS_ROOT / ".agents"
 WORKFLOWS_ROOT = SKILLS_ROOT / ".workflows"
 MANIFEST_PATH = SKILLS_ROOT / ".system" / "manifest.json"
+VERSION_PATH = SKILLS_ROOT / "VERSION"
 BOUNDARY_SCRIPT = SKILLS_ROOT / ".system" / "scripts" / "check_boundaries.py"
 
 
@@ -70,7 +71,7 @@ def test_manifest_lists_all_agents_and_workflows() -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     assert sorted(manifest["agents"]) == sorted(path.stem for path in AGENTS_ROOT.glob("*.md"))
     assert sorted(manifest["workflows"]) == sorted(path.stem for path in WORKFLOWS_ROOT.glob("*.md"))
-    assert manifest["version"] == "13.0.0"
+    assert manifest["version"] == VERSION_PATH.read_text(encoding="utf-8").strip()
 
 
 def test_check_boundaries_blocks_and_suggests_handoff() -> None:
