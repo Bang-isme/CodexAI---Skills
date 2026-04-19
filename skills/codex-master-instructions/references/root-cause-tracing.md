@@ -1,19 +1,31 @@
 # Root Cause Tracing
 
+> **Canonical reference:** See `codex-systematic-debugging/references/root-cause-tracing.md` for the full version with backward tracing technique, test pollution bisection, and real examples.
+
 Technique for tracing backward from symptom to source.
 
-## The Technique
+## Quick Summary
 
-1. Start at the ERROR (the symptom)
-2. Ask: "What value is wrong here?"
-3. Ask: "Where does this value come from?"
-4. Follow the value BACKWARD through the call stack
-5. At each level ask: "Is the value wrong HERE or was it already wrong when passed in?"
-6. Keep going until you find where the value FIRST becomes wrong
-7. That is the root cause - fix HERE, not at the symptom
+```
+Found immediate cause → Can trace one level up?
+  |- Yes → Trace backwards → Is this the source?
+  |   |- No → Keep tracing
+  |   `- Yes → Fix at source → Add validation at each layer
+  |
+  `- No → NEVER fix just the symptom
+```
 
-## Example
+## The Key Principle
 
-Error: "Cannot read property 'name' of undefined" at line 42 -> user is undefined at line 42 -> user comes from getUser(id) at line 38 -> id comes from req.params.userId at line 35 -> req.params.userId is "undefined" (string) - WRONG! -> Router sends string "undefined" because URL was /users/undefined -> Frontend sent fetch(/users/${user.id}) but user.id was undefined -> ROOT CAUSE: Frontend didn't check if user was loaded before navigating
+**NEVER fix just where the error appears.** Trace back to find the original trigger.
 
-Fix at root (frontend guard), not at symptom (null check at line 42).
+## Full Reference
+
+For complete documentation including:
+- 5-step tracing process
+- Adding stack traces for instrumentation
+- Finding test pollution with bisection
+- Real-world example (empty projectDir bug)
+- Tips for Python and TypeScript
+
+→ See `codex-systematic-debugging/references/root-cause-tracing.md`

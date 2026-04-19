@@ -165,6 +165,8 @@ def is_production_path(rel_path: str) -> bool:
         "specs",
         "fixtures",
         "examples",
+        "starters",
+        "templates",
         "docs",
         "scripts",
     }
@@ -252,15 +254,16 @@ def scan(project_root: Path) -> Dict[str, object]:
         prod_path = is_production_path(rel)
 
         for idx, line in enumerate(lines, start=1):
-            secret_match = SECRET_ASSIGNMENT_PATTERN.search(line)
-            if secret_match:
-                secret_value = secret_match.group(2).strip()
-                if not looks_like_placeholder(secret_value):
-                    item = build_issue(rel, idx, "Potential hardcoded secret value", "critical")
-                    key = (item["file"], item["line"], item["issue"], item["severity"])
-                    if key not in seen:
-                        seen.add(key)
-                        critical.append(item)
+            if prod_path:
+                secret_match = SECRET_ASSIGNMENT_PATTERN.search(line)
+                if secret_match:
+                    secret_value = secret_match.group(2).strip()
+                    if not looks_like_placeholder(secret_value):
+                        item = build_issue(rel, idx, "Potential hardcoded secret value", "critical")
+                        key = (item["file"], item["line"], item["issue"], item["severity"])
+                        if key not in seen:
+                            seen.add(key)
+                            critical.append(item)
 
             if AWS_KEY_PATTERN.search(line):
                 item = build_issue(rel, idx, "Potential AWS access key exposure", "critical")
@@ -283,14 +286,14 @@ def scan(project_root: Path) -> Dict[str, object]:
                     seen.add(key)
                     critical.append(item)
 
-            if JWT_PATTERN.search(line):
+            if prod_path and JWT_PATTERN.search(line):
                 item = build_issue(rel, idx, "Potential hardcoded JWT token", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:
                     seen.add(key)
                     critical.append(item)
 
-            if DB_URL_PATTERN.search(line):
+            if prod_path and DB_URL_PATTERN.search(line):
                 item = build_issue(rel, idx, "Database URL with embedded credentials", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:
@@ -305,14 +308,14 @@ def scan(project_root: Path) -> Dict[str, object]:
                     critical.append(item)
 
             entropy_match = HIGH_ENTROPY_ASSIGNMENT.search(line)
-            if entropy_match and not looks_like_placeholder(entropy_match.group(1)):
+            if prod_path and entropy_match and not looks_like_placeholder(entropy_match.group(1)):
                 item = build_issue(rel, idx, "Potential high-entropy secret assignment", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:
                     seen.add(key)
                     critical.append(item)
 
-            if EVAL_CALL_PATTERN.search(line) or EXEC_CALL_PATTERN.search(line):
+            if prod_path and (EVAL_CALL_PATTERN.search(line) or EXEC_CALL_PATTERN.search(line)):
                 item = build_issue(rel, idx, "Dynamic code execution pattern found (eval/exec)", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:

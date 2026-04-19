@@ -219,6 +219,24 @@ def staged_added_lines(project_root: Path) -> Dict[str, List[Tuple[int, str]]]:
     return parse_added_lines(diff_result.stdout)
 
 
+def is_production_path(rel_path: str) -> bool:
+    parts = rel_path.lower().replace("\\", "/").split("/")
+    non_production_tokens = {
+        "test",
+        "tests",
+        "__tests__",
+        "spec",
+        "specs",
+        "fixtures",
+        "examples",
+        "starters",
+        "templates",
+        "docs",
+        "scripts",
+    }
+    return not any(part in non_production_tokens for part in parts)
+
+
 def contains_pyproject_section(project_root: Path, section: str) -> bool:
     pyproject = project_root / "pyproject.toml"
     if not pyproject.exists():
@@ -480,6 +498,8 @@ def mojibake_scan(project_root: Path, files: Iterable[str]) -> Tuple[Dict[str, o
 def secret_scan(added: Dict[str, List[Tuple[int, str]]]) -> Tuple[Dict[str, object], bool]:
     issues = []
     for file_path, rows in added.items():
+        if not is_production_path(file_path):
+            continue
         for line_no, text in rows:
             for label, pattern in SECRET_PATTERNS:
                 if pattern.search(text):

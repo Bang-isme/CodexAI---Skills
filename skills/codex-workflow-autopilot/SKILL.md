@@ -43,8 +43,9 @@ Agent context loaded?
 | --- | --- | --- |
 | what if, ideas, options | brainstorm | ask clarifying questions and present alternatives, no code |
 | think with me, compare options, help me decide | thinking-partner | co-think with tradeoff-first framing and explicit decision criteria |
-| build, create, implement | implement | execute quickly with production-focused output |
-| error, bug, broken | debug | reproduce, isolate, root-cause, fix, regression-test |
+| build, create, implement | implement | execute quickly with production-focused output, enforce TDD |
+| test first, TDD, red-green, failing test | tdd | enforce RED-GREEN-REFACTOR cycle via `$tdd`, no production code without failing test |
+| error, bug, broken | debug | 4-phase systematic debugging via `$root-cause`: root cause → pattern → hypothesis → fix |
 | review, audit, check | review | inspect and report findings by severity |
 | challenge this, poke holes, red team, counterargument | devils-advocate | stress-test assumptions, expose risks, and propose mitigations |
 | explain, teach, learn | teach | explain progressively with examples |
@@ -123,11 +124,11 @@ Trigger this mode when user asks to understand project code, not to modify it.
 
 | Intent | Steps | Exit Criteria |
 | --- | --- | --- |
-| build | analyze -> plan -> implement -> test -> docs -> gate | tests pass, docs checked, gate pass |
-| fix | reproduce -> isolate -> root-cause -> fix -> regression-test -> docs -> gate | root cause identified, regression test pass, gate pass |
-| review | inspect -> categorize findings -> recommend actions | findings documented with severity |
-| debug | reproduce -> hypotheses -> verify/eliminate -> fix -> regression-test -> gate | verified fix with evidence, gate pass |
-| docs | scope change -> update docs -> verify links/accuracy -> gate | docs updated and verified |
+| build | analyze → plan ($plan) → isolate ($worktree) → TDD implement ($tdd) → test → gate | tests pass, TDD verified, gate pass |
+| fix | systematic debug ($root-cause) → root-cause → regression test ($tdd) → fix → gate | root cause found, regression test pass, gate pass |
+| review | inspect → categorize findings → recommend actions | findings documented with severity |
+| debug | systematic debug ($root-cause) → Phase 1-4 → test → gate | verified fix with evidence, gate pass |
+| docs | scope change → update docs → verify links/accuracy → gate | docs updated and verified |
 
 ## Scrum Ceremony Routing
 
@@ -165,6 +166,9 @@ Checkpoint: wait for explicit user approval before Phase 3.
 
 ### Phase 4: Implementation (code)
 
+- **For complex tasks:** Set up isolated workspace via `$worktree`
+- **For plan with independent tasks:** Use subagent execution via `$sdd`
+- **For all code changes:** Follow TDD cycle via `$tdd`
 - implement task by task
 - run tests/docs as workflow requires
 
@@ -173,6 +177,7 @@ Checkpoint: wait for explicit user approval before Phase 3.
 1. Run `$codex-execution-quality-gate` or `$gate`.
 2. If gate fails, fix blockers and rerun.
 3. Do not declare completion before gate decision.
+4. Use `$finish` to handle branch completion if using worktree.
 
 ## Reference Files
 
@@ -197,7 +202,7 @@ Checkpoint: wait for explicit user approval before Phase 3.
 ## Helper Script
 
 - `scripts/explain_code.py`: optional context helper for functions, imports, and imported-by mapping.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Script Invocation Discipline
 
@@ -224,7 +229,7 @@ Return fenced JSON in conversation:
 
 ```json
 {
-  "mode": "brainstorm | thinking-partner | implement | debug | review | devils-advocate | teach | ship",
+  "mode": "brainstorm | thinking-partner | implement | tdd | debug | review | devils-advocate | teach | ship",
   "workflow_type": "build | fix | review | debug | docs | refactor | deploy | handoff",
   "steps": ["step1", "step2"],
   "exit_criteria": ["criterion1"],

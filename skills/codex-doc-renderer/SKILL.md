@@ -10,6 +10,11 @@ Render documentation to DOCX format via `render_docx.py`. Specialized utility, a
 
 # DOCX Skill
 
+## Activation
+
+1. Activate when the task involves reading, creating, or editing `.docx` documents.
+2. Activate on explicit `$codex-doc-renderer` or `$docx`.
+
 ## When to use
 - Read or review DOCX content where layout matters (tables, diagrams, pagination).
 - Create or edit DOCX files with professional formatting.

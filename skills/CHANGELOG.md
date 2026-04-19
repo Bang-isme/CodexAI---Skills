@@ -1,5 +1,116 @@
 # Changelog
 
+## [14.1.0] - 2026-04-19
+
+### Added — 2 New Discipline Skills (Round 2 Superpowers Parity)
+- **NEW SKILL**: `codex-verification-discipline`
+  - `SKILL.md`: Iron Law "evidence before claims" behavioral constraint
+  - Rationalization prevention table (8 excuses countered)
+  - Evidence patterns for tests, builds, requirements, agent delegation
+  - Aliases: `$verify`, `$evidence`
+  - Load priority: `always` (constant behavioral constraint)
+
+- **NEW SKILL**: `codex-branch-finisher`
+  - `SKILL.md`: Structured 4-option completion workflow (merge, PR, keep, discard)
+  - Test verification gate — blocks completion if tests fail
+  - Worktree cleanup integration with `codex-git-worktrees`
+  - Bash + PowerShell command equivalents
+  - Aliases: `$finish`, `$finish-branch`
+
+### Added — New Reference Files
+- `codex-test-driven-development/references/testing-anti-patterns.md`: Enhanced with Iron Laws, gate functions for anti-patterns 1-3
+- `codex-subagent-execution/references/code-review-discipline.md`: How to receive code review feedback without performative agreement
+- `codex-plan-writer/references/plan-document-reviewer-prompt.md`: Subagent dispatch template for automated plan quality verification
+
+### Enhanced — Intent Context Analyzer
+- Added **HARD-GATE**: Design before implementation — no code without approved design
+- Added **Anti-Pattern**: "This Is Too Simple To Need A Design" counter
+- Added **2-3 Approaches**: Propose approaches with trade-offs before settling
+- Added **Design Self-Review**: Placeholder scan, internal consistency, scope check, ambiguity check
+- Added **One question at a time** discipline + multiple choice preference
+- Added **Sub-project decomposition** for multi-system requests
+
+### Enhanced — Cross-References and Integration
+- `codex-subagent-execution`: Added `codex-verification-discipline` and `codex-branch-finisher` to Related Skills
+- `codex-plan-writer`: Added Reference Files and Related Skills sections
+- `codex-master-instructions`: Added 4 new aliases (`$finish-branch`, `$verify`, `$evidence`), fixed `$finish` routing to `codex-branch-finisher`
+
+### Fixed — Quality Issues (Round 1 Audit)
+- Consolidated 3 duplicate reference files (condition-based-waiting, defense-in-depth, root-cause-tracing) — old versions in `codex-master-instructions/references/` now redirect to canonical versions in `codex-systematic-debugging/references/`
+- Added `tdd` to workflow-autopilot Output Contract mode enum
+- Synced quality gate decision tree with master-instructions v14 (added TDD, systematic debugging, worktree routes)
+- Updated intent analyzer with Discipline Skill Notes table
+- Translated 6 Vietnamese fragments to English across 6 skills
+- Added PowerShell equivalents for all critical git-worktrees commands
+- Added "Announce at start" to `codex-systematic-debugging` and `codex-subagent-execution`
+- Added Related Discipline Skills section to `codex-execution-quality-gate`
+- Updated `codex-master-instructions` reference pointers to canonical sources
+
+### Infrastructure
+- Bumped version: `14.0.0` → `14.1.0`
+- Total skills: 19 → 21 (15 pipeline + 6 discipline)
+- Total aliases: 27 → 31
+
+## [14.0.0] - 2026-04-19
+
+### Added — 4 New Discipline Skills (Workflow Mastery from Superpowers)
+- **NEW SKILL**: `codex-test-driven-development`
+  - `SKILL.md`: RED-GREEN-REFACTOR Iron Law enforcement, 12-excuse rationalization table, verification checklist
+  - `references/testing-anti-patterns.md`: 7 anti-patterns with Python + TypeScript examples
+  - Aliases: `$tdd`, `$red-green`
+
+- **NEW SKILL**: `codex-systematic-debugging`
+  - `SKILL.md`: 4-phase root cause debugging, 3+ fix failure = question architecture (Phase 4.5)
+  - `references/root-cause-tracing.md`: backward call-chain tracing technique
+  - `references/defense-in-depth.md`: 4-layer validation pattern
+  - `references/condition-based-waiting.md`: replace sleep() with condition polling
+  - Aliases: `$root-cause`, `$trace`
+
+- **NEW SKILL**: `codex-subagent-execution`
+  - `SKILL.md`: fresh subagent per task + 2-stage review (spec compliance → code quality)
+  - `agents/implementer-prompt.md`: implementer dispatch template
+  - `agents/spec-reviewer-prompt.md`: spec compliance review template
+  - `agents/code-quality-reviewer-prompt.md`: code quality review template
+  - Aliases: `$sdd`, `$dispatch`
+
+- **NEW SKILL**: `codex-git-worktrees`
+  - `SKILL.md`: isolated workspaces with safety verification, auto-setup, clean test baseline
+  - Aliases: `$worktree`, `$isolate`, `$finish`
+
+### Enhanced — 3 Existing Skills
+- `codex-plan-writer/SKILL.md`:
+  - Added File Structure section (lock decomposition decisions before tasks)
+  - Added No Placeholders enforcement (TBD/TODO = plan failure)
+  - Added Self-Review checklist (spec coverage, placeholder scan, type consistency)
+  - Added Execution Handoff (Subagent-Driven vs Inline choice)
+  - Added Scope Check for multi-subsystem specs
+  - Added Plan Document Header template
+
+- `codex-master-instructions/SKILL.md`:
+  - Added 9 new aliases: `$tdd`, `$red-green`, `$root-cause`, `$trace`, `$sdd`, `$dispatch`, `$worktree`, `$isolate`, `$finish`
+  - Enhanced Decision Tree: simple-code now routes through TDD, debug through systematic debugging
+  - Enhanced Quality Gate Decision Tree: TDD + systematic debugging + worktree + subagent paths
+
+- `codex-workflow-autopilot/SKILL.md`:
+  - Added TDD behavioral mode
+  - Enhanced debug mode → 4-phase systematic debugging
+  - Enhanced Intent to Workflow table with TDD and skill aliases
+  - Enhanced BMAD Phase 4 with worktree, subagent execution, TDD integration
+
+### Updated — Agents & Infrastructure
+- `.agents/debugger.md`: linked to `codex-systematic-debugging` + `codex-test-driven-development`, added 4-phase behavioral rules
+- `.agents/test-engineer.md`: linked to `codex-test-driven-development`, added TDD Iron Law + anti-patterns reference
+- `.workflows/debug.md`: routes through `codex-systematic-debugging` + Phase 4.5 architecture check
+- `.system/manifest.json`: version 14.0.0, added 4 new skills to skill list and on-demand load order
+- `skills/README.md`: updated metrics (19 skills), runtime flow, skill inventory, workflow aliases
+
+### Metrics
+- Skills: 15 → 19 (4 new discipline skills)
+- Short aliases: 16 → 25+ (9 new)
+- References: 160 → 165+
+- Version: 13.0.0 → 14.0.0
+
+
 ## [12.6.0] - 2026-03-18
 
 ### Added

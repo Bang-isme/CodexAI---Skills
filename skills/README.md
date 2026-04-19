@@ -6,15 +6,16 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `13.0.0` |
-| Core Skills | 14 |
+| Version | `14.1.0` |
+| Core Skills | 21 (15 pipeline + 6 discipline) |
 | Entry-point Scripts | 48 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 160 |
+| References | 165+ |
 | Starters | 29 |
 | Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
+| Short Aliases | 25+ |
 | Pytest | 112/112 |
 | Smoke | 49/49 |
 
@@ -25,10 +26,13 @@
 ```text
 User Request
   -> Intent Context Analyzer
-  -> Plan Writer (when task is medium/large)
-  -> Workflow Autopilot
+  -> Plan Writer (when task is medium/large, with TDD steps + No Placeholders)
+  -> Workflow Autopilot (routes to mode + TDD/Debug/Subagent skills)
   -> Domain/Security Routing
-  -> Implementation
+  -> Git Worktrees (optional, for complex tasks needing isolation)
+  -> Subagent Execution (optional, for plan with independent tasks)
+  -> TDD Implementation (RED-GREEN-REFACTOR per feature/fix)
+  -> Systematic Debugging (4-phase root cause, for bugs)
   -> Execution Quality Gate
   -> Docs Change Sync / Project Memory / Git Autopilot
 ```
@@ -66,7 +70,7 @@ Reasoning Rigor
 | `codex-domain-specialist` | 66 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
 | `codex-security-specialist` | 30 references and 10 starters across network, infrastructure, AppSec, DevSecOps, compliance, and advanced security |
 
-### Quality, Memory, and Delivery
+### Quality, Memory, Delivery, and Discipline
 
 | Skill | Notes |
 | --- | --- |
@@ -75,6 +79,12 @@ Reasoning Rigor
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
 | `codex-git-autopilot` | Commit automation with gate awareness |
 | `codex-doc-renderer` | DOCX rendering and verification helpers |
+| `codex-test-driven-development` | **v14 NEW** — RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
+| `codex-systematic-debugging` | **v14 NEW** — 4-phase root cause debugging, defense-in-depth, condition-based waiting, root cause tracing. Aliases: `$root-cause`, `$trace` |
+| `codex-subagent-execution` | **v14 NEW** — Fresh subagent per task + 2-stage review (spec compliance → code quality), prompt templates. Aliases: `$sdd`, `$dispatch` |
+| `codex-git-worktrees` | **v14 NEW** — Isolated workspaces with safety verification, auto-setup, clean test baseline. Aliases: `$worktree`, `$isolate` |
+| `codex-verification-discipline` | **v14.1 NEW** — Iron Law "evidence before claims" behavioral constraint. No "should work" without fresh verification. Aliases: `$verify`, `$evidence` |
+| `codex-branch-finisher` | **v14.1 NEW** — Structured 4-option completion workflow (merge, PR, keep, discard) with test gate and worktree cleanup. Aliases: `$finish`, `$finish-branch` |
 
 ---
 
@@ -153,8 +163,8 @@ Workflow aliases are shorthand entry points that load `skills/.workflows/*.md` b
 | Alias | Workflow File | Equivalent |
 | --- | --- | --- |
 | `$plan` | `.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
-| `$debug` | `.workflows/debug.md` | `workflow-debug.md` + 4-phase debugging |
-| `$create` | `.workflows/create.md` | `workflow-create.md` |
+| `$debug` | `.workflows/debug.md` | `$codex-systematic-debugging` + 4-phase root cause |
+| `$create` | `.workflows/create.md` | `workflow-create.md` + TDD |
 | `$review` | `.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `.workflows/handoff.md` | `workflow-handoff.md` + session summary |

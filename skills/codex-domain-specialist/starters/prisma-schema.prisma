@@ -1,0 +1,141 @@
+// Prisma Schema Starter Template
+// Adapt to your project: rename models, adjust relations, customize fields.
+// Run: npx prisma init (first time) | npx prisma migrate dev (after changes)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql" | "sqlite" | "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User Model ───────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   // bcrypt hash, never store plain text
+  role      Role     @default(USER)
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  posts     Post[]
+  sessions  Session[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes
+  @@index([email])
+  @@index([role, isActive])
+  @@map("users") // table name convention
+}
+
+enum Role {
+  USER
+  ADMIN
+  VIEWER
+}
+
+// ─── Post Model (Example CRUD entity) ────────────────────────
+model Post {
+  id        String     @id @default(cuid())
+  title     String
+  content   String?    @db.Text
+  slug      String     @unique
+  status    PostStatus @default(DRAFT)
+  
+  // Relations
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  tags      Tag[]
+  
+  // Timestamps
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  // Indexes for common queries
+  @@index([authorId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([slug])
+  @@map("posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ─── Tag Model (Many-to-Many) ─────────────────────────────────
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  posts Post[]
+  
+  @@map("tags")
+}
+
+// ─── Session Model (Auth) ─────────────────────────────────────
+model Session {
+  id           String   @id @default(cuid())
+  token        String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ─── Audit Log (Append-only) ──────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // CREATE | UPDATE | DELETE
+  entity    String   // User | Post | etc.
+  entityId  String
+  userId    String?  // Who performed the action
+  metadata  Json?    // Additional context
+  createdAt DateTime @default(now())
+  
+  @@index([entity, entityId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ─── Usage Notes ──────────────────────────────────────────────
+//
+// Client usage:
+//   import { PrismaClient } from '@prisma/client';
+//   const prisma = new PrismaClient();
+//
+//   // Create
+//   const user = await prisma.user.create({ data: { email, name, password } });
+//
+//   // Read with relations
+//   const posts = await prisma.post.findMany({
+//     where: { authorId: user.id, status: 'PUBLISHED' },
+//     include: { author: true, tags: true },
+//     orderBy: { createdAt: 'desc' },
+//     take: 20,
+//     skip: 0,
+//   });
+//
+//   // Transaction
+//   await prisma.$transaction([
+//     prisma.post.update({ where: { id }, data: { status: 'ARCHIVED' } }),
+//     prisma.auditLog.create({ data: { action: 'UPDATE', entity: 'Post', entityId: id } }),
+//   ]);
+//
+// Commands:
+//   npx prisma migrate dev --name init     # Create migration
+//   npx prisma migrate deploy              # Apply in production
+//   npx prisma db seed                     # Run seed script
+//   npx prisma studio                      # Visual DB browser
+//   npx prisma generate                    # Regenerate client

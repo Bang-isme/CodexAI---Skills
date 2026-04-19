@@ -49,7 +49,7 @@ After loading `genome.md`:
 ## Script Invocation
 
 - Use `generate_genome.py` from `codex-project-memory`.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Script Invocation Discipline
 

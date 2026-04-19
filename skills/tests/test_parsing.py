@@ -115,6 +115,17 @@ def test_security_scan_ignores_placeholder_secret(tmp_path: Path) -> None:
     assert "Potential hardcoded secret value" not in critical_messages
 
 
+def test_security_scan_ignores_generic_example_and_script_paths(tmp_path: Path) -> None:
+    write_text(tmp_path / "starters" / "ci-pipeline.yml", "PG_URI: postgres://user:password@localhost:5432/testdb")
+    write_text(tmp_path / "scripts" / "helper.py", "token = 'UltraSecret12345'\nprint('debug line')\n")
+    report = security_scan.scan(tmp_path)
+    critical_messages = {item["issue"] for item in report["critical"]}
+    warning_messages = {item["issue"] for item in report["warnings"]}
+    assert "Database URL with embedded credentials" not in critical_messages
+    assert "Potential hardcoded secret value" not in critical_messages
+    assert "Debug logging statement in production path" not in warning_messages
+
+
 def test_security_scan_env_warning_respects_gitignore(tmp_path: Path) -> None:
     write_text(tmp_path / ".env", "TOKEN=abc123")
     report_warn = security_scan.scan(tmp_path)

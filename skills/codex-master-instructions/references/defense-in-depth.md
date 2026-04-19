@@ -1,18 +1,23 @@
 # Defense in Depth
 
+> **Canonical reference:** See `codex-systematic-debugging/references/defense-in-depth.md` for the full version with 4-layer validation pattern and Python/TypeScript examples.
+
 After fixing root cause, add validation at multiple layers to prevent recurrence.
 
-## The Pattern
+## Quick Summary
 
-1. Fix the ROOT CAUSE (Phase 4 of Systematic Debugging)
-2. Then add defensive checks at EACH layer the bad value passed through:
-   - Input validation at API boundary
-   - Type assertion at function entry
-   - Null guard before property access
-   - Error message that explains WHAT went wrong
+| Layer | Purpose | Example |
+|-------|---------|---------|
+| **1. Entry Point** | Reject obviously invalid input | `if not path: raise ValueError(...)` |
+| **2. Business Logic** | Ensure data makes sense for operation | Domain-specific checks |
+| **3. Environment Guard** | Prevent dangerous ops in contexts | Block git init outside tmpdir in tests |
+| **4. Debug Instrumentation** | Capture context for forensics | Stack trace logging before dangerous ops |
 
-## Rule
+## Full Reference
 
-- Defense in depth is SUPPLEMENTARY to root cause fix
-- Never use it AS the fix (that's symptom treatment)
-- Each layer should fail with a clear, actionable error message
+For complete documentation including:
+- Python and TypeScript code examples for each layer
+- Why multiple layers are necessary
+- Step-by-step application process
+
+→ See `codex-systematic-debugging/references/defense-in-depth.md`

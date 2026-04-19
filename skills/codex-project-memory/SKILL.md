@@ -60,7 +60,7 @@ User intent -> Memory action?
 - Review existing files in `.codex/decisions/` before logging a similar technical choice.
 - Use the default output paths and chaining guidance from `references/behavior-guide.md` unless the user requests overrides.
 - Return the created path plus the headline metrics from each script JSON payload.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Reference Files
 

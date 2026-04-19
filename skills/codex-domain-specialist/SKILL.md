@@ -25,6 +25,8 @@ This reference prevents generic, tutorial-style output by enforcing:
 1. Activate when the task edits domain-specific files.
 2. Activate on explicit `$codex-domain-specialist`.
 
+**Announce at start:** "I'm using codex-domain-specialist to load domain-specific references."
+
 ## Project Profile (Fast Path)
 
 Before running detection, check for `.codex/profile.yaml` in the project root.
@@ -88,6 +90,10 @@ After determining the primary domain (via profile or detection), check for recur
 | oauth | `references/oauth-social-login.md` |
 | devops | `references/devops-rules.md` |
 | deployment | `references/deployment-strategy.md` |
+| ai | `references/ai-llm-patterns.md` |
+| llm | `references/ai-llm-patterns.md` |
+| serverless | `references/backend-rules.md` |
+| monorepo | `references/monorepo-patterns.md` |
 
 ## Detection and Routing Order
 
@@ -115,6 +121,9 @@ Route in this exact order:
 | architecture, monolith, microservice, clean arch, DDD, SOLID, event-driven | Architecture |
 | webhook, integration, third-party, API client, circuit breaker, retry | Integration |
 | Docker, CI/CD, deploy, rollback, observability | DevOps |
+| prompt, LLM, GPT, Claude, Gemini, RAG, embeddings, vector, LangChain, AI agent, OpenAI | AI/LLM |
+| serverless, Lambda, Edge, Vercel Edge, Cloudflare Workers, Neon, PlanetScale | Serverless/Edge |
+| monorepo, Turborepo, workspace, Nx, shared package, multi-app | Monorepo |
 
 ## Context Boundary Enforcement
 
@@ -149,6 +158,9 @@ Route in this exact order:
 | DevOps | `devops-rules.md` | `container-orchestration.md`, `deployment-strategy.md`, `observability.md`, `security-rules.md` | `react-patterns.md`, `mobile-rules.md`, `seo-rules.md`, `form-patterns.md` |
 | Auth/Identity | `auth-patterns.md`, `security-rules.md` | `backend-rules.md`, `web-security-deep.md`, `oauth-social-login.md` | `seo-rules.md`, `data-visualization.md`, `mobile-rules.md` |
 | Data/Analytics | `database-aggregation.md`, `data-visualization.md` | `database-rules.md`, `data-export.md`, `caching-patterns.md`, `performance-rules.md` | `mobile-rules.md`, `seo-rules.md`, `auth-patterns.md` |
+| AI/LLM | `ai-llm-patterns.md` | `backend-rules.md`, `security-rules.md`, `performance-rules.md`, `caching-patterns.md` | `react-patterns.md`, `seo-rules.md`, `mobile-rules.md`, `css-architecture.md` |
+| Serverless/Edge | `backend-rules.md` | `deployment-strategy.md`, `performance-rules.md`, `security-rules.md`, `caching-patterns.md` | `container-orchestration.md`, `devops-rules.md`, `mobile-rules.md` |
+| Monorepo | `monorepo-patterns.md` | `typescript-rules.md`, `git-workflow.md`, `deployment-strategy.md` | `mobile-rules.md`, `seo-rules.md`, `database-rules.md` |
 
 ## Specialized Signal Routing
 
@@ -220,6 +232,17 @@ When task signals match keywords below, add the corresponding reference. If mult
 | feature flag, rollout, canary, A/B test, toggle | `references/feature-flags.md` |
 | tenant, multi-tenant, SaaS, data isolation | `references/multi-tenancy.md` |
 
+### AI/LLM Signals
+
+| Signal | Add Reference |
+| --- | --- |
+| prompt engineering, system prompt, few-shot, chain-of-thought | `references/ai-llm-patterns.md` |
+| RAG, retrieval, vector search, embeddings, chunking | `references/ai-llm-patterns.md` |
+| OpenAI, Anthropic, Gemini, GPT, Claude, LLM API | `references/ai-llm-patterns.md` |
+| LangChain, LlamaIndex, agent loop, tool use | `references/ai-llm-patterns.md` |
+| Pinecone, Weaviate, Chroma, pgvector, Qdrant | `references/ai-llm-patterns.md` |
+| streaming response, SSE, token, completion | `references/ai-llm-patterns.md` |
+
 ### Cross-Cutting Signals
 
 | Signal | Add Reference |
@@ -251,6 +274,9 @@ When task matches a combo pattern, load the specified set instead of individual 
 | Add real-time features | `starters/websocket-server.js` + `references/realtime-patterns.md` + `references/backend-rules.md` |
 | Database optimization | `references/database-aggregation.md` + `references/caching-patterns.md` + `references/performance-rules.md` + `references/pagination-patterns.md` |
 | Deploy to production | `references/deployment-strategy.md` + `references/container-orchestration.md` + `references/observability.md` + `starters/nginx.conf` |
+| Build AI chatbot/assistant | `references/ai-llm-patterns.md` + `references/backend-rules.md` + `references/security-rules.md` |
+| Add RAG/document Q&A | `references/ai-llm-patterns.md` + `references/database-rules.md` + `references/caching-patterns.md` |
+| Setup monorepo | `references/monorepo-patterns.md` + `references/typescript-rules.md` + `references/git-workflow.md` + `references/file-structure.md` |
 
 ## Operating Rules
 
@@ -293,6 +319,8 @@ When creating new features or projects, reference starter templates in `starters
 | `health-check.js` | K8s/Docker health endpoints |
 | `graceful-shutdown.js` | SIGTERM handling, connection draining |
 | `swagger-setup.js` | OpenAPI documentation |
+| `prisma-schema.prisma` | Prisma ORM schema with User/Post/Tag/Session/AuditLog models |
+| `trpc-router.ts` | tRPC type-safe API with auth middleware and Zod validation |
 
 ## Starter Template Auto-Routing
 
@@ -318,6 +346,8 @@ When task creates new code matching patterns below, always reference the corresp
 | Adding health check endpoint | `starters/health-check.js` |
 | Configuring server startup/shutdown | `starters/graceful-shutdown.js` |
 | Setting up API documentation | `starters/swagger-setup.js` |
+| Creating Prisma schema or PostgreSQL models | `starters/prisma-schema.prisma` |
+| Building type-safe API with tRPC | `starters/trpc-router.ts` |
 
 Rules:
 1. Reference starters as starting points; never copy blindly.
@@ -332,6 +362,15 @@ Rules:
 1. When domain routing recommends helper scripts from other skills, run `--help` first.
 2. Treat scripts as black-box helpers and execute by CLI contract before source inspection.
 3. Read script source only when customization or bug fixing is required.
+
+## Related Discipline Skills
+
+| Skill | When to Invoke |
+| --- | --- |
+| `codex-test-driven-development` (`$tdd`) | When domain task involves writing tests or new code |
+| `codex-systematic-debugging` (`$root-cause`) | When domain task is a bug fix or investigation |
+| `codex-verification-discipline` (`$verify`) | Before claiming any domain task is complete |
+| `codex-branch-finisher` (`$finish`) | After all domain work is complete and tests pass |
 
 ## Reference Files
 
@@ -401,3 +440,4 @@ Rules:
 - `references/interactive-elements.md`: Fun interactive UI elements: custom cursors, tilt cards, magnetic buttons, confetti, particles, text scramble, hover effects, drag/swipe, Easter eggs.
 - `references/creative-development.md`: Creative Director's Brain — Creative Brief Decoder, 7 archetypes, experimental typography, glow/neon systems, purpose-driven animation, differentiation playbook, conversion-focused creative.
 - `references/output-quality-gates.md`: **MANDATORY** — Anti-generic guardrails: 3-Second Rule, FE/BE/DB Quality Gates, 10-point Anti-Generic Checklist, Why Mandate, Framework Defaults Override.
+- `references/ai-llm-patterns.md`: AI/LLM integration patterns — prompt engineering, RAG pipelines, embeddings, vector DB selection, streaming, cost control, and security rules.

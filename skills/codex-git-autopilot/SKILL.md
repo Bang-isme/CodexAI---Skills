@@ -1,10 +1,18 @@
 ---
 name: codex-git-autopilot
 description: Automated git commit with CI/CD gate, GPG signing, and conventional commits
-version: 8.0.0
+load_priority: on-demand
 ---
 
+## TL;DR
+Collect files → stage → run pre-commit gate → generate conventional commit → GPG sign → push. Never commits on gate failure, never force pushes.
+
 # Git Autopilot
+
+## Activation
+
+1. Activate when the user needs automated commit/push with safety gates.
+2. Activate on explicit `$codex-git-autopilot` or `$auto-commit`.
 
 Automates the commit-push cycle with production-grade safety.
 

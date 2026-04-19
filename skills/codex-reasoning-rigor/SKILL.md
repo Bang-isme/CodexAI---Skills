@@ -1,7 +1,11 @@
 ---
 name: codex-reasoning-rigor
 description: Force deliberate, evidence-backed, non-generic reasoning for complex engineering work. Use when the user asks for deeper thinking, less generic output, higher specificity, better workflow discipline, monitoring plans, or stronger quality-oriented delivery instead of shallow best-practice answers.
+load_priority: on-demand
 ---
+
+## TL;DR
+Lock task contract (goal/constraints/non-goals) → explore 2+ options → ground in repo artifacts → attach monitoring signals → validate output specificity. Never settle for generic "best practices" without concrete evidence.
 
 # Codex Reasoning Rigor
 
@@ -126,6 +130,5 @@ For plans, reviews, and handoffs, treat strict output validation as the default 
 - `references/monitoring-loops.md`: how to attach health signals and follow-up actions to workflows.
 - `references/output-contracts.md`: response shapes that push outputs toward specificity and accountability.
 - `assets/reasoning-brief-template.md`: markdown template used by the brief generator.
-- `assets/output-review-template.md`: template for reviewing whether a deliverable is specific enough.
 - `assets/output-review-template.md`: template for reviewing whether a deliverable is specific, accountable, and editorially strong enough.
 - `assets/monitoring-checklist-template.md`: template for tracking healthy vs drifting workflow signals.

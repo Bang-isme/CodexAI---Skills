@@ -47,6 +47,18 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$commit` | `auto_commit.py` | codex-git-autopilot |
 | `$guard` | `$output-guard` | codex-execution-quality-gate |
 | `$editorial` | `$editorial-review` | codex-execution-quality-gate |
+| `$tdd` | `$codex-test-driven-development` | codex-test-driven-development |
+| `$red-green` | `$codex-test-driven-development` | codex-test-driven-development |
+| `$root-cause` | `$codex-systematic-debugging` | codex-systematic-debugging |
+| `$trace` | `$codex-systematic-debugging` | codex-systematic-debugging |
+| `$sdd` | `$codex-subagent-execution` | codex-subagent-execution |
+| `$dispatch` | `$codex-subagent-execution` | codex-subagent-execution |
+| `$worktree` | `$codex-git-worktrees` | codex-git-worktrees |
+| `$isolate` | `$codex-git-worktrees` | codex-git-worktrees |
+| `$finish` | `$codex-branch-finisher` | codex-branch-finisher |
+| `$finish-branch` | `$codex-branch-finisher` | codex-branch-finisher |
+| `$verify` | `$codex-verification-discipline` | codex-verification-discipline |
+| `$evidence` | `$codex-verification-discipline` | codex-verification-discipline |
 
 ## Agent System
 
@@ -77,8 +89,8 @@ Workflow aliases are shortcuts. They run alongside the legacy triggers and do no
 | Alias | File | Equivalent |
 | --- | --- | --- |
 | `$plan` | `.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
-| `$debug` | `.workflows/debug.md` | `workflow-debug.md` + 4-phase |
-| `$create` | `.workflows/create.md` | `workflow-create.md` |
+| `$debug` | `.workflows/debug.md` | `$codex-systematic-debugging` + 4-phase root cause |
+| `$create` | `.workflows/create.md` | `workflow-create.md` + TDD |
 | `$review` | `.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `.workflows/handoff.md` | `workflow-handoff.md` + session summary |
@@ -97,9 +109,9 @@ Before acting, classify the request:
 | --- | --- | --- |
 | question | explain, what is, how does | answer directly, no code edit flow |
 | survey | analyze repo, list files, overview | inspect and report, do not modify files |
-| simple-code | fix/add/change in small scope | analyze intent, implement, run gate |
-| complex-code | build/create/refactor multi-step | full flow: intent, plan, implement, docs, gate |
-| debug | error, bug, broken, not working | reproduce, isolate, root-cause, fix, test |
+| simple-code | fix/add/change in small scope | analyze intent, implement with TDD (`$tdd`), run gate |
+| complex-code | build/create/refactor multi-step | full flow: intent, plan (`$plan`), isolate (`$worktree`), implement with TDD, gate |
+| debug | error, bug, broken, not working | systematic debugging (`$root-cause`): 4-phase root cause → fix → regression test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
 
 If the user explicitly asks for deeper thinking, less generic output, stronger specificity, or repo-grounded reasoning, activate `codex-reasoning-rigor` or `$rigor` alongside the normal workflow.
@@ -197,17 +209,19 @@ For projects with hooks installed, gate enforcement is automatic. For projects w
 - `references/scope-escalation.md`: complexity-to-scope mapping and epic-mode escalation.
 - `references/workflow-cross-reference.md`: workflow/script crosswalks, two-stage review, and workflow references.
 - `skills/.system/manifest.json`: pack structure, load order, agents, and workflow aliases.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Quality Gate Decision Tree
 
 ```
 Task type -> Code change?
     |- Yes -> What kind?
-    |   |- New feature -> run: pre_commit_check + smart_test_selector + predict_impact
-    |   |- Bug fix -> run: pre_commit_check + smart_test_selector
-    |   |- Refactor -> run: tech_debt_scan + pre_commit_check
-    |   `- UI change -> run: ux_audit + accessibility_check + pre_commit_check
+    |   |- New feature -> TDD ($tdd) + pre_commit_check + smart_test_selector + predict_impact
+    |   |- Bug fix -> systematic debugging ($root-cause) + TDD + pre_commit_check + smart_test_selector
+    |   |- Refactor -> TDD (keep green) + tech_debt_scan + pre_commit_check
+    |   `- UI change -> ux_audit + accessibility_check + pre_commit_check
+    |
+    |- Complex implementation? -> worktree ($worktree) + subagent execution ($sdd)
     |
     |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
     |
@@ -224,11 +238,23 @@ Task type -> Code change?
 
 ## Reference Files
 
-- `references/condition-based-waiting.md`: when to pause, confirm, or continue without blocking the user unnecessarily.
-- `references/defense-in-depth.md`: layered review and verification guidance for high-risk changes.
-- `references/root-cause-tracing.md`: root-cause analysis patterns and tracing prompts.
+- `references/condition-based-waiting.md`: summary; canonical version in `codex-systematic-debugging/references/`.
+- `references/defense-in-depth.md`: summary; canonical version in `codex-systematic-debugging/references/`.
+- `references/root-cause-tracing.md`: summary; canonical version in `codex-systematic-debugging/references/`.
 - `references/debugging-and-recovery.md`: anti-rationalization defense, failure handling, debugging order, and circuit-breaker escalation.
 - `references/scope-escalation.md`: complexity mapping, blast-radius thresholds, and epic-mode handling.
 - `references/workflow-cross-reference.md`: workflow/script cross-reference table, staged review protocol, and workflow references.
 - `references/script-commands.md`
 - `references/output-schemas.md`
+
+## Related Discipline Skills
+
+| Skill | Activates On | Purpose |
+| --- | --- | --- |
+| `codex-test-driven-development` | `$tdd`, `$red-green` | RED-GREEN-REFACTOR enforcement for all code changes |
+| `codex-systematic-debugging` | `$root-cause`, `$trace` | 4-phase root cause debugging for all bugs |
+| `codex-subagent-execution` | `$sdd`, `$dispatch` | Fresh subagent per task + 2-stage review |
+| `codex-git-worktrees` | `$worktree`, `$isolate` | Isolated workspaces for complex implementations |
+| `codex-verification-discipline` | `$verify`, `$evidence` | Evidence before claims — no "should work" without proof |
+| `codex-branch-finisher` | `$finish`, `$finish-branch` | Structured 4-option completion workflow |
+

@@ -43,10 +43,12 @@ Task type -> Pre-flight/setup?
     |- Yes -> run: doctor
     `- No -> Code change?
         |- Yes -> What kind?
-        |   |- New feature -> run: pre_commit_check + smart_test_selector + predict_impact
-        |   |- Bug fix -> run: pre_commit_check + smart_test_selector
-        |   |- Refactor -> run: tech_debt_scan + pre_commit_check
+        |   |- New feature -> TDD ($tdd) + pre_commit_check + smart_test_selector + predict_impact
+        |   |- Bug fix -> systematic debugging ($root-cause) + TDD + pre_commit_check + smart_test_selector
+        |   |- Refactor -> TDD (keep green) + tech_debt_scan + pre_commit_check
         |   `- UI change -> run: ux_audit + accessibility_check + pre_commit_check
+        |
+        |- Complex implementation? -> worktree ($worktree) + subagent execution ($sdd)
         |
         |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
         |
@@ -75,7 +77,7 @@ Task type -> Pre-flight/setup?
 - Use `with_server.py` only when runtime audits need controlled startup and shutdown.
 - If user says `skip gate` or `force complete`, comply and warn: "Quality gate skipped. Lint/test/security status is unknown."
 - For each invoked script, capture output, summarize passes/warnings/blockers, ask whether to fix blocking errors when present, and rerun after fixes to verify.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Reference Files
 
@@ -98,3 +100,15 @@ Task type -> Pre-flight/setup?
 - `references/tech-debt-scan-spec.md`: advisory technical debt signal interpretation and prioritization.
 - `references/gate-execution-flow.md`: verification order, execution steps, overrides, and output-handling rules.
 - `references/output-schemas.md`: JSON status contracts for gate helper scripts, including hook and CI installers.
+
+## Related Discipline Skills
+
+When the gate identifies issues, recommend these discipline skills:
+
+| Gate Finding | Recommend | Alias |
+| --- | --- | --- |
+| Tests missing or failing | `codex-test-driven-development` | `$tdd` |
+| Recurring bug or flaky test | `codex-systematic-debugging` | `$root-cause` |
+| Complex plan needs execution | `codex-subagent-execution` | `$sdd` |
+| Multi-file changes need isolation | `codex-git-worktrees` | `$worktree` |
+

@@ -21,7 +21,7 @@ Identify documentation that is likely affected by code changes.
 ## Script Invocation
 
 - Use `map_changes_to_docs.py` for report-only docs impact mapping.
-- Xem `skills/.system/REGISTRY.md` để biết đường dẫn đầy đủ.
+- See `skills/.system/REGISTRY.md` for full script paths.
 
 ## Script Invocation Discipline
 

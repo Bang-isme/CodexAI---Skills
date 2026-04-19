@@ -1,9 +1,18 @@
 ---
 name: codex-scrum-subagents
 description: Install and operate a Scrum-oriented subagent kit for Codex projects. Use when work should follow Scrum roles or ceremonies such as Product Owner, Scrum Master, backlog refinement, sprint planning, daily scrum, sprint review, retrospective, story delivery, or release readiness with explicit handoffs between planning, implementation, QA, security, UX, and DevOps.
+load_priority: on-demand
 ---
 
+## TL;DR
+Install `.agent/` Scrum kit + `.codex/agents/` native agents → use ceremony playbooks (sprint plan, daily scrum, retro, release) → enforce role boundaries between PO, SM, and delivery specialists.
+
 # Codex Scrum Subagents
+
+## Activation
+
+1. Activate when the user requests Scrum ceremonies or role-based workflows.
+2. Activate on explicit `$codex-scrum-subagents` or `$scrum-install`.
 
 ## Overview
 
@@ -13,6 +22,7 @@ Materialize a project-local Scrum kit that adds two layers on top of the existin
 - `.codex/agents/` for native Codex custom-agent TOMLs that follow the official subagent discovery path
 
 Use this skill when the team needs explicit role boundaries and delivery handoffs instead of a single monolithic assistant flow.
+
 
 ## Quick Start
 

@@ -1,5 +1,5 @@
 {
-  "version": "13.0.0",
+  "version": "14.1.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -15,7 +15,13 @@
     "codex-docs-change-sync",
     "codex-git-autopilot",
     "codex-doc-renderer",
-    "codex-scrum-subagents"
+    "codex-scrum-subagents",
+    "codex-test-driven-development",
+    "codex-systematic-debugging",
+    "codex-subagent-execution",
+    "codex-git-worktrees",
+    "codex-verification-discipline",
+    "codex-branch-finisher"
   ],
   "agents": [
     "frontend-specialist",
@@ -54,7 +60,11 @@
       "codex-docs-change-sync",
       "codex-git-autopilot",
       "codex-doc-renderer",
-      "codex-scrum-subagents"
+      "codex-scrum-subagents",
+      "codex-test-driven-development",
+      "codex-systematic-debugging",
+      "codex-subagent-execution",
+      "codex-git-worktrees"
     ]
   }
 }
