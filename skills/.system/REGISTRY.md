@@ -1,6 +1,6 @@
 # Script Registry
 
-Canonical full-path command registry for the 40 documented scripts referenced by `codex-master-instructions`.
+Canonical full-path command registry for the 41 documented scripts referenced by `codex-master-instructions`.
 `<SKILLS_ROOT>` resolves to the directory containing the skill folders. Scripts auto-detect via `Path(__file__).resolve().parent`.
 
 | Script | Skill | Purpose | Auto-included | Windows Command | macOS/Linux Command |
@@ -44,4 +44,5 @@ Canonical full-path command registry for the 40 documented scripts referenced by
 | `install_scrum_subagents.py` | `codex-scrum-subagents` | install Scrum role kit and native agents | `No` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/install_scrum_subagents.py"` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/install_scrum_subagents.py"` |
 | `run_scrum_alias.py` | `codex-scrum-subagents` | execute Scrum shorthand aliases | `No` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/run_scrum_alias.py"` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/run_scrum_alias.py"` |
 | `validate_scrum_agent_kit.py` | `codex-scrum-subagents` | validate installed Scrum kit integrity | `No` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/validate_scrum_agent_kit.py"` | `python "<SKILLS_ROOT>/codex-scrum-subagents/scripts/validate_scrum_agent_kit.py"` |
+| `design_contract.py` | `codex-design-md` | scaffold DESIGN.md contracts and proxy upstream lint, diff, export, and spec commands | `No` | `python "<SKILLS_ROOT>/codex-design-md/scripts/design_contract.py" doctor` | `python "<SKILLS_ROOT>/codex-design-md/scripts/design_contract.py" doctor` |
 | `benchmark_quality.py` | `tests` | static output quality benchmark | `No` | `python "<SKILLS_ROOT>/tests/benchmark_quality.py"` | `python "<SKILLS_ROOT>/tests/benchmark_quality.py"` |

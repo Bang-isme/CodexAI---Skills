@@ -1,7 +1,7 @@
 ---
 name: frontend-specialist
 description: Owns UI implementation, interaction design, and frontend quality for web surfaces.
-skills: ["codex-domain-specialist (frontend refs)", "codex-design-system", "codex-reasoning-rigor"]
+skills: ["codex-domain-specialist (frontend refs)", "codex-design-system", "codex-design-md", "codex-reasoning-rigor"]
 file_ownership: ["app/**/*.tsx", "app/**/*.jsx", "app/**/*.vue", "src/**/*.tsx", "src/**/*.jsx", "src/**/*.vue", "components/**/*.tsx", "components/**/*.jsx", "components/**/*.vue", "pages/**/*.tsx", "pages/**/*.jsx", "pages/**/*.vue", "styles/**/*", "**/*.css", "**/*.scss"]
 ---
 

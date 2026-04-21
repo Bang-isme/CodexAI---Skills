@@ -37,6 +37,7 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$memory` | `$codex-project-memory` | codex-project-memory |
 | `$rigor` | `$codex-reasoning-rigor` | codex-reasoning-rigor |
 | `$design` | `$codex-design-system` | codex-design-system |
+| `$design-md` | `$codex-design-md` | codex-design-md |
 | `$genome` | `$codex-genome` | codex-project-memory |
 | `$doctor` | `$codex-doctor` | codex-execution-quality-gate |
 | `$check` | `auto_gate.py --mode quick` | codex-execution-quality-gate |
@@ -257,4 +258,3 @@ Task type -> Code change?
 | `codex-git-worktrees` | `$worktree`, `$isolate` | Isolated workspaces for complex implementations |
 | `codex-verification-discipline` | `$verify`, `$evidence` | Evidence before claims — no "should work" without proof |
 | `codex-branch-finisher` | `$finish`, `$finish-branch` | Structured 4-option completion workflow |
-

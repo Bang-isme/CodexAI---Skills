@@ -11,6 +11,7 @@ Load before any UI/frontend task. This skill brings 30 palettes, 21 free font pa
 1. Activate when task involves UI, frontend, styling, component work, or landing-page creation.
 2. Activate on `$design` or "make it look premium/modern/creative".
 3. Auto-load when `frontend-specialist` agent is active.
+4. Pair with `codex-design-md` when the project needs a durable `DESIGN.md` contract or token export.
 
 ## Anti-Generic Rules (HARD)
 - NEVER use default blue (`#007bff`, `#2196F3`, `#3B82F6`) or default purple (`#6C63FF`, `#7C3AED`) unless the chosen palette in `references/palettes.md` explicitly uses it.

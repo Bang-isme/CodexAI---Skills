@@ -7,17 +7,17 @@
 | Metric | Value |
 | --- | --- |
 | Version | `14.1.0` |
-| Core Skills | 21 (15 pipeline + 6 discipline) |
-| Entry-point Scripts | 48 |
+| Core Skills | 22 |
+| Entry-point Scripts | 49 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 165+ |
+| References | 168+ |
 | Starters | 29 |
 | Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
 | Short Aliases | 25+ |
-| Pytest | 112/112 |
-| Smoke | 49/49 |
+| Pytest | 116/116 |
+| Smoke | 51/51 |
 
 ---
 
@@ -67,6 +67,8 @@ Reasoning Rigor
 
 | Skill | Notes |
 | --- | --- |
+| `codex-design-system` | Premium visual vocabulary with palettes, typography, layouts, motion, composition, trends, and anti-pattern guards |
+| `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
 | `codex-domain-specialist` | 66 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
 | `codex-security-specialist` | 30 references and 10 starters across network, infrastructure, AppSec, DevSecOps, compliance, and advanced security |
 
@@ -192,6 +194,7 @@ Smoke checks verify:
 - all codex skill directories expose `SKILL.md`
 - critical scripts respond to `--help`
 - selected JSON-returning CLIs run real happy paths
+- the DESIGN.md wrapper reports runtime health through `design_contract.py doctor`
 - workflow routing contract exists and is valid
 
 ---
@@ -233,4 +236,6 @@ python skills/codex-execution-quality-gate/scripts/run_gate.py --project-root <r
 python skills/codex-execution-quality-gate/scripts/output_guard.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/editorial_review.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/quality_trend.py --project-root <repo> --report
+python skills/codex-design-md/scripts/design_contract.py scaffold --name <brand-or-product>
+python skills/codex-design-md/scripts/design_contract.py lint DESIGN.md
 ```

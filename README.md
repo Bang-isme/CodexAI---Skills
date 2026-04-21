@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-13.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-102%2F102%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-49%2F49%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-14.1.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-116%2F116%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,15 +25,15 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 14 |
-| Entry-point Scripts | 43 |
+| Core Skills | 22 |
+| Entry-point Scripts | 49 |
 | Shared Helpers | 2 |
-| Reference Docs | 149 |
+| Reference Docs | 168+ |
 | Starter Templates | 29 |
 | Scrum Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
-| Verification | 102 unit + 49 smoke = 151 tests |
+| Verification | 116 unit + 51 smoke = 167 tests |
 
 ---
 
@@ -43,6 +43,7 @@ The pack is designed for 3 outcomes:
 | --- | --- |
 | Vague task interpretation | `codex-intent-context-analyzer` locks goal, scope, and ambiguity before code |
 | Plans that sound good but do not guide execution | `codex-plan-writer` creates verifiable, dependency-aware task breakdowns |
+| Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into reusable vocabulary and a lintable `DESIGN.md` contract |
 | Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
 | No final gate before declaring done | `codex-execution-quality-gate` runs lint, tests, security, output quality, editorial quality, UX, and trend tracking |
@@ -127,6 +128,8 @@ This is the biggest differentiator of the pack today:
 
 | Skill | Coverage | Refs | Starters |
 | --- | --- | ---: | ---: |
+| `codex-design-system` | Premium UI vocabulary across palettes, typography, layout, motion, composition, trends, and anti-patterns | 7 | 0 |
+| `codex-design-md` | Durable `DESIGN.md` contracts, lint/diff/export workflows, and design-token source of truth | 3 | 1 |
 | `codex-domain-specialist` | Full-stack engineering | 66 | 19 |
 | `codex-security-specialist` | Network, infra, AppSec, DevSecOps, compliance | 30 | 10 |
 
@@ -177,6 +180,8 @@ python skills/tests/smoke_test.py
 | `$codex-plan-writer` | Create an implementation plan |
 | `$codex-workflow-autopilot` | Route work into the right execution flow |
 | `$codex-reasoning-rigor` | Force deeper, less generic reasoning |
+| `$design` | Load premium visual vocabulary before UI work |
+| `$design-md` | Scaffold, lint, diff, and export `DESIGN.md` contracts |
 | `$codex-execution-quality-gate` | Run verification before completion |
 | `$output-guard` | Score specificity and evidence |
 | `editorial_review.py` | Check whether a deliverable reads like a human-made artifact |
@@ -237,6 +242,8 @@ CodexAI---Skills/
     |-- codex-plan-writer/
     |-- codex-workflow-autopilot/
     |-- codex-reasoning-rigor/
+    |-- codex-design-system/
+    |-- codex-design-md/
     |-- codex-domain-specialist/
     |-- codex-security-specialist/
     |-- codex-execution-quality-gate/

@@ -54,8 +54,16 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-scrum-subagents", "scripts/validate_scrum_agent_kit.py"),
     ("codex-workflow-autopilot", "scripts/explain_code.py"),
     ("codex-doc-renderer", "scripts/render_docx.py"),
+    ("codex-design-md", "scripts/design_contract.py"),
 ]
 JSON_CHECKS: List[Tuple[str, List[str]]] = [
+    (
+        "design_contract_doctor",
+        [
+            "codex-design-md/scripts/design_contract.py",
+            "doctor",
+        ],
+    ),
     (
         "editorial_review",
         [
@@ -199,7 +207,7 @@ def run_json_check(script_path: Path, args: List[str], cwd: Path, env: Dict[str,
     except json.JSONDecodeError as exc:
         return False, f"invalid json: {exc}"
 
-    if payload.get("status") not in {"ok", "pass", "scaffold", "installed", "updated", "up_to_date", "diff", "report_ready", "recorded"}:
+    if payload.get("status") not in {"ok", "pass", "scaffold", "installed", "updated", "up_to_date", "diff", "report_ready", "recorded", "checked"}:
         return False, f"unexpected status: {payload.get('status')}"
     return True, ""
 
