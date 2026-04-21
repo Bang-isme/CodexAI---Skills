@@ -1,6 +1,6 @@
 # DESIGN.md Spec Essentials
 
-Source studied: `D:\design.md-main\docs\spec.md` and `D:\design.md-main\README.md`.
+Source studied from the upstream DESIGN.md repository documents `docs/spec.md` and `README.md`.
 
 ## Purpose
 

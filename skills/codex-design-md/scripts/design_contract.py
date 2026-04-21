@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -14,7 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import yaml
 
 
-DEFAULT_SOURCE_REPO = Path(r"D:\design.md-main")
+SOURCE_REPO_ENV_VAR = "CODEX_DESIGN_MD_SOURCE_REPO"
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 TEMPLATE_PATH = SKILL_DIR / "assets" / "design-md-template.md"
@@ -66,7 +67,11 @@ def parse_args() -> argparse.Namespace:
     scaffold.add_argument("--format", choices=("json", "markdown"), default="json", help="Output format")
 
     doctor = subparsers.add_parser("doctor", help="Report available DESIGN.md runtimes and source paths.")
-    doctor.add_argument("--source-repo", default=str(DEFAULT_SOURCE_REPO), help="Path to the upstream design.md source repo")
+    doctor.add_argument(
+        "--source-repo",
+        default="",
+        help=f"Optional path to an upstream design.md source repo. If omitted, auto-discovery checks `{SOURCE_REPO_ENV_VAR}` and nearby folders.",
+    )
     doctor.add_argument("--prefer", choices=("auto", "local", "npx"), default="auto", help="Runner preference")
     doctor.add_argument("--format", choices=("json", "text"), default="json", help="Output format")
 
@@ -96,7 +101,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def add_proxy_common_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--source-repo", default=str(DEFAULT_SOURCE_REPO), help="Path to the upstream design.md source repo")
+    parser.add_argument(
+        "--source-repo",
+        default="",
+        help=f"Optional path to an upstream design.md source repo. If omitted, auto-discovery checks `{SOURCE_REPO_ENV_VAR}` and nearby folders.",
+    )
     parser.add_argument("--prefer", choices=("auto", "local", "npx"), default="auto", help="Runner preference")
 
 
@@ -108,41 +117,74 @@ def emit(payload: Dict[str, object], fmt: str) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def detect_runtime_paths(source_repo: Path) -> Dict[str, object]:
+def is_upstream_source_repo(candidate: Path) -> bool:
+    return (
+        candidate.exists()
+        and (
+            (candidate / "docs" / "spec.md").exists()
+            or (candidate / "packages" / "cli" / "src" / "index.ts").exists()
+            or (candidate / "packages" / "cli" / "dist" / "index.js").exists()
+        )
+    )
+
+
+def resolve_source_repo(source_repo_arg: str) -> Optional[Path]:
+    explicit = source_repo_arg.strip()
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+
+    env_value = os.environ.get(SOURCE_REPO_ENV_VAR, "").strip()
+    if env_value:
+        return Path(env_value).expanduser().resolve()
+
+    search_roots: List[Path] = [Path.cwd().resolve(), *Path.cwd().resolve().parents, *SCRIPT_DIR.resolve().parents]
+    seen: set[Path] = set()
+    for root in search_roots:
+        if root in seen:
+            continue
+        seen.add(root)
+        if is_upstream_source_repo(root):
+            return root
+        for child_name in ("design.md-main", "design.md"):
+            candidate = root / child_name
+            if is_upstream_source_repo(candidate):
+                return candidate.resolve()
+    return None
+
+
+def detect_runtime_paths(source_repo: Optional[Path]) -> Dict[str, object]:
     node_path = shutil.which("node")
     npx_path = shutil.which("npx")
     bun_path = shutil.which("bun")
-    local_dist = source_repo / "packages" / "cli" / "dist" / "index.js"
-    local_src = source_repo / "packages" / "cli" / "src" / "index.ts"
-    local_spec = source_repo / "docs" / "spec.md"
+    local_dist = source_repo / "packages" / "cli" / "dist" / "index.js" if source_repo else None
+    local_src = source_repo / "packages" / "cli" / "src" / "index.ts" if source_repo else None
+    local_spec = source_repo / "docs" / "spec.md" if source_repo else None
     return {
-        "source_repo": str(source_repo),
-        "source_exists": source_repo.exists(),
+        "source_repo": str(source_repo) if source_repo else "",
+        "source_exists": source_repo.exists() if source_repo else False,
         "node_path": node_path or "",
         "npx_path": npx_path or "",
         "bun_path": bun_path or "",
-        "local_dist": str(local_dist),
-        "local_dist_exists": local_dist.exists(),
-        "local_src": str(local_src),
-        "local_src_exists": local_src.exists(),
-        "local_spec": str(local_spec),
-        "local_spec_exists": local_spec.exists(),
+        "local_dist": str(local_dist) if local_dist else "",
+        "local_dist_exists": local_dist.exists() if local_dist else False,
+        "local_src": str(local_src) if local_src else "",
+        "local_src_exists": local_src.exists() if local_src else False,
+        "local_spec": str(local_spec) if local_spec else "",
+        "local_spec_exists": local_spec.exists() if local_spec else False,
     }
 
 
-def resolve_upstream_runner(source_repo: Path, prefer: str) -> tuple[Optional[List[str]], str]:
+def resolve_upstream_runner(source_repo: Optional[Path], prefer: str) -> tuple[Optional[List[str]], str]:
     runtime = detect_runtime_paths(source_repo)
-    local_dist = Path(str(runtime["local_dist"]))
-    local_src = Path(str(runtime["local_src"]))
     node_path = str(runtime["node_path"])
     npx_path = str(runtime["npx_path"])
     bun_path = str(runtime["bun_path"])
 
     local_candidates: List[tuple[List[str], str]] = []
     if runtime["local_dist_exists"] and node_path:
-        local_candidates.append(([node_path, str(local_dist)], "local-dist"))
+        local_candidates.append(([node_path, str(runtime["local_dist"])], "local-dist"))
     if runtime["local_src_exists"] and bun_path:
-        local_candidates.append(([bun_path, "run", str(local_src)], "local-bun"))
+        local_candidates.append(([bun_path, "run", str(runtime["local_src"])], "local-bun"))
 
     npx_candidate: Optional[tuple[List[str], str]] = None
     if npx_path:
@@ -167,14 +209,15 @@ def resolve_upstream_runner(source_repo: Path, prefer: str) -> tuple[Optional[Li
     return None, "no-upstream-runner"
 
 
-def build_doctor_payload(source_repo: Path, prefer: str) -> Dict[str, object]:
+def build_doctor_payload(source_repo: Optional[Path], prefer: str) -> Dict[str, object]:
     runtime = detect_runtime_paths(source_repo)
     runner, runner_kind = resolve_upstream_runner(source_repo, prefer)
     payload: Dict[str, object] = {
         "status": "checked",
         "bundled_engine": True,
+        "source_repo_env_var": SOURCE_REPO_ENV_VAR,
         "source_repo": {
-            "path": str(source_repo),
+            "path": str(source_repo) if source_repo else "",
             "exists": runtime["source_exists"],
         },
         "local_repo": {
@@ -485,11 +528,14 @@ def maybe_emit_upstream(result: subprocess.CompletedProcess[str]) -> bool:
 
 
 def render_spec_payload(source_repo: Path, include_rules: bool, rules_only: bool) -> Dict[str, Any]:
-    spec_path = source_repo / "docs" / "spec.md"
-    if spec_path.exists():
+    spec_path = source_repo / "docs" / "spec.md" if source_repo else None
+    fallback_summary_path = SKILL_DIR / "references" / "spec-essentials.md"
+    if spec_path and spec_path.exists():
         spec_text = spec_path.read_text(encoding="utf-8")
+    elif fallback_summary_path.exists():
+        spec_text = fallback_summary_path.read_text(encoding="utf-8")
     else:
-        spec_text = "# DESIGN.md Format\n\nLocal source spec file was not found.\n"
+        spec_text = "# DESIGN.md Format\n\nBundled spec summary is not available.\n"
     rules = [
         {"name": "broken-ref", "severity": "error", "description": "Token references must resolve to a defined token."},
         {"name": "duplicate-section", "severity": "error", "description": "Recognized sections cannot appear more than once."},
@@ -616,7 +662,7 @@ def execute_bundled(args: argparse.Namespace) -> int:
 
 
 def handle_proxy(args: argparse.Namespace) -> int:
-    source_repo = Path(args.source_repo).expanduser().resolve()
+    source_repo = resolve_source_repo(args.source_repo)
     if args.prefer != "auto":
         base_command, _runner_kind = resolve_upstream_runner(source_repo, args.prefer)
         if base_command is not None:
@@ -662,7 +708,7 @@ def main() -> int:
     if args.command == "scaffold":
         return handle_scaffold(args)
     if args.command == "doctor":
-        source_repo = Path(args.source_repo).expanduser().resolve()
+        source_repo = resolve_source_repo(args.source_repo)
         payload = build_doctor_payload(source_repo, args.prefer)
         emit(payload, args.format)
         return 0

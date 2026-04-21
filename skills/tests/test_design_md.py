@@ -55,6 +55,15 @@ def test_build_doctor_payload_reads_runtime_state(tmp_path: Path) -> None:
     assert "selected_runner" in payload
 
 
+def test_build_doctor_payload_without_source_repo_stays_portable() -> None:
+    payload = design_contract.build_doctor_payload(None, "auto")
+
+    assert payload["status"] == "checked"
+    assert payload["bundled_engine"] is True
+    assert payload["source_repo"]["exists"] is False
+    assert payload["selected_runner"] == "bundled-python"
+
+
 def test_cli_scaffold_writes_output(tmp_path: Path) -> None:
     output_path = tmp_path / "DESIGN.md"
     result = subprocess.run(

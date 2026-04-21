@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Load when a project needs a durable design contract, not just one-off styling advice. This skill adds a structured `DESIGN.md` layer with typed tokens, ordered rationale sections, and CLI-backed validation/export.
+Load when a project needs a durable design contract, not just one-off styling advice. This skill adds a structured `DESIGN.md` layer with typed tokens, ordered rationale sections, and validation/export tooling. No upstream source checkout is required for the default workflow.
 
 ## Activation
 1. Activate when the user mentions `DESIGN.md`, design tokens, Tailwind theme export, DTCG export, or a reusable visual identity contract.

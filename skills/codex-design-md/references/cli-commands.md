@@ -2,6 +2,8 @@
 
 The wrapper script in this skill is `scripts/design_contract.py`. It adds a local scaffold flow plus a bundled Python engine for lint, diff, export, and spec. When explicitly requested, it can still try the upstream DESIGN.md CLI.
 
+You do not need an upstream source checkout to use this skill. The bundled Python engine is the default path.
+
 ## Local Entry Points
 
 ```bash
@@ -18,9 +20,15 @@ python "<SKILLS_ROOT>/codex-design-md/scripts/design_contract.py" spec
 The wrapper runtime model is:
 
 1. bundled Python engine inside this skill
-2. local built repo at `D:\design.md-main\packages\cli\dist\index.js` when `--prefer local`
-3. local source repo with Bun at `D:\design.md-main\packages\cli\src\index.ts` when `--prefer local`
+2. local built repo at `<DESIGN_MD_SOURCE_REPO>/packages/cli/dist/index.js` when `--prefer local`
+3. local source repo with Bun at `<DESIGN_MD_SOURCE_REPO>/packages/cli/src/index.ts` when `--prefer local`
 4. published package via `npx --yes --package @google/design.md design.md` when `--prefer npx`
+
+`<DESIGN_MD_SOURCE_REPO>` is optional. The wrapper resolves it in this order:
+
+1. `--source-repo <path>`
+2. environment variable `CODEX_DESIGN_MD_SOURCE_REPO`
+3. nearby auto-discovery for folders named `design.md-main` or `design.md`
 
 ## Command Mapping
 
