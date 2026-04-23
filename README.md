@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-14.1.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-116%2F116%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-14.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-123%2F123%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,15 +25,15 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 22 |
+| Core Skills | 23 |
 | Entry-point Scripts | 49 |
 | Shared Helpers | 2 |
-| Reference Docs | 168+ |
+| Reference Docs | 173+ |
 | Starter Templates | 29 |
 | Scrum Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
-| Verification | 116 unit + 51 smoke = 167 tests |
+| Verification | 123 unit + 51 smoke = 174 tests |
 
 ---
 
@@ -46,6 +46,7 @@ The pack is designed for 3 outcomes:
 | Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into reusable vocabulary and a lintable `DESIGN.md` contract |
 | Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
+| Documents that make readers infer too much | `codex-document-writer` forces purpose, audience, structure, complete sentences, and reliability wording |
 | No final gate before declaring done | `codex-execution-quality-gate` runs lint, tests, security, output quality, editorial quality, UX, and trend tracking |
 | Context lost between sessions | `codex-project-memory` stores decisions, summaries, genome, handoffs, and changelog inputs |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
@@ -103,6 +104,7 @@ Aliases are shortcuts, not replacements. All legacy triggers such as `$codex-pla
 This is the biggest differentiator of the pack today:
 
 - `codex-reasoning-rigor` forces task contracts, evidence ladders, and monitoring loops.
+- `codex-document-writer` turns reports, memos, guides, and Vietnamese documents into structured reader-first artifacts.
 - `output_guard.py` rejects deliverables that are too generic or weakly grounded.
 - `editorial_review.py` checks whether the writing sounds decisive, accountable, and scanable instead of model-safe.
 - `run_gate.py` now treats `plan`, `review`, and `handoff` as strict deliverables by default.
@@ -122,6 +124,7 @@ This is the biggest differentiator of the pack today:
 | `codex-plan-writer` | Verifiable plan generation |
 | `codex-workflow-autopilot` | Workflow routing and mode selection |
 | `codex-reasoning-rigor` | Anti-generic reasoning and output contracts |
+| `codex-document-writer` | Professional documents, reports, memos, guides, Vietnamese style, and reliability tone |
 | `codex-scrum-subagents` | Scrum role kits, workflows, native custom agents, artifact generation |
 
 ### Knowledge Packs

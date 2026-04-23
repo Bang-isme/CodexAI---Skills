@@ -36,6 +36,9 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$route` | `$codex-workflow-autopilot` | codex-workflow-autopilot |
 | `$memory` | `$codex-project-memory` | codex-project-memory |
 | `$rigor` | `$codex-reasoning-rigor` | codex-reasoning-rigor |
+| `$doc` | `$codex-document-writer` | codex-document-writer |
+| `$report` | `$codex-document-writer` | codex-document-writer |
+| `$write` | `$codex-document-writer` | codex-document-writer |
 | `$design` | `$codex-design-system` | codex-design-system |
 | `$design-md` | `$codex-design-md` | codex-design-md |
 | `$genome` | `$codex-genome` | codex-project-memory |
@@ -114,8 +117,10 @@ Before acting, classify the request:
 | complex-code | build/create/refactor multi-step | full flow: intent, plan (`$plan`), isolate (`$worktree`), implement with TDD, gate |
 | debug | error, bug, broken, not working | systematic debugging (`$root-cause`): 4-phase root cause → fix → regression test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
+| document | draft, rewrite, report, memo, guide, soạn tài liệu, viết báo cáo | load `codex-document-writer`, choose document structure, then run editorial review when quality matters |
 
 If the user explicitly asks for deeper thinking, less generic output, stronger specificity, or repo-grounded reasoning, activate `codex-reasoning-rigor` or `$rigor` alongside the normal workflow.
+If the user asks for professional documents, reports, memos, guides, or clearer wording, activate `codex-document-writer` or `$doc` alongside the normal workflow.
 
 ## Context Loading Rule
 
@@ -154,11 +159,13 @@ Every complex task goes through this process. "Simple" projects are where unexam
 
 - Keep output concise and action-oriented.
 - Prefer repo-grounded evidence over reusable best-practice filler.
+- Compress token overhead by removing repeated framing, prompt restatement, synonym stacking, and boilerplate transitions that do not change meaning.
 - Prefer self-explanatory code over heavy comments.
 - Follow SRP, DRY, KISS, and YAGNI.
 - Prefer guard clauses over deep nesting.
 - Keep functions small and focused.
 - Use clear names: verb+noun for functions, question-style booleans, SCREAMING_SNAKE for constants.
+- For document-style outputs, optimize for semantic density: each sentence should carry one clear idea with an explicit actor, action, and outcome.
 
 ### Dependency Awareness (Mandatory Before Edits)
 
@@ -196,6 +203,9 @@ For projects with hooks installed, gate enforcement is automatic. For projects w
 - If user writes non-English prompts, reason internally as needed.
 - Reply in the user's language.
 - Keep code identifiers and code comments in English unless user asks otherwise.
+- For Vietnamese output, prefer natural UTF-8 Vietnamese and avoid mojibake-prone punctuation when plain ASCII works; prefer `->` over smart arrows if rendering safety is uncertain.
+- For Vietnamese plans, reviews, and handoffs, prefer explicit labels such as `Quyết định`, `Bằng chứng`, `Hiện trạng`, `Rủi ro`, and `Bước tiếp theo`.
+- Clear does not mean short. Long sentences are acceptable when the sentence has one coherent meaning and avoids filler openings such as "nhìn chung", "về cơ bản", or "có thể thấy rằng".
 
 ### Global Anti-Patterns
 

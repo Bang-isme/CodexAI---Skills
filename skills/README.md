@@ -6,17 +6,17 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `14.1.0` |
-| Core Skills | 22 |
+| Version | `14.2.0` |
+| Core Skills | 23 |
 | Entry-point Scripts | 49 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 168+ |
+| References | 173+ |
 | Starters | 29 |
 | Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
 | Short Aliases | 25+ |
-| Pytest | 116/116 |
+| Pytest | 123/123 |
 | Smoke | 51/51 |
 
 ---
@@ -61,6 +61,7 @@ Reasoning Rigor
 | `codex-plan-writer` | Create verifiable task plans |
 | `codex-workflow-autopilot` | Route work into build/fix/debug/review/docs/deploy/teach flows |
 | `codex-reasoning-rigor` | Force deliberate, non-generic, evidence-backed reasoning |
+| `codex-document-writer` | Professional document, report, memo, guide, and Vietnamese writing structure |
 | `codex-scrum-subagents` | Install project Scrum kits and native `.codex/agents` |
 
 ### Knowledge Packs
@@ -69,6 +70,7 @@ Reasoning Rigor
 | --- | --- |
 | `codex-design-system` | Premium visual vocabulary with palettes, typography, layouts, motion, composition, trends, and anti-pattern guards |
 | `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
+| `codex-document-writer` | Report and document templates, sentence-quality rules, reliability tone, Vietnamese style, and formatting guidance |
 | `codex-domain-specialist` | 66 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
 | `codex-security-specialist` | 30 references and 10 starters across network, infrastructure, AppSec, DevSecOps, compliance, and advanced security |
 

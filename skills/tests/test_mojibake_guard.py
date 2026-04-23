@@ -65,7 +65,7 @@ def test_pre_commit_allows_clean_utf8_docs(tmp_path: Path) -> None:
     git(tmp_path, "init")
     write_text(
         tmp_path / "docs" / "huong-dan-vi.md",
-        "# Hướng Dẫn\nLập kế hoạch → thực thi → xác minh.\n",
+        "# Hướng Dẫn\nLập kế hoạch -> thực thi -> xác minh.\n",
     )
     git(tmp_path, "add", "docs/huong-dan-vi.md")
 
@@ -78,7 +78,7 @@ def test_pre_commit_allows_clean_utf8_docs(tmp_path: Path) -> None:
 
 def test_mojibake_scan_reads_staged_content_not_dirty_working_tree(tmp_path: Path) -> None:
     git(tmp_path, "init")
-    write_text(tmp_path / "README.md", "Clean UTF-8 → ok\n")
+    write_text(tmp_path / "README.md", "Clean UTF-8 -> ok\n")
     git(tmp_path, "add", "README.md")
     write_text(tmp_path / "README.md", f"Broken {mojibake_fragment()} text\n")
 
@@ -93,7 +93,7 @@ def test_mojibake_scan_blocks_dirty_staged_content_even_if_working_tree_is_clean
     git(tmp_path, "init")
     write_text(tmp_path / "README.md", f"Broken {mojibake_fragment()} text\n")
     git(tmp_path, "add", "README.md")
-    write_text(tmp_path / "README.md", "Clean UTF-8 → ok\n")
+    write_text(tmp_path / "README.md", "Clean UTF-8 -> ok\n")
 
     payload, code = pre_commit_check.run_pre_commit(tmp_path, strict=False, skip_tests=True)
 

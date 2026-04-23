@@ -20,6 +20,8 @@ SUSPICIOUS_FRAGMENTS = [
     "\u00e2\u20ac",
     "\u00c3\u2020",
     "\u00c3\u00a1\u00c2",
+    "\u00c6\u00b0",
+    "\u00c4\u0090",
 ]
 
 

@@ -59,6 +59,31 @@ def test_output_guard_passes_specific_text() -> None:
     assert report["counts"]["artifact_refs"] >= 2
 
 
+def test_output_guard_passes_specific_vietnamese_text() -> None:
+    text = "\n".join(
+        [
+            "Quyết định: giữ `skills/codex-execution-quality-gate/scripts/output_guard.py` trong quality gate.",
+            "Bằng chứng: chạy `python skills/tests/smoke_test.py` và `pytest skills/tests -q` trước khi bàn giao.",
+            "Rủi ro: heuristic có thể chấm cao cho câu dài nhưng thiếu kiểm chứng thực tế.",
+            "Bước tiếp theo: cập nhật `skills/codex-execution-quality-gate/references/output-schemas.md` nếu rubric thay đổi.",
+        ]
+    )
+    report = output_guard.analyze_text(text, min_score=60)
+    assert report["status"] == "pass"
+    assert set(report["section_hits"]) >= {"decision", "evidence", "risk", "next"}
+
+
+def test_output_guard_flags_vietnamese_generic_filler_and_mojibake() -> None:
+    report = output_guard.analyze_text(
+        "Quyết định: nâng cao chất lượng bằng giải pháp toàn diện Æ°. Bằng chứng: không có. Rủi ro: thấp.",
+        min_score=60,
+    )
+    assert report["status"] == "fail"
+    assert "nâng cao chất lượng" in report["generic_hits"]
+    assert report["mojibake_hits"]
+    assert "Mojibake or broken text encoding detected" in report["issues"]
+
+
 def test_output_guard_requires_runnable_command_evidence() -> None:
     text = "\n".join(
         [
@@ -274,6 +299,23 @@ def test_editorial_review_passes_decision_ready_grounded_text(tmp_path: Path) ->
     assert report["rubric"]["decision_clarity"] >= 12
     assert report["rubric"]["grounding"] >= 10
     assert report["rubric"]["tradeoff_awareness"] >= 8
+
+
+def test_editorial_review_passes_decision_ready_grounded_vietnamese_text(tmp_path: Path) -> None:
+    (tmp_path / "skills" / "tests").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "skills" / "tests" / "smoke_test.py").write_text("print('ok')\n", encoding="utf-8")
+    text = "\n".join(
+        [
+            "Quyết định: giữ `skills/tests/smoke_test.py` trong release checklist.",
+            "Hiện trạng: `python skills/tests/smoke_test.py` đang pass trong nhánh này sau khi cập nhật gate scripts.",
+            "Rủi ro: nếu checklist không đổi cùng script, release note sẽ nhìn đúng nhưng bằng chứng sẽ sai.",
+            "Bước tiếp theo: giao người phụ trách release cập nhật checklist sau mỗi lần thay đổi gate.",
+        ]
+    )
+    report = editorial_review.analyze_text(text, min_score=65, deliverable_kind="handoff", repo_root=tmp_path)
+    assert report["status"] == "pass"
+    assert report["counts"]["hedge_phrases"] == 0
+    assert report["rubric"]["decision_clarity"] >= 12
 
 
 def test_editorial_review_llm_judge_without_api_key_falls_back(monkeypatch) -> None:

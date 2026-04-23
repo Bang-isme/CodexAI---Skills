@@ -33,12 +33,29 @@ GENERIC_PHRASES = (
     "improve quality",
     "user-friendly",
     "production-ready",
+    "nâng cao chất lượng",
+    "cải thiện hiệu năng",
+    "đảm bảo tính ổn định",
+    "đảm bảo khả năng mở rộng",
+    "giải pháp toàn diện",
+    "thân thiện với người dùng",
+    "sẵn sàng production",
+    "tối ưu quy trình",
+)
+MOJIBAKE_FRAGMENTS = (
+    "Ãƒ",
+    "Ã¢",
+    "Ã†",
+    "Ã‚",
+    "Æ°",
+    "Ä",
+    "\ufffd",
 )
 SECTION_PATTERNS = {
-    "decision": re.compile(r"\b(decision|recommended path|chosen path)\b", re.IGNORECASE),
-    "evidence": re.compile(r"\b(evidence|verification|validate|proof)\b", re.IGNORECASE),
-    "risk": re.compile(r"\b(risk|failure mode|uncertainty|open question)\b", re.IGNORECASE),
-    "next": re.compile(r"\b(next step|exit criteria|follow-up|action)\b", re.IGNORECASE),
+    "decision": re.compile(r"\b(decision|recommended path|chosen path|quyết định|khuyến nghị|đề xuất|kết luận)\b", re.IGNORECASE),
+    "evidence": re.compile(r"\b(evidence|verification|validate|proof|bằng chứng|xác minh|kiểm chứng)\b", re.IGNORECASE),
+    "risk": re.compile(r"\b(risk|failure mode|uncertainty|open question|rủi ro|đánh đổi|câu hỏi mở|bất định)\b", re.IGNORECASE),
+    "next": re.compile(r"\b(next step|exit criteria|follow-up|action|bước tiếp theo|việc tiếp theo|theo dõi|hành động tiếp theo)\b", re.IGNORECASE),
 }
 COMMAND_WORDS = ("python", "pytest", "git", "npm", "pnpm", "robocopy", "copy-item", "get-content")
 COMMAND_START_PATTERN = re.compile(rf"^(?:{'|'.join(re.escape(word) for word in COMMAND_WORDS)})\b", re.IGNORECASE)
@@ -117,6 +134,14 @@ def find_generic_phrases(text: str) -> List[str]:
             found.append(phrase)
             break
     return found
+
+
+def find_mojibake_fragments(text: str) -> List[str]:
+    hits: List[str] = []
+    for fragment in MOJIBAKE_FRAGMENTS:
+        if fragment in text:
+            hits.append(fragment)
+    return hits
 
 
 def collect_command_hits(text: str) -> List[str]:
@@ -431,6 +456,7 @@ def maybe_run_llm_judge(
 
 def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | None = None) -> Dict[str, Any]:
     generic_hits = find_generic_phrases(text)
+    mojibake_hits = find_mojibake_fragments(text)
     backtick_refs = INLINE_CODE_PATTERN.findall(text)
     file_refs = FILE_PATTERN.findall(text)
     command_hits = collect_command_hits(text)
@@ -448,6 +474,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
     score += min(10, len(resolved_artifact_refs) * 2)
     score += min(6, len(resolved_command_paths) * 2)
     score -= len(generic_hits) * 8
+    score -= min(24, len(mojibake_hits) * 12)
     score -= min(12, len(missing_artifact_refs) * 4)
     score -= min(8, len(missing_command_paths) * 4)
     if not artifact_refs:
@@ -463,6 +490,9 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
     if generic_hits:
         issues.append("Generic filler language detected")
         suggestions.append("Replace filler phrases with named files, commands, or measurable conditions")
+    if mojibake_hits:
+        issues.append("Mojibake or broken text encoding detected")
+        suggestions.append("Rewrite the affected text in clean UTF-8 and prefer stable labels such as Decision/Quyết định, Evidence/Bằng chứng, Risk/Rủi ro, and Next step/Bước tiếp theo")
     if not artifact_refs:
         issues.append("No concrete code, file, or artifact references detected")
         suggestions.append("Add exact file paths, scripts, commands, or identifiers")
@@ -471,7 +501,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         suggestions.append("Include at least one runnable command or validator invocation that proves the claim")
     if len(section_hits) < 2:
         issues.append("Weak delivery structure")
-        suggestions.append("Add explicit sections for decision, evidence, risks, or next steps")
+        suggestions.append("Add explicit sections for Decision/Quyết định, Evidence/Bằng chứng, Risk/Rủi ro, or Next step/Bước tiếp theo")
     if repo_root is not None and missing_artifact_refs:
         issues.append("Some referenced files or artifacts were not found under repo root")
         suggestions.append("Replace stale file references with paths that exist under the target repo root")
@@ -483,6 +513,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
     if (
         score < min_score
         or len(generic_hits) >= 2
+        or bool(mojibake_hits)
         or not command_hits
         or (repo_root is not None and missing_artifact_refs and not resolved_artifact_refs)
         or (repo_root is not None and missing_command_paths and not resolved_command_paths and not resolved_artifact_refs)
@@ -497,6 +528,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         "repo_root": repo_root.as_posix() if repo_root is not None else "",
         "counts": {
             "generic_phrases": len(generic_hits),
+            "mojibake_fragments": len(mojibake_hits),
             "artifact_refs": len(artifact_refs),
             "commands": len(command_hits),
             "numbers": len(number_hits),
@@ -507,6 +539,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
             "missing_command_paths": len(missing_command_paths),
         },
         "generic_hits": generic_hits,
+        "mojibake_hits": mojibake_hits,
         "section_hits": section_hits,
         "artifact_refs": artifact_refs,
         "resolved_artifact_refs": resolved_artifact_refs,
@@ -572,6 +605,7 @@ def format_table(report: Dict[str, Any]) -> str:
         f"min_score    : {report['min_score']}",
         f"mode         : {report.get('evaluation_mode', 'heuristic')}",
         f"generic      : {counts['generic_phrases']}",
+        f"mojibake     : {counts.get('mojibake_fragments', 0)}",
         f"artifacts    : {counts['artifact_refs']}",
         f"resolved art : {counts.get('resolved_artifact_refs', 0)}",
         f"missing art  : {counts.get('missing_artifact_refs', 0)}",

@@ -109,6 +109,19 @@ Never end at "best practices", "ensure", "optimize", "improve quality", or simil
 
 Use [references/anti-generic-patterns.md](references/anti-generic-patterns.md) when the answer starts sounding interchangeable with any other project.
 
+## Document Clarity and Token Economy
+
+When the user wants clearer writing, better Vietnamese output, or lower token overhead:
+
+- remove repeated framing and prompt restatement
+- prefer explicit labels over connective filler
+- keep each sentence semantically complete, even when the sentence is long
+- use concrete verbs, exact artifacts, and stable section ordering
+- treat mojibake or mixed-encoding output as a quality failure
+- stack `codex-document-writer` when the deliverable is a report, memo, guide, handoff, proposal, or formal document
+
+Use [references/document-clarity.md](references/document-clarity.md) for writing rules, Vietnamese labeling, and rendering-safe output patterns.
+
 ## Working Pattern
 
 For medium or high-stakes work:
@@ -126,6 +139,7 @@ For plans, reviews, and handoffs, treat strict output validation as the default 
 
 - `scripts/build_reasoning_brief.py`: generate a structured execution brief for complex, high-signal work.
 - `references/anti-generic-patterns.md`: common signs of generic output and concrete repair moves.
+- `references/document-clarity.md`: token economy, Vietnamese document structure, and mojibake-safe writing rules.
 - `references/evidence-ladder.md`: how to rank evidence from weak intuition to strong verification.
 - `references/monitoring-loops.md`: how to attach health signals and follow-up actions to workflows.
 - `references/output-contracts.md`: response shapes that push outputs toward specificity and accountability.

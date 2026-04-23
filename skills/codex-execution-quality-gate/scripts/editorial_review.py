@@ -17,18 +17,18 @@ import output_guard
 
 
 DECISION_PATTERNS = {
-    "decision": re.compile(r"\b(decision|recommended path|recommendation|chosen path|go\/no-go|ship|no-ship)\b", re.IGNORECASE),
-    "finding": re.compile(r"\b(finding|findings|verdict|assessment)\b", re.IGNORECASE),
-    "state": re.compile(r"\b(current state|status|handoff)\b", re.IGNORECASE),
+    "decision": re.compile(r"\b(decision|recommended path|recommendation|chosen path|go\/no-go|ship|no-ship|quyết định|khuyến nghị|đề xuất|kết luận)\b", re.IGNORECASE),
+    "finding": re.compile(r"\b(finding|findings|verdict|assessment|phát hiện|đánh giá)\b", re.IGNORECASE),
+    "state": re.compile(r"\b(current state|status|handoff|hiện trạng|trạng thái|bàn giao)\b", re.IGNORECASE),
 }
 TRADEOFF_PATTERN = re.compile(
-    r"\b(risk|tradeoff|blast radius|failure mode|rollback|open question|uncertainty|cost)\b",
+    r"\b(risk|tradeoff|blast radius|failure mode|rollback|open question|uncertainty|cost|rủi ro|đánh đổi|phạm vi ảnh hưởng|câu hỏi mở|bất định|chi phí)\b",
     re.IGNORECASE,
 )
-NEXT_STEP_PATTERN = re.compile(r"\b(next step|next steps|follow-up|owner|exit criteria|action item|blocker)\b", re.IGNORECASE)
+NEXT_STEP_PATTERN = re.compile(r"\b(next step|next steps|follow-up|owner|exit criteria|action item|blocker|bước tiếp theo|việc tiếp theo|theo dõi|người phụ trách|điều kiện thoát|vướng mắc)\b", re.IGNORECASE)
 HEADING_PATTERN = re.compile(r"^\s{0,3}(?:#{1,6}\s+.+|[A-Z][A-Za-z /-]{2,}:\s*)$")
 BULLET_PATTERN = re.compile(r"^\s*(?:[-*]\s+|\d+\.\s+)")
-LABELLED_LINE_PATTERN = re.compile(r"^\s*[A-Z][A-Za-z /-]{2,}:\s+\S")
+LABELLED_LINE_PATTERN = re.compile(r"^\s*(?:[A-Z][A-Za-z /-]{2,}|[A-ZÀ-Ỵ][\wÀ-ỹ /-]{2,}):\s+\S")
 HEDGE_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
     ("might want to", re.compile(r"\bmight want to\b", re.IGNORECASE)),
     ("may want to", re.compile(r"\bmay want to\b", re.IGNORECASE)),
@@ -37,6 +37,12 @@ HEDGE_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
     ("appears to", re.compile(r"\bappears to\b", re.IGNORECASE)),
     ("seems to", re.compile(r"\bseems to\b", re.IGNORECASE)),
     ("potentially", re.compile(r"\bpotentially\b", re.IGNORECASE)),
+    ("có thể cân nhắc", re.compile(r"có thể cân nhắc", re.IGNORECASE)),
+    ("có lẽ", re.compile(r"có lẽ", re.IGNORECASE)),
+    ("có vẻ", re.compile(r"có vẻ", re.IGNORECASE)),
+    ("tùy trường hợp", re.compile(r"tùy trường hợp", re.IGNORECASE)),
+    ("nên cân nhắc", re.compile(r"nên cân nhắc", re.IGNORECASE)),
+    ("về cơ bản", re.compile(r"về cơ bản", re.IGNORECASE)),
 )
 AI_SPEAK_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
     ("as an ai", re.compile(r"\bas an ai\b", re.IGNORECASE)),
@@ -45,6 +51,9 @@ AI_SPEAK_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
     ("overall, the best approach", re.compile(r"\boverall,\s+the best approach\b", re.IGNORECASE)),
     ("utilize", re.compile(r"\butilize\b", re.IGNORECASE)),
     ("leverage", re.compile(r"\bleverage\b", re.IGNORECASE)),
+    ("dưới đây là phân tích", re.compile(r"dưới đây là phân tích", re.IGNORECASE)),
+    ("nhìn chung", re.compile(r"nhìn chung", re.IGNORECASE)),
+    ("có thể thấy rằng", re.compile(r"có thể thấy rằng", re.IGNORECASE)),
 )
 DELIVERABLE_MARKERS = {
     "plan": ("success criteria", "task breakdown", "verification", "rollback"),
@@ -236,10 +245,10 @@ def analyze_text_heuristic(
         suggestions.append("Add at least one concrete risk, rollback, blocker, or next-step owner")
     if structure_score < 8:
         issues.append("Structure is too loose for quick human scanning")
-        suggestions.append("Break the output into headings or short labeled sections")
+        suggestions.append("Break the output into headings or short labeled sections such as Decision/Quyết định, Evidence/Bằng chứng, Risk/Rủi ro, and Next step/Bước tiếp theo")
     if ai_speak_hits or len(hedge_hits) >= 3:
         issues.append("Tone still reads like AI-safe prose")
-        suggestions.append("Cut meta framing and replace hedges with direct recommendations")
+        suggestions.append("Cut meta framing and replace hedges with direct statements that name the actor, action, and outcome")
 
     hard_fail = (
         total_score < min_score

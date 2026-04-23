@@ -35,6 +35,8 @@ MOJIBAKE_FRAGMENTS = (
     "âœ",
     "ðŸ",
     "ï»¿",
+    "Æ°",
+    "Ä",
     "\ufffd",
 )
 
