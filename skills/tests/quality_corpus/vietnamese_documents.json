@@ -1,0 +1,46 @@
+[
+  {
+    "name": "vietnamese_release_report",
+    "input_prompt": "Viết báo cáo phát hành cho CodexAI Skill Pack",
+    "expectations": {
+      "reader_context": ["người đọc", "mục đích", "phạm vi"],
+      "evidence": ["python -m pytest skills/tests -q", "python skills/tests/smoke_test.py"],
+      "risk_next_step": ["Rủi ro", "Bước tiếp theo"]
+    },
+    "sample_with_pack": [
+      "Mục đích: báo cáo này giúp người duyệt phát hành hiểu phạm vi thay đổi, bằng chứng kiểm thử, và rủi ro còn lại trước khi đồng bộ skill pack.",
+      "Hiện trạng: `skills/codex-document-writer/SKILL.md` đã được thêm để chuẩn hóa tài liệu, báo cáo, memo, guide và văn bản tiếng Việt.",
+      "Bằng chứng: chạy `python -m pytest skills/tests -q` và `python skills/tests/smoke_test.py` trước khi phát hành.",
+      "Rủi ro: nếu benchmark chỉ dùng ví dụ tự tạo, claim cải thiện chất lượng sẽ chưa đủ đáng tin.",
+      "Bước tiếp theo: thêm corpus tài liệu thật theo từng phiên bản và so sánh điểm output_guard/editorial_review trước khi công bố chỉ số cải thiện."
+    ],
+    "sample_without_pack": [
+      "Bản phát hành này có nhiều cải tiến quan trọng.",
+      "Nội dung đã được tối ưu để nâng cao chất lượng và giúp quy trình tốt hơn.",
+      "Cần kiểm tra lại trước khi sử dụng trong thực tế."
+    ]
+  },
+  {
+    "name": "vietnamese_decision_memo",
+    "input_prompt": "Soạn memo quyết định về việc bật git hooks cho quality gate",
+    "expectations": {
+      "decision": ["Quyết định", "git hooks"],
+      "tradeoff": ["đánh đổi", "Rủi ro"],
+      "action": ["Người phụ trách", "install_hooks.py"]
+    },
+    "sample_with_pack": [
+      "# Memo quyết định: Git hooks cho quality gate",
+      "- Quyết định: bật git hooks bằng `skills/codex-execution-quality-gate/scripts/install_hooks.py` cho các repo cần chặn lỗi trước commit.",
+      "- Lý do: hook chạy security scan và pre-commit check tại đúng thời điểm commit, nên quality gate không còn phụ thuộc hoàn toàn vào việc AI tự nhớ gọi script.",
+      "- Bằng chứng: chạy `python skills/codex-execution-quality-gate/scripts/install_hooks.py --project-root <repo> --dry-run` để kiểm tra hook path trước khi cài thật.",
+      "- Đánh đổi: commit có thể chậm hơn khi repo lớn hoặc khi bật thêm lint/test đầy đủ.",
+      "- Rủi ro: nếu hook được cài sai project root, commit có thể bị chặn bởi đường dẫn script không tồn tại.",
+      "- Người phụ trách: maintainer repo chạy `python skills/codex-execution-quality-gate/scripts/install_hooks.py --project-root <repo>` và xác minh bằng một commit thử."
+    ],
+    "sample_without_pack": [
+      "Nên cân nhắc cài git hooks để tăng chất lượng.",
+      "Điều này giúp kiểm tra tốt hơn và tránh lỗi.",
+      "Tùy tình huống có thể bật thêm lint hoặc test."
+    ]
+  }
+]

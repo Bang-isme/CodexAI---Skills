@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-14.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-123%2F123%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-14.2.1-blue)]() [![Tests](https://img.shields.io/badge/pytest-142%2F142%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -33,7 +33,7 @@ The pack is designed for 3 outcomes:
 | Scrum Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
-| Verification | 123 unit + 51 smoke = 174 tests |
+| Verification | 142 unit + 51 smoke = 193 tests |
 
 ---
 
@@ -107,6 +107,8 @@ This is the biggest differentiator of the pack today:
 - `codex-document-writer` turns reports, memos, guides, and Vietnamese documents into structured reader-first artifacts.
 - `output_guard.py` rejects deliverables that are too generic or weakly grounded.
 - `editorial_review.py` checks whether the writing sounds decisive, accountable, and scanable instead of model-safe.
+- `benchmark_quality.py` now measures output score, editorial score, quality index, and expectation hit rate across a 12-case static corpus.
+- Benchmark corpus loading returns structured JSON errors for invalid corpus files, so release measurement failures are easier to diagnose.
 - `run_gate.py` now treats `plan`, `review`, and `handoff` as strict deliverables by default.
 - `quality_trend.py` tracks gate pass rate, output score, and editorial score over time.
 

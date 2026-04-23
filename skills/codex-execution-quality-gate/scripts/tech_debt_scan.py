@@ -45,8 +45,21 @@ SKIP_DIRS = {
 CODE_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx"}
 TS_EXTENSIONS = {".ts", ".tsx"}
 MAX_FILE_SIZE = 1_500_000
+LOW_SIGNAL_DIRS = {"test", "tests", "__tests__", "fixtures", "examples", "starters", "templates"}
 
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME|HACK)\b", re.IGNORECASE)
+INTENTIONAL_TODO_HINTS = (
+    "[TODO:",
+    "TODO assertions",
+    "TODO_PATTERN",
+    "TODO/FIXME",
+    "TODO count",
+    "todo_line",
+    "todo-age-days",
+    "Pending TODO",
+    "\"todo\"",
+    "\"fixme\"",
+)
 IMPORT_BRACES_PATTERN = re.compile(
     r"\bimport\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['\"][^'\"]+['\"]", re.MULTILINE
 )
@@ -85,6 +98,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-function-lines", type=int, default=50, help="Max function lines")
     parser.add_argument("--max-file-lines", type=int, default=500, help="Max file lines")
     parser.add_argument("--todo-age-days", type=int, default=30, help="Mark TODO older than this as medium")
+    parser.add_argument("--include-low-signal", action="store_true", help="Also scan tests, starters, fixtures, examples, and templates")
     parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
@@ -95,19 +109,31 @@ def rel_path(path: Path, root: Path) -> str:
 
 def read_text(path: Path) -> str:
     try:
-        return path.read_text(encoding="utf-8", errors="ignore")
+        return path.read_text(encoding="utf-8", errors="ignore").lstrip("\ufeff")
     except OSError:
         return ""
 
 
-def collect_code_files(root: Path) -> List[Path]:
+def is_low_signal_path(path: Path, root: Path) -> bool:
+    try:
+        parts = path.resolve().relative_to(root.resolve()).parts
+    except ValueError:
+        parts = path.parts
+    return any(part.lower() in LOW_SIGNAL_DIRS for part in parts)
+
+
+def collect_code_files(root: Path, include_low_signal: bool = False) -> List[Path]:
     files: List[Path] = []
     for current_root, dirs, names in os.walk(root):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        if not include_low_signal:
+            dirs[:] = [d for d in dirs if d.lower() not in LOW_SIGNAL_DIRS]
         root_path = Path(current_root)
         for name in names:
             path = root_path / name
             if path.suffix.lower() not in CODE_EXTENSIONS:
+                continue
+            if not include_low_signal and is_low_signal_path(path, root):
                 continue
             try:
                 if path.stat().st_size > MAX_FILE_SIZE:
@@ -236,6 +262,10 @@ def todo_priority(
     return "medium" if age_days > todo_age_days else "low"
 
 
+def is_intentional_todo_reference(line: str) -> bool:
+    return any(hint in line for hint in INTENTIONAL_TODO_HINTS)
+
+
 def scan_todos(
     files: Iterable[Path],
     root: Path,
@@ -256,6 +286,8 @@ def scan_todos(
 
         for idx, line in enumerate(lines, start=1):
             if not TODO_PATTERN.search(line):
+                continue
+            if is_intentional_todo_reference(line):
                 continue
 
             if use_blame and not blame_attempted:
@@ -526,6 +558,7 @@ def scan_project(
     max_function_lines: int,
     max_file_lines: int,
     todo_age_days: int,
+    include_low_signal: bool = False,
 ) -> Dict[str, object]:
     warnings: List[str] = []
 
@@ -544,7 +577,7 @@ def scan_project(
             "warnings": [f"Project root does not exist or is not a directory: {project_root}"],
         }
 
-    files = collect_code_files(project_root)
+    files = collect_code_files(project_root, include_low_signal=include_low_signal)
     if not files:
         warnings.append("No supported code files found for scanning.")
 
@@ -568,6 +601,9 @@ def scan_project(
         "total_issues": total_issues,
         "by_category": by_category,
         "summary": build_summary(by_category, total_issues),
+        "scan_options": {
+            "include_low_signal": include_low_signal,
+        },
         "warnings": sorted(set(warnings)),
     }
 
@@ -640,6 +676,7 @@ def main() -> int:
         max_function_lines=args.max_function_lines,
         max_file_lines=args.max_file_lines,
         todo_age_days=args.todo_age_days,
+        include_low_signal=args.include_low_signal,
     )
     emit_json(report)
     if args.human:

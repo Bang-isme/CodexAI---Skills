@@ -22,7 +22,41 @@ Before writing a single line of code, UI, or schema — STOP and answer these 3 
 
 ---
 
-## 2. Frontend Quality Gate
+## 2. Scope Fit Gate (Anti-Overengineering)
+
+Before adding abstractions, dependencies, services, queues, caches, event buses, design systems, framework changes, or new architecture layers, answer these questions:
+
+| # | Question | If You Can't Answer |
+|---|---|---|
+| 1 | **What exact requirement, bug, scale constraint, or repo pattern needs this complexity?** | Use the simpler local change. |
+| 2 | **What simpler option was considered and why does it fail here?** | Do not introduce the complex option. |
+| 3 | **How will this extra complexity be verified and maintained?** | Add verification first or shrink the design. |
+
+**Rule**: Complexity must buy a named benefit in this repo. If the benefit is only "future flexibility", "best practice", or "scalability" without measurable demand, it is overengineering.
+
+### Complexity Budget
+
+| Change Type | Allowed When |
+|---|---|
+| New helper/function | The same logic repeats or the local flow becomes harder to read. |
+| New module/service | There is a clear domain boundary, multiple call sites, or existing project convention. |
+| New dependency | Existing standard library or installed stack cannot solve the requirement safely. |
+| New queue/cache/worker | There is measured latency, reliability, throughput, or async processing need. |
+| New architecture layer | The task changes a boundary, ownership model, deployment surface, or long-lived contract. |
+
+### Scope Fit Output Requirement
+
+If you choose the more complex option, include a short note with:
+
+- `Why simpler option fails`
+- `What this complexity buys`
+- `How we will verify it`
+
+If you cannot write that note concretely, use the simpler solution.
+
+---
+
+## 3. Frontend Quality Gate
 
 Before outputting any UI component, page, or layout:
 
@@ -47,7 +81,7 @@ Before outputting any UI component, page, or layout:
 
 ---
 
-## 3. Backend Quality Gate
+## 4. Backend Quality Gate
 
 Before outputting any API endpoint, service, or controller:
 
@@ -71,7 +105,7 @@ Before outputting any API endpoint, service, or controller:
 
 ---
 
-## 4. Database Quality Gate
+## 5. Database Quality Gate
 
 Before outputting any schema, migration, or query:
 
@@ -94,7 +128,7 @@ Before outputting any schema, migration, or query:
 
 ---
 
-## 5. Universal Anti-Generic Checklist
+## 6. Universal Anti-Generic Checklist
 
 Run this **after** generating output, **before** presenting it:
 
@@ -110,10 +144,12 @@ Run this **after** generating output, **before** presenting it:
 | 8 | Does the API return the raw database model? | Map to a DTO with only the fields the client needs |
 | 9 | Would a PM read this code and have no idea what business problem it solves? | Add business-context comments and meaningful naming |
 | 10 | Is the heading font the same size as body text? | Apply typographic scale (see `ui-ux-design-principles.md`) |
+| 11 | Did you add a dependency, queue, cache, service, or abstraction without evidence? | Remove it or add the Scope Fit note with proof |
+| 12 | Did you solve a one-file issue with a platform-wide architecture change? | Shrink to the local change unless a boundary or scale signal requires more |
 
 ---
 
-## 6. The "Why" Mandate
+## 7. The "Why" Mandate
 
 Every major decision in output must be traceable to a project-specific reason:
 
@@ -139,7 +175,7 @@ and a separate PATCH /api/v1/enrollments/:id/verify endpoint."
 
 ---
 
-## 7. Framework & Library Defaults Are NOT Your Defaults
+## 8. Framework & Library Defaults Are NOT Your Defaults
 
 | What AI Was Trained On | What You Should Actually Do |
 |---|---|

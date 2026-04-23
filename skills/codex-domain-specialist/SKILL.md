@@ -5,18 +5,21 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.yaml` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references.
+Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.yaml` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references. Keep solutions project-specific without adding abstractions, dependencies, services, or architecture layers that the task does not justify.
 
 ## Output Quality Mandate (MANDATORY)
 
 > **Before generating ANY code, schema, API, or UI — load and apply `references/output-quality-gates.md`.** This reference is exempt from the 4-item context limit and domain isolation rules. It must be loaded on EVERY task.
 
-This reference prevents generic, tutorial-style output by enforcing:
+This reference prevents generic, tutorial-style output and irresponsible overengineering by enforcing:
 1. The **3-Second Rule**: 3 questions before any output.
 2. Domain-specific **Quality Gates** (FE / BE / DB).
-3. A **10-point Anti-Generic Checklist** after generating output.
+3. A **Scope Fit Gate** before adding abstractions, dependencies, queues, caches, services, or framework layers.
+4. A **10-point Anti-Generic Checklist** after generating output.
 
 **If your output could be copy-pasted into any random project and still work without modification, it is generic. Generic = failure. Re-think and rewrite.**
+
+**If your solution adds architecture the current task does not need and cannot justify with repo evidence, it is overengineered. Overengineered = failure. Shrink the design.**
 
 # Domain Specialist
 
@@ -140,6 +143,10 @@ Route in this exact order:
 4. Explicit declaration: whenever references are loaded, always declare:
    - `Loading: [file1], [file2]`
    - `Skipping: [reason]`
+5. Scope-fit enforcement:
+   - Prefer the smallest change that satisfies the task, tests, and existing project patterns.
+   - Do not add a new dependency, service, worker, cache, queue, design system, abstraction layer, or cross-cutting framework unless the task has an explicit signal or repo evidence shows the simpler path fails.
+   - If adding complexity, state: `Why simpler option fails`, `What this complexity buys`, and `How we will verify it`.
 
 ## Routing Decision Table
 
@@ -284,6 +291,8 @@ When task matches a combo pattern, load the specified set instead of individual 
 2. Keep first-pass load minimal and task-specific.
 3. Re-check boundaries after each major step and prune irrelevant references.
 4. If user task spans multiple domains, justify each added reference in the declaration.
+5. Avoid speculative architecture. Route to architecture/devops/security references only when the task changes a boundary, runtime, threat model, deployment path, or operational risk.
+6. Use existing repo conventions before introducing new patterns. New patterns require evidence from the task, failing tests, scale constraints, or explicit user direction.
 
 ## Signal Conflict Resolution
 
@@ -439,5 +448,5 @@ Rules:
 - `references/gsap-mastery.md`: GSAP core architecture, easing, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, performance, React integration, and creative recipes.
 - `references/interactive-elements.md`: Fun interactive UI elements: custom cursors, tilt cards, magnetic buttons, confetti, particles, text scramble, hover effects, drag/swipe, Easter eggs.
 - `references/creative-development.md`: Creative Director's Brain — Creative Brief Decoder, 7 archetypes, experimental typography, glow/neon systems, purpose-driven animation, differentiation playbook, conversion-focused creative.
-- `references/output-quality-gates.md`: **MANDATORY** — Anti-generic guardrails: 3-Second Rule, FE/BE/DB Quality Gates, 10-point Anti-Generic Checklist, Why Mandate, Framework Defaults Override.
+- `references/output-quality-gates.md`: **MANDATORY** — Anti-generic and anti-overengineering guardrails: 3-Second Rule, Scope Fit Gate, FE/BE/DB Quality Gates, 12-point checklist, Why Mandate, Framework Defaults Override.
 - `references/ai-llm-patterns.md`: AI/LLM integration patterns — prompt engineering, RAG pipelines, embeddings, vector DB selection, streaming, cost control, and security rules.

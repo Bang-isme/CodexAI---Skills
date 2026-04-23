@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -71,6 +73,60 @@ def test_output_guard_passes_specific_vietnamese_text() -> None:
     report = output_guard.analyze_text(text, min_score=60)
     assert report["status"] == "pass"
     assert set(report["section_hits"]) >= {"decision", "evidence", "risk", "next"}
+
+
+def test_output_guard_detects_vietnamese_prose_command_evidence() -> None:
+    text = "\n".join(
+        [
+            "Quyết định: giữ `skills/codex-document-writer/SKILL.md` trong pack.",
+            "Bằng chứng: chạy python -m pytest skills/tests -q để xác minh test suite.",
+            "Rủi ro: nếu không có benchmark thật, claim cải thiện chỉ là mô tả.",
+            "Bước tiếp theo: thêm corpus tài liệu thật cho benchmark.",
+        ]
+    )
+    report = output_guard.analyze_text(text, min_score=60)
+    assert report["status"] == "pass"
+    assert any(command.startswith("python -m pytest") for command in report["command_hits"])
+
+
+def test_output_guard_trims_same_line_vietnamese_section_after_command() -> None:
+    text = (
+        "Quyết định: giữ benchmark. "
+        "Bằng chứng: chạy python skills/tests/benchmark_quality.py. "
+        "Rủi ro: corpus còn nhỏ. "
+        "Bước tiếp theo: thêm case thật."
+    )
+    report = output_guard.analyze_text(text, min_score=60)
+    assert report["status"] == "pass"
+    assert "python skills/tests/benchmark_quality.py" in report["command_hits"]
+    assert all("Rủi ro" not in command for command in report["command_hits"])
+
+
+def test_output_guard_detects_modern_tool_commands() -> None:
+    text = "\n".join(
+        [
+            "Decision: keep the browser smoke check.",
+            "Evidence: run npx playwright test dashboard.spec.ts --project=chromium.",
+            "Evidence: run uv run pytest tests/test_api.py -q.",
+            "Risk: missing these commands makes frontend and Python verification look weaker than it is.",
+            "Next step: keep both command families in the evidence parser.",
+        ]
+    )
+    report = output_guard.analyze_text(text, min_score=60)
+    assert report["status"] == "pass"
+    assert "npx playwright test dashboard.spec.ts --project=chromium" in report["command_hits"]
+    assert "uv run pytest tests/test_api.py -q" in report["command_hits"]
+
+
+def test_output_guard_does_not_count_prose_as_command() -> None:
+    text = "\n".join(
+        [
+            "Python is required for the benchmark runner.",
+            "Docker should be available only for deployment smoke checks.",
+            "Node is part of the frontend toolchain.",
+        ]
+    )
+    assert output_guard.collect_command_hits(text) == []
 
 
 def test_output_guard_flags_vietnamese_generic_filler_and_mojibake() -> None:
@@ -316,6 +372,28 @@ def test_editorial_review_passes_decision_ready_grounded_vietnamese_text(tmp_pat
     assert report["status"] == "pass"
     assert report["counts"]["hedge_phrases"] == 0
     assert report["rubric"]["decision_clarity"] >= 12
+
+
+def test_editorial_review_cli_emits_utf8_json_for_vietnamese_text() -> None:
+    script = SKILLS_ROOT / "codex-execution-quality-gate" / "scripts" / "editorial_review.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--text",
+            "Quyết định: giữ `skills/tests/smoke_test.py`. Bằng chứng: chạy python skills/tests/smoke_test.py. Rủi ro: còn thiếu owner. Bước tiếp theo: bổ sung owner.",
+            "--deliverable-kind",
+            "review",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    payload = json.loads(result.stdout.decode("utf-8"))
+    assert payload["status"] in {"pass", "fail"}
+    assert "suggestions" in payload
 
 
 def test_editorial_review_llm_judge_without_api_key_falls_back(monkeypatch) -> None:

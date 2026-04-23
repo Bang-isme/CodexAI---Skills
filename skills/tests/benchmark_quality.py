@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import importlib.util
+import argparse
 import json
 import re
 import sys
 from pathlib import Path
+from json import JSONDecodeError
 from typing import Dict, List, Sequence
 
 
 SKILLS_ROOT = Path(__file__).resolve().parents[1]
-BENCHMARK_VERSION = "1.0"
+BENCHMARK_VERSION = "1.2"
 MIN_SCORE = 60
+EDITORIAL_MIN_SCORE = 65
+DEFAULT_CORPUS_DIR = Path(__file__).resolve().parent / "quality_corpus"
 
 
 def load_script_module(name: str, relative_path: str):
@@ -27,6 +31,10 @@ def load_script_module(name: str, relative_path: str):
 output_guard = load_script_module(
     "skills_output_guard_benchmark",
     "codex-execution-quality-gate/scripts/output_guard.py",
+)
+editorial_review = load_script_module(
+    "skills_editorial_review_benchmark",
+    "codex-execution-quality-gate/scripts/editorial_review.py",
 )
 
 
@@ -116,12 +124,15 @@ TEST_CASES: List[Dict[str, object]] = [
         "sample_with_pack": "\n".join(
             [
                 "# Implementation Plan",
+                "Decision: implement dark mode through semantic tokens first, then migrate the highest-traffic surfaces after the token contract is stable.",
                 "Task breakdown:",
                 "1. Add semantic tokens in `src/styles/tokens.css` for background, text, border, and accent colors.",
                 "2. Add persisted theme state in `src/context/theme.tsx` and wire a toggle into `src/components/Header.tsx`.",
                 "3. Update high-risk surfaces first: dashboard, settings, and auth screens.",
                 "Dependencies: token work must land before component rewrites, and the toggle depends on `ThemeProvider` being mounted in `src/App.tsx`.",
+                "Risk: contrast regressions are most likely in dense forms and chart legends, so those screens need manual visual QA before release.",
                 "Verification: run `npm test -- theme-toggle.spec.ts`, review the dark-mode stories in Storybook, and manually verify contrast on login and settings pages.",
+                "Next step: assign one owner for token review and one owner for visual QA before implementation starts.",
             ]
         ),
         "sample_without_pack": "\n".join(
@@ -159,6 +170,81 @@ TEST_CASES: List[Dict[str, object]] = [
 ]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run static output quality benchmark cases.")
+    parser.add_argument(
+        "--corpus-dir",
+        default=str(DEFAULT_CORPUS_DIR),
+        help="Directory containing additional JSON benchmark cases",
+    )
+    return parser.parse_args()
+
+
+def normalize_sample(value: object, field: str, source: Path) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "\n".join(str(item) for item in value)
+    raise ValueError(f"{source}: {field} must be a string or list of strings")
+
+
+def normalize_expectation_needles(value: object, source: Path, case_name: str, expectation_name: str) -> List[str]:
+    if isinstance(value, str):
+        needles = [value]
+    elif isinstance(value, list):
+        needles = [str(item) for item in value]
+    else:
+        raise ValueError(f"{source}: {case_name}.{expectation_name} must be a string or list of strings")
+    needles = [needle for needle in needles if needle.strip()]
+    if not needles:
+        raise ValueError(f"{source}: {case_name}.{expectation_name} must contain at least one non-empty matcher")
+    return needles
+
+
+def validate_case(case: object, source: Path) -> Dict[str, object]:
+    if not isinstance(case, dict):
+        raise ValueError(f"{source}: benchmark case must be an object")
+    required = {"name", "input_prompt", "expectations", "sample_with_pack", "sample_without_pack"}
+    missing = sorted(required - set(case))
+    if missing:
+        raise ValueError(f"{source}: benchmark case is missing {', '.join(missing)}")
+    expectations = case["expectations"]
+    if not isinstance(expectations, dict):
+        raise ValueError(f"{source}: expectations must be an object")
+    case_name = str(case["name"])
+    normalized_expectations = {
+        str(name): normalize_expectation_needles(value, source, case_name, str(name))
+        for name, value in expectations.items()
+    }
+    normalized = dict(case)
+    normalized["expectations"] = normalized_expectations
+    normalized["sample_with_pack"] = normalize_sample(case["sample_with_pack"], "sample_with_pack", source)
+    normalized["sample_without_pack"] = normalize_sample(case["sample_without_pack"], "sample_without_pack", source)
+    normalized["source"] = source.as_posix()
+    return normalized
+
+
+def load_corpus_cases(corpus_dir: Path) -> List[Dict[str, object]]:
+    if not corpus_dir.exists():
+        return []
+    cases: List[Dict[str, object]] = []
+    for path in sorted(corpus_dir.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        except JSONDecodeError as exc:
+            raise ValueError(f"{path}: invalid JSON: {exc.msg}") from exc
+        if isinstance(payload, list):
+            entries = payload
+        elif isinstance(payload, dict) and "cases" in payload:
+            entries = payload["cases"]
+        else:
+            raise ValueError(f"{path}: corpus payload must be a list or contain a cases list")
+        if not isinstance(entries, list):
+            raise ValueError(f"{path}: corpus payload must be a list or contain a cases list")
+        cases.extend(validate_case(entry, path) for entry in entries)
+    return cases
+
+
 def needle_matches(text: str, needle: str) -> bool:
     if re.fullmatch(r"[A-Za-z0-9 _-]+", needle):
         pattern = re.compile(rf"\b{re.escape(needle).replace(r'\ ', r'\s+')}\b", re.IGNORECASE)
@@ -181,6 +267,20 @@ def score_text(text: str) -> Dict[str, object]:
     return output_guard.analyze_text(text, min_score=MIN_SCORE)
 
 
+def score_editorial_text(text: str, deliverable_kind: str = "auto") -> Dict[str, object]:
+    return editorial_review.analyze_text(
+        text,
+        min_score=EDITORIAL_MIN_SCORE,
+        deliverable_kind=deliverable_kind,
+    )
+
+
+def expectation_hit_rate(hits: Dict[str, bool]) -> float:
+    if not hits:
+        return 0.0
+    return round((sum(1 for value in hits.values() if value) / len(hits)) * 100, 1)
+
+
 def percentage_improvement(with_pack: float, without_pack: float) -> float:
     if without_pack <= 0:
         return 100.0 if with_pack > 0 else 0.0
@@ -191,49 +291,102 @@ def benchmark_case(case: Dict[str, object]) -> Dict[str, object]:
     with_pack_text = str(case["sample_with_pack"])
     without_pack_text = str(case["sample_without_pack"])
     expectations = dict(case["expectations"])
+    deliverable_kind = str(case.get("deliverable_kind", "auto"))
 
     with_pack_report = score_text(with_pack_text)
     without_pack_report = score_text(without_pack_text)
+    with_pack_editorial = score_editorial_text(with_pack_text, deliverable_kind)
+    without_pack_editorial = score_editorial_text(without_pack_text, deliverable_kind)
 
     with_pack_expectations = evaluate_expectations(with_pack_text, expectations)
     without_pack_expectations = evaluate_expectations(without_pack_text, expectations)
 
     with_pack_score = int(with_pack_report["score"])
     without_pack_score = int(without_pack_report["score"])
+    with_pack_editorial_score = int(with_pack_editorial["score"])
+    without_pack_editorial_score = int(without_pack_editorial["score"])
+    with_pack_quality_index = round((with_pack_score + with_pack_editorial_score) / 2, 1)
+    without_pack_quality_index = round((without_pack_score + without_pack_editorial_score) / 2, 1)
 
     return {
         "name": case["name"],
         "input_prompt": case["input_prompt"],
+        "deliverable_kind": deliverable_kind,
+        "source": case.get("source", "built-in"),
         "with_pack": {
             "score": with_pack_score,
             "status": with_pack_report["status"],
+            "editorial_score": with_pack_editorial_score,
+            "editorial_status": with_pack_editorial["status"],
+            "quality_index": with_pack_quality_index,
             "issues": with_pack_report["issues"],
             "suggestions": with_pack_report["suggestions"],
             "expectation_hits": with_pack_expectations,
+            "expectation_hit_rate": expectation_hit_rate(with_pack_expectations),
         },
         "without_pack": {
             "score": without_pack_score,
             "status": without_pack_report["status"],
+            "editorial_score": without_pack_editorial_score,
+            "editorial_status": without_pack_editorial["status"],
+            "quality_index": without_pack_quality_index,
             "issues": without_pack_report["issues"],
             "suggestions": without_pack_report["suggestions"],
             "expectation_hits": without_pack_expectations,
+            "expectation_hit_rate": expectation_hit_rate(without_pack_expectations),
         },
         "delta": with_pack_score - without_pack_score,
+        "editorial_delta": with_pack_editorial_score - without_pack_editorial_score,
+        "quality_index_delta": round(with_pack_quality_index - without_pack_quality_index, 1),
         "improvement_percentage": percentage_improvement(with_pack_score, without_pack_score),
+        "quality_index_improvement_percentage": percentage_improvement(
+            with_pack_quality_index,
+            without_pack_quality_index,
+        ),
     }
 
 
 def main() -> int:
-    per_case = [benchmark_case(case) for case in TEST_CASES]
+    output_guard.configure_utf8_stdio()
+    args = parse_args()
+    corpus_dir = Path(args.corpus_dir).expanduser().resolve()
+    try:
+        corpus_cases = load_corpus_cases(corpus_dir)
+    except ValueError as exc:
+        print(json.dumps({"status": "error", "message": str(exc)}, ensure_ascii=False, indent=2))
+        return 2
+    all_cases = [*TEST_CASES, *corpus_cases]
+    per_case = [benchmark_case(case) for case in all_cases]
     avg_with_pack = round(sum(int(case["with_pack"]["score"]) for case in per_case) / len(per_case), 1)
     avg_without_pack = round(sum(int(case["without_pack"]["score"]) for case in per_case) / len(per_case), 1)
+    avg_editorial_with_pack = round(sum(int(case["with_pack"]["editorial_score"]) for case in per_case) / len(per_case), 1)
+    avg_editorial_without_pack = round(sum(int(case["without_pack"]["editorial_score"]) for case in per_case) / len(per_case), 1)
+    avg_quality_index_with_pack = round(sum(float(case["with_pack"]["quality_index"]) for case in per_case) / len(per_case), 1)
+    avg_quality_index_without_pack = round(sum(float(case["without_pack"]["quality_index"]) for case in per_case) / len(per_case), 1)
+    avg_expectation_hit_rate_with_pack = round(sum(float(case["with_pack"]["expectation_hit_rate"]) for case in per_case) / len(per_case), 1)
+    avg_expectation_hit_rate_without_pack = round(sum(float(case["without_pack"]["expectation_hit_rate"]) for case in per_case) / len(per_case), 1)
 
     payload = {
+        "status": "pass",
         "benchmark_version": BENCHMARK_VERSION,
-        "test_cases": len(TEST_CASES),
+        "test_cases": len(all_cases),
+        "built_in_cases": len(TEST_CASES),
+        "corpus_cases": len(corpus_cases),
+        "corpus_dir": corpus_dir.as_posix(),
         "avg_score_with_pack": avg_with_pack,
         "avg_score_without_pack": avg_without_pack,
+        "avg_editorial_score_with_pack": avg_editorial_with_pack,
+        "avg_editorial_score_without_pack": avg_editorial_without_pack,
+        "avg_quality_index_with_pack": avg_quality_index_with_pack,
+        "avg_quality_index_without_pack": avg_quality_index_without_pack,
+        "avg_expectation_hit_rate_with_pack": avg_expectation_hit_rate_with_pack,
+        "avg_expectation_hit_rate_without_pack": avg_expectation_hit_rate_without_pack,
         "improvement_percentage": percentage_improvement(avg_with_pack, avg_without_pack),
+        "editorial_improvement_percentage": percentage_improvement(avg_editorial_with_pack, avg_editorial_without_pack),
+        "quality_index_improvement_percentage": percentage_improvement(
+            avg_quality_index_with_pack,
+            avg_quality_index_without_pack,
+        ),
         "per_case": per_case,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))

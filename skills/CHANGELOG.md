@@ -1,8 +1,36 @@
 # Changelog
 
+## [14.2.1] - 2026-04-24
+
+### Fixed
+- Added UTF-8 stdout/stderr configuration for output-quality CLIs to prevent Windows console encoding failures on Vietnamese deliverables.
+- Improved `output_guard.py` evidence detection for Vietnamese prose commands such as `Bang chung: chay python -m pytest ...`.
+- Reduced false-positive security scan noise from scanner literals, local HTTP examples, and non-production TODO references.
+- Hardened `tech_debt_scan.py` against UTF-8 BOM parsing failures and low-signal test/template directories.
+- Tightened command evidence extraction so same-line Vietnamese section labels do not get captured as part of commands.
+- Expanded command evidence support for modern toolchains such as `npx`, `uv`, `bun`, `yarn`, `ruff`, `mypy`, and `docker`, with prose guards to avoid false positives such as "Python is required".
+- Hardened `benchmark_quality.py` corpus parsing with structured JSON error output and support for string-valued expectation matchers.
+- Added `utf-8-sig` corpus loading so benchmark files created by Windows tools with a UTF-8 BOM still work.
+
+### Added
+- Added file-based benchmark corpus for release reports, decision memos, PR reviews, incident postmortems, technical decisions, frontend handoffs, and stakeholder status reports.
+- Expanded `benchmark_quality.py` to report output score, editorial score, quality index, and expectation hit rate.
+- Added regression tests for UTF-8 CLI output, Vietnamese command evidence, benchmark corpus loading, invalid corpus handling, BOM-encoded corpus JSON, scanner noise, BOM handling, modern command parsing, and prose false-positive prevention.
+- Added release integrity tests that verify version strings, README badges, changelog, benchmark version, and published test-count metadata stay aligned.
+- Added specialist integrity tests to lock domain/security reference coverage and anti-overengineering guardrails.
+
+### Enhanced
+- Strengthened `codex-domain-specialist` with a Scope Fit Gate, complexity budget, and explicit proof requirement before adding dependencies, services, queues, caches, or architecture layers.
+- Strengthened `codex-security-specialist` with proportional-control rules so defense-in-depth does not become unjustified WAF/SIEM/mTLS/Vault/compliance overengineering.
+
+### Infrastructure
+- Bumped version: `14.2.0` -> `14.2.1`
+- Verified suite target: `142` unit tests + `51` smoke checks.
+- Added missing `codex-verification-discipline` and `codex-branch-finisher` entries to manifest on-demand load order.
+
 ## [14.1.0] - 2026-04-19
 
-### Added — 2 New Discipline Skills (Round 2 Superpowers Parity)
+### Added - 2 New Discipline Skills (Round 2 Superpowers Parity)
 - **NEW SKILL**: `codex-verification-discipline`
   - `SKILL.md`: Iron Law "evidence before claims" behavioral constraint
   - Rationalization prevention table (8 excuses countered)
@@ -12,31 +40,31 @@
 
 - **NEW SKILL**: `codex-branch-finisher`
   - `SKILL.md`: Structured 4-option completion workflow (merge, PR, keep, discard)
-  - Test verification gate — blocks completion if tests fail
+  - Test verification gate - blocks completion if tests fail
   - Worktree cleanup integration with `codex-git-worktrees`
   - Bash + PowerShell command equivalents
   - Aliases: `$finish`, `$finish-branch`
 
-### Added — New Reference Files
+### Added - New Reference Files
 - `codex-test-driven-development/references/testing-anti-patterns.md`: Enhanced with Iron Laws, gate functions for anti-patterns 1-3
 - `codex-subagent-execution/references/code-review-discipline.md`: How to receive code review feedback without performative agreement
 - `codex-plan-writer/references/plan-document-reviewer-prompt.md`: Subagent dispatch template for automated plan quality verification
 
-### Enhanced — Intent Context Analyzer
-- Added **HARD-GATE**: Design before implementation — no code without approved design
+### Enhanced - Intent Context Analyzer
+- Added **HARD-GATE**: Design before implementation - no code without approved design
 - Added **Anti-Pattern**: "This Is Too Simple To Need A Design" counter
 - Added **2-3 Approaches**: Propose approaches with trade-offs before settling
 - Added **Design Self-Review**: Placeholder scan, internal consistency, scope check, ambiguity check
 - Added **One question at a time** discipline + multiple choice preference
 - Added **Sub-project decomposition** for multi-system requests
 
-### Enhanced — Cross-References and Integration
+### Enhanced - Cross-References and Integration
 - `codex-subagent-execution`: Added `codex-verification-discipline` and `codex-branch-finisher` to Related Skills
 - `codex-plan-writer`: Added Reference Files and Related Skills sections
 - `codex-master-instructions`: Added 4 new aliases (`$finish-branch`, `$verify`, `$evidence`), fixed `$finish` routing to `codex-branch-finisher`
 
-### Fixed — Quality Issues (Round 1 Audit)
-- Consolidated 3 duplicate reference files (condition-based-waiting, defense-in-depth, root-cause-tracing) — old versions in `codex-master-instructions/references/` now redirect to canonical versions in `codex-systematic-debugging/references/`
+### Fixed - Quality Issues (Round 1 Audit)
+- Consolidated 3 duplicate reference files (condition-based-waiting, defense-in-depth, root-cause-tracing) - old versions in `codex-master-instructions/references/` now redirect to canonical versions in `codex-systematic-debugging/references/`
 - Added `tdd` to workflow-autopilot Output Contract mode enum
 - Synced quality gate decision tree with master-instructions v14 (added TDD, systematic debugging, worktree routes)
 - Updated intent analyzer with Discipline Skill Notes table
@@ -47,13 +75,13 @@
 - Updated `codex-master-instructions` reference pointers to canonical sources
 
 ### Infrastructure
-- Bumped version: `14.0.0` → `14.1.0`
-- Total skills: 19 → 21 (15 pipeline + 6 discipline)
-- Total aliases: 27 → 31
+- Bumped version: `14.0.0` -> `14.1.0`
+- Total skills: 19 -> 21 (15 pipeline + 6 discipline)
+- Total aliases: 27 -> 31
 
 ## [14.0.0] - 2026-04-19
 
-### Added — 4 New Discipline Skills (Workflow Mastery from Superpowers)
+### Added - 4 New Discipline Skills (Workflow Mastery from Superpowers)
 - **NEW SKILL**: `codex-test-driven-development`
   - `SKILL.md`: RED-GREEN-REFACTOR Iron Law enforcement, 12-excuse rationalization table, verification checklist
   - `references/testing-anti-patterns.md`: 7 anti-patterns with Python + TypeScript examples
@@ -67,7 +95,7 @@
   - Aliases: `$root-cause`, `$trace`
 
 - **NEW SKILL**: `codex-subagent-execution`
-  - `SKILL.md`: fresh subagent per task + 2-stage review (spec compliance → code quality)
+  - `SKILL.md`: fresh subagent per task + 2-stage review (spec compliance -> code quality)
   - `agents/implementer-prompt.md`: implementer dispatch template
   - `agents/spec-reviewer-prompt.md`: spec compliance review template
   - `agents/code-quality-reviewer-prompt.md`: code quality review template
@@ -77,7 +105,7 @@
   - `SKILL.md`: isolated workspaces with safety verification, auto-setup, clean test baseline
   - Aliases: `$worktree`, `$isolate`, `$finish`
 
-### Enhanced — 3 Existing Skills
+### Enhanced - 3 Existing Skills
 - `codex-plan-writer/SKILL.md`:
   - Added File Structure section (lock decomposition decisions before tasks)
   - Added No Placeholders enforcement (TBD/TODO = plan failure)
@@ -93,11 +121,11 @@
 
 - `codex-workflow-autopilot/SKILL.md`:
   - Added TDD behavioral mode
-  - Enhanced debug mode → 4-phase systematic debugging
+  - Enhanced debug mode -> 4-phase systematic debugging
   - Enhanced Intent to Workflow table with TDD and skill aliases
   - Enhanced BMAD Phase 4 with worktree, subagent execution, TDD integration
 
-### Updated — Agents & Infrastructure
+### Updated - Agents & Infrastructure
 - `.agents/debugger.md`: linked to `codex-systematic-debugging` + `codex-test-driven-development`, added 4-phase behavioral rules
 - `.agents/test-engineer.md`: linked to `codex-test-driven-development`, added TDD Iron Law + anti-patterns reference
 - `.workflows/debug.md`: routes through `codex-systematic-debugging` + Phase 4.5 architecture check
@@ -105,10 +133,10 @@
 - `skills/README.md`: updated metrics (19 skills), runtime flow, skill inventory, workflow aliases
 
 ### Metrics
-- Skills: 15 → 19 (4 new discipline skills)
-- Short aliases: 16 → 25+ (9 new)
-- References: 160 → 165+
-- Version: 13.0.0 → 14.0.0
+- Skills: 15 -> 19 (4 new discipline skills)
+- Short aliases: 16 -> 25+ (9 new)
+- References: 160 -> 165+
+- Version: 13.0.0 -> 14.0.0
 
 
 ## [12.6.0] - 2026-03-18

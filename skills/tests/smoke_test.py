@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Smoke test suite for Codex AI Skill Pack.
 Run: python smoke_test.py [--verbose]

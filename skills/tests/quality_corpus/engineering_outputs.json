@@ -1,0 +1,112 @@
+[
+  {
+    "name": "pull_request_review_findings",
+    "input_prompt": "Review this pull request for regressions",
+    "deliverable_kind": "review",
+    "expectations": {
+      "finding_format": ["Findings", "P1", "P2"],
+      "evidence": ["src/api/orders.ts:118", "npm test -- orders"],
+      "risk": ["risk", "regression"]
+    },
+    "sample_with_pack": [
+      "# Findings",
+      "P1: `src/api/orders.ts:118` now returns cached order totals before applying the tenant filter. Risk: users can see totals from another tenant when the shared cache key is reused.",
+      "Evidence: run `npm test -- orders.cache.test.ts -t tenant` and inspect the failing assertion for tenant B receiving tenant A's total.",
+      "P2: `src/components/OrderSummary.tsx:42` no longer handles the empty discount state, which regresses the existing no-discount checkout path.",
+      "Next step: include `tenant_id` in the cache key, restore the empty-state branch, and add a regression test before merge."
+    ],
+    "sample_without_pack": [
+      "The pull request generally looks good but may need more testing.",
+      "There could be edge cases around caching and UI states.",
+      "I recommend checking the affected areas before merging."
+    ]
+  },
+  {
+    "name": "incident_postmortem",
+    "input_prompt": "Write a postmortem for payment webhook failures",
+    "deliverable_kind": "handoff",
+    "expectations": {
+      "timeline": ["Timeline", "09:42", "10:18"],
+      "root_cause": ["Root cause", "webhook signature"],
+      "action_items": ["Owner", "Action item"]
+    },
+    "sample_with_pack": [
+      "Current state: payment webhooks failed for 36 minutes on April 24 after the deploy that changed `src/payments/webhook.ts` signature verification.",
+      "Timeline: 09:42 deploy completed, 09:47 first Stripe retry spike, 10:03 support ticket opened, 10:18 rollback completed, 10:24 backlog replay finished.",
+      "Root cause: `src/payments/webhook.ts:64` parsed JSON before verifying the raw webhook body, so Stripe signatures no longer matched.",
+      "Impact: 184 payment events were delayed; no confirmed double-charge or data loss was found in `payments.replay_audit`.",
+      "Action item: Owner Backend, restore raw-body verification and run `npm test -- payments.webhook.test.ts`; Owner DevOps, add an alert for webhook retry rate above 5% for 10 minutes."
+    ],
+    "sample_without_pack": [
+      "There was an issue with webhooks after a deploy.",
+      "The team rolled back and things returned to normal.",
+      "We should improve monitoring and testing to avoid this in the future."
+    ]
+  },
+  {
+    "name": "technical_design_decision",
+    "input_prompt": "Decide whether to use Redis or Postgres advisory locks",
+    "deliverable_kind": "plan",
+    "expectations": {
+      "decision": ["Decision", "Postgres advisory locks"],
+      "tradeoff": ["Tradeoff", "Redis"],
+      "validation": ["pytest", "migration"]
+    },
+    "sample_with_pack": [
+      "Decision: use Postgres advisory locks for `src/jobs/reconcile_invoices.py` because the job already runs inside the billing database transaction boundary.",
+      "Tradeoff: Redis would reduce database coupling, but it adds a second availability dependency and does not protect the invoice rows if the database transaction rolls back.",
+      "Implementation: add `pg_advisory_xact_lock(invoice_id)` in `src/jobs/reconcile_invoices.py`, document the lock key in `docs/billing-jobs.md`, and keep the lock scoped to each invoice.",
+      "Validation: run `pytest tests/billing/test_reconcile_invoices.py -k advisory_lock` and verify the migration is not required because advisory locks do not add schema.",
+      "Risk: long-running invoice reconciliation can hold locks longer than expected; add a 30-second job timeout before enabling this in production."
+    ],
+    "sample_without_pack": [
+      "Both Redis and Postgres locks can work depending on the architecture.",
+      "Postgres may be simpler, while Redis can be faster.",
+      "Choose the option that best fits your needs and test it carefully."
+    ]
+  },
+  {
+    "name": "frontend_design_handoff",
+    "input_prompt": "Summarize the UI implementation handoff for a premium dashboard",
+    "deliverable_kind": "handoff",
+    "expectations": {
+      "files": ["src/styles/tokens.css", "src/pages/Dashboard.tsx"],
+      "design_tokens": ["palette", "font", "spacing"],
+      "verification": ["npm run build", "playwright"]
+    },
+    "sample_with_pack": [
+      "Current state: `src/styles/tokens.css`, `src/pages/Dashboard.tsx`, and `src/components/MetricTile.tsx` implement the premium dashboard direction.",
+      "Design decision: use the Obsidian Ledger palette, `Space Grotesk` headings, `IBM Plex Sans` body text, 24px section spacing, 18px tile radius, and a layered shadow token instead of generic white cards.",
+      "Interaction decision: metric tiles use hover lift and focus glow; the chart region uses entrance fade-up with a 90ms stagger.",
+      "Evidence: run `npm run build`, `npm test -- Dashboard`, and `npx playwright test dashboard.spec.ts --project=chromium`.",
+      "Next step: QA contrast on the revenue and churn tiles before release because those use the highest accent saturation."
+    ],
+    "sample_without_pack": [
+      "The dashboard UI was updated to look modern and premium.",
+      "It uses better colors, fonts, cards, and animations.",
+      "Test it in the browser and make sure it looks good."
+    ]
+  },
+  {
+    "name": "vietnamese_project_status",
+    "input_prompt": "Viết báo cáo trạng thái dự án cho stakeholder không chuyên kỹ thuật",
+    "deliverable_kind": "handoff",
+    "expectations": {
+      "reader_context": ["người đọc", "trạng thái", "phạm vi"],
+      "evidence": ["python -m pytest", "auto_gate.py"],
+      "next_step": ["Người phụ trách", "Bước tiếp theo"]
+    },
+    "sample_with_pack": [
+      "Mục đích: báo cáo này giúp người đọc không chuyên kỹ thuật hiểu trạng thái hiện tại, phạm vi đã hoàn thành, bằng chứng kiểm chứng, và phần còn cần theo dõi.",
+      "Trạng thái: quality gate đang pass ở mức bắt buộc; `python -m pytest skills/tests -q` đạt 128/128 và `python skills/tests/smoke_test.py` đạt 51/51.",
+      "Bằng chứng bổ sung: `python skills/codex-execution-quality-gate/scripts/auto_gate.py --project-root D:\\CodexAI---Skills --mode full` trả về overall pass, security 0 critical và 0 warnings.",
+      "Rủi ro: tech debt scan vẫn còn 174 tín hiệu advisory, chủ yếu là long functions, long files, và duplicate blocks; đây chưa phải lỗi chặn release nhưng cần kế hoạch dọn theo đợt.",
+      "Người phụ trách: maintainer pack xác nhận các tín hiệu advisory theo từng skill; Bước tiếp theo: ưu tiên xử lý các file có duplicate block cao trước khi mở rộng thêm corpus benchmark."
+    ],
+    "sample_without_pack": [
+      "Dự án hiện đang ổn và đã được kiểm tra.",
+      "Một số cải tiến đã được thực hiện để nâng cao chất lượng.",
+      "Vẫn còn vài điểm cần theo dõi trong thời gian tới."
+    ]
+  }
+]

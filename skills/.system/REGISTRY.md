@@ -1,6 +1,6 @@
 # Script Registry
 
-Canonical full-path command registry for the 41 documented scripts referenced by `codex-master-instructions`.
+Canonical full-path command registry for documented entry-point scripts referenced by `codex-master-instructions`.
 `<SKILLS_ROOT>` resolves to the directory containing the skill folders. Scripts auto-detect via `Path(__file__).resolve().parent`.
 
 | Script | Skill | Purpose | Auto-included | Windows Command | macOS/Linux Command |

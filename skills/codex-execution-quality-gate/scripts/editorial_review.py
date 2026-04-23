@@ -377,6 +377,7 @@ def format_table(report: Dict[str, Any]) -> str:
 
 
 def main() -> int:
+    output_guard.configure_utf8_stdio()
     args = parse_args()
     try:
         text = load_text(args)

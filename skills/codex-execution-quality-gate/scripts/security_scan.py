@@ -100,6 +100,7 @@ HTTP_PATTERN = re.compile(r"http://[^\s\"')`]+")
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME|HACK)\b", re.IGNORECASE)
 CONSOLE_PATTERN = re.compile(r"\bconsole\.(log|debug)\s*\(")
 PRINT_PATTERN = re.compile(r"(^|\s)print\s*\(")
+LOCAL_HTTP_HOSTS = ("http://localhost", "http://127.0.0.1", "http://0.0.0.0")
 
 
 def parse_args() -> argparse.Namespace:
@@ -171,6 +172,35 @@ def is_production_path(rel_path: str) -> bool:
         "scripts",
     }
     return not any(part in non_production_tokens for part in parts)
+
+
+def is_scanner_definition_line(line: str) -> bool:
+    stripped = line.strip()
+    return (
+        "TODO_PATTERN" in stripped
+        or "HTTP_PATTERN" in stripped
+        or "TODO/FIXME/HACK marker present" in stripped
+        or stripped.startswith(("\"# TODO", "\"    // TODO", "'# TODO", "'    // TODO"))
+    )
+
+
+def should_warn_http(rel_path: str, line: str, prod_path: bool) -> bool:
+    if not prod_path:
+        return False
+    if is_scanner_definition_line(line):
+        return False
+    lowered = line.lower()
+    if any(host in lowered for host in LOCAL_HTTP_HOSTS):
+        return False
+    return True
+
+
+def should_warn_todo(rel_path: str, line: str, prod_path: bool) -> bool:
+    if not prod_path:
+        return False
+    if is_scanner_definition_line(line):
+        return False
+    return True
 
 
 def collect_source_files(project_root: Path) -> List[Path]:
@@ -322,14 +352,14 @@ def scan(project_root: Path) -> Dict[str, object]:
                     seen.add(key)
                     critical.append(item)
 
-            if HTTP_PATTERN.search(line):
+            if should_warn_http(rel, line, prod_path) and HTTP_PATTERN.search(line):
                 item = build_issue(rel, idx, "HTTP URL found; prefer HTTPS for production traffic", "warning")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:
                     seen.add(key)
                     warnings.append(item)
 
-            if TODO_PATTERN.search(line):
+            if should_warn_todo(rel, line, prod_path) and TODO_PATTERN.search(line):
                 item = build_issue(rel, idx, "TODO/FIXME/HACK marker present", "warning")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:

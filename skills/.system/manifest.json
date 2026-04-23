@@ -1,5 +1,5 @@
 {
-  "version": "14.2.0",
+  "version": "14.2.1",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -68,7 +68,9 @@
       "codex-test-driven-development",
       "codex-systematic-debugging",
       "codex-subagent-execution",
-      "codex-git-worktrees"
+      "codex-git-worktrees",
+      "codex-verification-discipline",
+      "codex-branch-finisher"
     ]
   }
 }

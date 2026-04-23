@@ -43,6 +43,10 @@ smart_test_selector = load_script_module(
     "skills_smart_test_selector",
     "codex-execution-quality-gate/scripts/smart_test_selector.py",
 )
+tech_debt_scan = load_script_module(
+    "skills_tech_debt_scan",
+    "codex-execution-quality-gate/scripts/tech_debt_scan.py",
+)
 explain_code = load_script_module(
     "skills_explain_code",
     "codex-workflow-autopilot/scripts/explain_code.py",
@@ -124,6 +128,36 @@ def test_security_scan_ignores_generic_example_and_script_paths(tmp_path: Path) 
     assert "Database URL with embedded credentials" not in critical_messages
     assert "Potential hardcoded secret value" not in critical_messages
     assert "Debug logging statement in production path" not in warning_messages
+
+
+def test_security_scan_ignores_intentional_scanner_warning_literals(tmp_path: Path) -> None:
+    write_text(
+        tmp_path / "src" / "scanner.py",
+        "\n".join(
+            [
+                "HTTP_PATTERN = re.compile(r\"http://example.com\")",
+                "TODO_PATTERN = re.compile(r\"TODO|FIXME\")",
+                "message = 'TODO/FIXME/HACK marker present'",
+            ]
+        ),
+    )
+    report = security_scan.scan(tmp_path)
+    assert report["warnings"] == []
+
+
+def test_tech_debt_scan_strips_bom_and_skips_intentional_todo_references(tmp_path: Path) -> None:
+    write_text(
+        tmp_path / "src" / "scanner.py",
+        "\ufeffTODO_PATTERN = 'TODO|FIXME'\nmessage = 'TODO/FIXME count changed'\n",
+    )
+    report = tech_debt_scan.scan_project(
+        project_root=tmp_path,
+        max_function_lines=50,
+        max_file_lines=500,
+        todo_age_days=30,
+    )
+    assert report["warnings"] == []
+    assert report["by_category"]["todo_fixme"] == []
 
 
 def test_security_scan_env_warning_respects_gitignore(tmp_path: Path) -> None:

@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Detect security domain from task signals -> load matching references from routing table -> enforce max 4 references first pass. Never bulk-load all references. Security tasks require extra care — always prefer defense-in-depth.
+Detect security domain from task signals -> load matching references from routing table -> enforce max 4 references first pass. Never bulk-load all references. Security tasks require extra care: prefer proportional defense-in-depth, not maximum-control overengineering.
 
 # Security Specialist
 
@@ -25,6 +25,7 @@ Before any implementation, apply these principles:
 4. **Zero trust** — verify explicitly, never trust implicitly, even inside the network.
 5. **Separation of duties** — no single person/process should control all security aspects.
 6. **Audit everything** — log all security-relevant events with tamper-proof storage.
+7. **Proportional controls** — match controls to asset sensitivity, exposure, threat model, and compliance duty.
 
 ## Primary Domain Detection
 
@@ -95,6 +96,10 @@ Before any implementation, apply these principles:
    - Secret exposure: load `secret-management.md` regardless of primary domain.
    - Production deployment: load `ssl-tls-certificates.md` + relevant hardening.
 4. Always declare loaded and skipped references.
+5. Security scope-fit enforcement:
+   - Use the smallest control set that mitigates the identified risk and fits existing project operations.
+   - Do not add WAF, SIEM, mTLS, Vault, Kubernetes policy, zero-trust architecture, or formal compliance workflows unless task signals, asset exposure, regulatory duty, or repo evidence justify them.
+   - If recommending a heavier control, state: `Threat/risk addressed`, `Why simpler control is insufficient`, and `Operational owner/cost`.
 
 ## Starter Templates
 
@@ -119,6 +124,8 @@ Before any implementation, apply these principles:
 4. Default to the most secure option; relax only when user explicitly requests.
 5. Never log or output secrets, keys, or credentials in examples — use placeholders.
 6. When providing attack/exploit knowledge, always include the defensive countermeasure.
+7. "Most secure" means the strongest justified control for the actual risk, not the largest possible security stack.
+8. Any control with operational burden must include its trigger condition and verification method.
 
 ## Reference Files
 

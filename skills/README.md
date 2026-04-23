@@ -6,7 +6,7 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `14.2.0` |
+| Version | `14.2.1` |
 | Core Skills | 23 |
 | Entry-point Scripts | 49 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
@@ -16,7 +16,7 @@
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
 | Short Aliases | 25+ |
-| Pytest | 123/123 |
+| Pytest | 142/142 |
 | Smoke | 51/51 |
 
 ---
@@ -44,6 +44,7 @@ Reasoning Rigor
   -> Output Guard
   -> Editorial Review
   -> Run Gate (strict by default for plan/review/handoff)
+  -> Benchmark Quality (static corpus for release measurement)
   -> Quality Trend logging
 ```
 
@@ -83,12 +84,12 @@ Reasoning Rigor
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
 | `codex-git-autopilot` | Commit automation with gate awareness |
 | `codex-doc-renderer` | DOCX rendering and verification helpers |
-| `codex-test-driven-development` | **v14 NEW** — RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
-| `codex-systematic-debugging` | **v14 NEW** — 4-phase root cause debugging, defense-in-depth, condition-based waiting, root cause tracing. Aliases: `$root-cause`, `$trace` |
-| `codex-subagent-execution` | **v14 NEW** — Fresh subagent per task + 2-stage review (spec compliance → code quality), prompt templates. Aliases: `$sdd`, `$dispatch` |
-| `codex-git-worktrees` | **v14 NEW** — Isolated workspaces with safety verification, auto-setup, clean test baseline. Aliases: `$worktree`, `$isolate` |
-| `codex-verification-discipline` | **v14.1 NEW** — Iron Law "evidence before claims" behavioral constraint. No "should work" without fresh verification. Aliases: `$verify`, `$evidence` |
-| `codex-branch-finisher` | **v14.1 NEW** — Structured 4-option completion workflow (merge, PR, keep, discard) with test gate and worktree cleanup. Aliases: `$finish`, `$finish-branch` |
+| `codex-test-driven-development` | **v14 NEW** - RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
+| `codex-systematic-debugging` | **v14 NEW** - 4-phase root cause debugging, defense-in-depth, condition-based waiting, root cause tracing. Aliases: `$root-cause`, `$trace` |
+| `codex-subagent-execution` | **v14 NEW** - Fresh subagent per task + 2-stage review (spec compliance -> code quality), prompt templates. Aliases: `$sdd`, `$dispatch` |
+| `codex-git-worktrees` | **v14 NEW** - Isolated workspaces with safety verification, auto-setup, clean test baseline. Aliases: `$worktree`, `$isolate` |
+| `codex-verification-discipline` | **v14.1 NEW** - Iron Law "evidence before claims" behavioral constraint. No "should work" without fresh verification. Aliases: `$verify`, `$evidence` |
+| `codex-branch-finisher` | **v14.1 NEW** - Structured 4-option completion workflow (merge, PR, keep, discard) with test gate and worktree cleanup. Aliases: `$finish`, `$finish-branch` |
 
 ---
 
@@ -238,6 +239,7 @@ python skills/codex-execution-quality-gate/scripts/run_gate.py --project-root <r
 python skills/codex-execution-quality-gate/scripts/output_guard.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/editorial_review.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/quality_trend.py --project-root <repo> --report
+python skills/tests/benchmark_quality.py
 python skills/codex-design-md/scripts/design_contract.py scaffold --name <brand-or-product>
 python skills/codex-design-md/scripts/design_contract.py lint DESIGN.md
 ```

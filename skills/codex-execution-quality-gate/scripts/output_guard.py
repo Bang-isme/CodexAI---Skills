@@ -57,12 +57,73 @@ SECTION_PATTERNS = {
     "risk": re.compile(r"\b(risk|failure mode|uncertainty|open question|rủi ro|đánh đổi|câu hỏi mở|bất định)\b", re.IGNORECASE),
     "next": re.compile(r"\b(next step|exit criteria|follow-up|action|bước tiếp theo|việc tiếp theo|theo dõi|hành động tiếp theo)\b", re.IGNORECASE),
 }
-COMMAND_WORDS = ("python", "pytest", "git", "npm", "pnpm", "robocopy", "copy-item", "get-content")
+COMMAND_WORDS = (
+    "python",
+    "pytest",
+    "git",
+    "npm",
+    "pnpm",
+    "npx",
+    "yarn",
+    "bun",
+    "uv",
+    "pip",
+    "poetry",
+    "node",
+    "deno",
+    "ruff",
+    "mypy",
+    "docker",
+    "cargo",
+    "robocopy",
+    "copy-item",
+    "get-content",
+)
 COMMAND_START_PATTERN = re.compile(rf"^(?:{'|'.join(re.escape(word) for word in COMMAND_WORDS)})\b", re.IGNORECASE)
 COMMAND_LINE_PATTERN = re.compile(
     rf"^\s*(?:[-*]\s+|\d+\.\s+|>\s+|[$#]\s+)?(?P<command>(?:{'|'.join(re.escape(word) for word in COMMAND_WORDS)})\b[^\n`]*)",
     re.IGNORECASE,
 )
+COMMAND_CONTEXT_PATTERN = re.compile(
+    rf"\b(?:run|ran|execute|executed|command|verify with|validated with|chạy|lệnh|xác minh bằng|kiểm chứng bằng)\s*:?\s*(?P<command>(?:{'|'.join(re.escape(word) for word in COMMAND_WORDS)})\b[^\n`]*)",
+    re.IGNORECASE,
+)
+COMMAND_BOUNDARY_LABELS = (
+    "Decision",
+    "Evidence",
+    "Risk",
+    "Next step",
+    "Next steps",
+    "Follow-up",
+    "Owner",
+    "Quyết định",
+    "Bằng chứng",
+    "Rủi ro",
+    "Bước tiếp theo",
+    "Việc tiếp theo",
+    "Đánh đổi",
+    "Lý do",
+    "Người phụ trách",
+)
+COMMAND_SECTION_BOUNDARY_PATTERN = re.compile(
+    rf"\s+(?:{'|'.join(re.escape(label) for label in COMMAND_BOUNDARY_LABELS)})\s*:",
+    re.IGNORECASE,
+)
+COMMAND_PROSE_FOLLOWERS = {
+    "is",
+    "are",
+    "was",
+    "were",
+    "should",
+    "could",
+    "can",
+    "will",
+    "may",
+    "must",
+    "helps",
+    "requires",
+    "needs",
+}
 INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
 FILE_PATTERN = re.compile(r"\b(?:[A-Za-z]:[\\/][^\s`]+|[\w./-]+\.(?:py|js|jsx|ts|tsx|md|json|yaml|yml|toml|ini))\b")
 NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
@@ -89,6 +150,16 @@ Deliverable to evaluate:
 ---
 {text}
 ---"""
+
+
+def configure_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
 
 
 def parse_args() -> argparse.Namespace:
@@ -144,14 +215,32 @@ def find_mojibake_fragments(text: str) -> List[str]:
     return hits
 
 
+def normalize_command_hit(candidate: str) -> str:
+    normalized = candidate.strip()
+    boundary_match = COMMAND_SECTION_BOUNDARY_PATTERN.search(normalized)
+    if boundary_match:
+        normalized = normalized[: boundary_match.start()].rstrip()
+    normalized = normalized.rstrip(",;").rstrip()
+    if normalized.endswith(".") and not normalized.endswith(" ."):
+        normalized = normalized[:-1].rstrip()
+    return normalized
+
+
+def is_likely_command_hit(candidate: str) -> bool:
+    parts = candidate.split()
+    if len(parts) >= 2 and parts[1].strip(".,;:").lower() in COMMAND_PROSE_FOLLOWERS:
+        return False
+    return True
+
+
 def collect_command_hits(text: str) -> List[str]:
     hits: List[str] = []
     seen = set()
 
     def record(candidate: str) -> None:
-        normalized = candidate.strip()
+        normalized = normalize_command_hit(candidate)
         key = normalized.lower()
-        if not normalized or key in seen:
+        if not normalized or key in seen or not is_likely_command_hit(normalized):
             return
         seen.add(key)
         hits.append(normalized)
@@ -165,6 +254,8 @@ def collect_command_hits(text: str) -> List[str]:
         match = COMMAND_LINE_PATTERN.match(line)
         if match:
             record(match.group("command"))
+        for context_match in COMMAND_CONTEXT_PATTERN.finditer(line):
+            record(context_match.group("command"))
 
     return hits
 
@@ -541,6 +632,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         "generic_hits": generic_hits,
         "mojibake_hits": mojibake_hits,
         "section_hits": section_hits,
+        "command_hits": command_hits,
         "artifact_refs": artifact_refs,
         "resolved_artifact_refs": resolved_artifact_refs,
         "missing_artifact_refs": missing_artifact_refs,
@@ -628,6 +720,7 @@ def format_table(report: Dict[str, Any]) -> str:
 
 
 def main() -> int:
+    configure_utf8_stdio()
     args = parse_args()
     try:
         text = load_text(args)
