@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-14.3.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-161%2F161%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-55%2F55%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-14.3.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-166%2F166%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-55%2F55%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -33,7 +33,7 @@ The pack is designed for 3 outcomes:
 | Scrum Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
-| Verification | 161 unit + 55 smoke = 216 tests |
+| Verification | 166 unit + 55 smoke = 221 tests |
 
 ---
 

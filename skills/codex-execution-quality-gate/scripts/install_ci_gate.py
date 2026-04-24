@@ -10,6 +10,7 @@ from pathlib import Path
 
 START_MARKER = "# >>> CODEXAI QUALITY GATE START >>>"
 END_MARKER = "# <<< CODEXAI QUALITY GATE END <<<"
+SKILLS_REPO_URL = "https://github.com/Bang-isme/CodexAI---Skills.git"
 
 
 def normalize_text(text: str) -> str:
@@ -38,7 +39,7 @@ def remove_managed_block(text: str) -> str:
 
 
 def github_workflow() -> str:
-    return """name: CodexAI Quality Gate
+    return f"""name: CodexAI Quality Gate
 on: [push, pull_request]
 jobs:
   gate:
@@ -48,10 +49,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Resolve CodexAI Skills
+        shell: bash
+        run: |
+          if [ -d ".codex/skills" ]; then
+            echo "CODEX_SKILLS_ROOT=$PWD/.codex/skills" >> "$GITHUB_ENV"
+          else
+            git clone --depth 1 {SKILLS_REPO_URL} "$RUNNER_TEMP/codexai-skills"
+            echo "CODEX_SKILLS_ROOT=$RUNNER_TEMP/codexai-skills/skills" >> "$GITHUB_ENV"
+          fi
       - name: Security Scan
-        run: python .codex/skills/codex-execution-quality-gate/scripts/security_scan.py --project-root .
+        run: python "$CODEX_SKILLS_ROOT/codex-execution-quality-gate/scripts/security_scan.py" --project-root .
       - name: Run Gate
-        run: python .codex/skills/codex-execution-quality-gate/scripts/run_gate.py --project-root .
+        run: python "$CODEX_SKILLS_ROOT/codex-execution-quality-gate/scripts/run_gate.py" --project-root .
 """
 
 
@@ -60,9 +70,17 @@ def gitlab_block() -> str:
 codex_quality_gate:
   image: python:3.11
   stage: test
+  before_script:
+    - |
+      if [ -d ".codex/skills" ]; then
+        export CODEX_SKILLS_ROOT="$PWD/.codex/skills"
+      else
+        git clone --depth 1 {SKILLS_REPO_URL} /tmp/codexai-skills
+        export CODEX_SKILLS_ROOT="/tmp/codexai-skills/skills"
+      fi
   script:
-    - python .codex/skills/codex-execution-quality-gate/scripts/security_scan.py --project-root .
-    - python .codex/skills/codex-execution-quality-gate/scripts/run_gate.py --project-root .
+    - python "$CODEX_SKILLS_ROOT/codex-execution-quality-gate/scripts/security_scan.py" --project-root .
+    - python "$CODEX_SKILLS_ROOT/codex-execution-quality-gate/scripts/run_gate.py" --project-root .
   only:
     - branches
     - merge_requests

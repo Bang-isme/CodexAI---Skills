@@ -62,12 +62,12 @@ def build_commands(skills_root: Path, with_lint_test: bool) -> List[Dict[str, st
         {
             "name": "security_scan",
             "script_path": scripts_dir.joinpath("security_scan.py").as_posix(),
-            "failure_message": "❌ Security scan failed. Fix critical issues before committing.",
+            "failure_message": "Security scan failed. Fix critical issues before committing.",
         },
         {
             "name": "pre_commit_check",
             "script_path": scripts_dir.joinpath("pre_commit_check.py").as_posix(),
-            "failure_message": "❌ Pre-commit check failed.",
+            "failure_message": "Pre-commit check failed.",
         },
     ]
     if with_lint_test:
@@ -75,7 +75,7 @@ def build_commands(skills_root: Path, with_lint_test: bool) -> List[Dict[str, st
             {
                 "name": "run_gate",
                 "script_path": scripts_dir.joinpath("run_gate.py").as_posix(),
-                "failure_message": "❌ Run gate failed.",
+                "failure_message": "Run gate failed.",
             }
         )
     return commands
@@ -190,15 +190,12 @@ def main() -> int:
     project_root = Path(args.project_root).expanduser().resolve()
     checks = [item["name"] for item in build_commands(skills_root, args.with_lint_test)]
 
-    if args.dry_run:
-        hook_path = project_root / ".git" / "hooks" / "pre-commit"
-    else:
-        try:
-            git_dir = resolve_git_dir(project_root)
-        except (FileNotFoundError, RuntimeError) as exc:
-            print(json.dumps({"status": "error", "message": str(exc)}, indent=2))
-            return 1
-        hook_path = git_dir / "hooks" / "pre-commit"
+    try:
+        git_dir = resolve_git_dir(project_root)
+    except (FileNotFoundError, RuntimeError) as exc:
+        print(json.dumps({"status": "error", "message": str(exc)}, indent=2))
+        return 1
+    hook_path = git_dir / "hooks" / "pre-commit"
 
     if args.uninstall:
         existing_text = hook_path.read_text(encoding="utf-8", errors="ignore") if hook_path.exists() else ""

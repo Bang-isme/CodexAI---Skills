@@ -16,7 +16,7 @@
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
 | Short Aliases | 25+ |
-| Pytest | 161/161 |
+| Pytest | 166/166 |
 | Smoke | 55/55 |
 
 ---
