@@ -25,6 +25,18 @@ P2: other skill instructions
 
 If rules conflict, follow the higher-priority rule.
 
+## Skill Invocation Rule
+
+Before clarifying, exploring, editing, or answering any workflow-like request, check the request against:
+
+1. Short aliases and workflow aliases.
+2. Agent routing rules.
+3. Related discipline skills such as TDD, systematic debugging, verification, worktrees, branch finishing, document writing, and design.
+
+If a skill or workflow clearly applies, load and use the smallest matching skill set before acting. Do not skip a relevant skill because the task "looks simple". Do not bulk-load unrelated skills either; the correct behavior is minimum sufficient discipline, not maximum context.
+
+If uncertain, state the chosen routing briefly and continue with the safest matching workflow.
+
 ## Short Aliases
 
 Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`, and `$handoff` live in the `Workflow Aliases` table below.
@@ -34,11 +46,15 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$gate` | `$codex-execution-quality-gate` | codex-execution-quality-gate |
 | `$intent` | `$codex-intent-context-analyzer` | codex-intent-context-analyzer |
 | `$route` | `$codex-workflow-autopilot` | codex-workflow-autopilot |
+| `$brainstorm` | `brainstorm mode` | codex-workflow-autopilot |
 | `$memory` | `$codex-project-memory` | codex-project-memory |
 | `$rigor` | `$codex-reasoning-rigor` | codex-reasoning-rigor |
 | `$doc` | `$codex-document-writer` | codex-document-writer |
 | `$report` | `$codex-document-writer` | codex-document-writer |
 | `$write` | `$codex-document-writer` | codex-document-writer |
+| `$role-docs` | `$codex-role-docs` | codex-role-docs |
+| `$init-docs` | `init_role_docs.py` | codex-role-docs |
+| `$check-docs` | `check_role_docs.py` | codex-role-docs |
 | `$design` | `$codex-design-system` | codex-design-system |
 | `$design-md` | `$codex-design-md` | codex-design-md |
 | `$genome` | `$codex-genome` | codex-project-memory |
@@ -51,6 +67,7 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$commit` | `auto_commit.py` | codex-git-autopilot |
 | `$guard` | `$output-guard` | codex-execution-quality-gate |
 | `$editorial` | `$editorial-review` | codex-execution-quality-gate |
+| `$review-feedback` | `receiving code review feedback` | codex-subagent-execution |
 | `$tdd` | `$codex-test-driven-development` | codex-test-driven-development |
 | `$red-green` | `$codex-test-driven-development` | codex-test-driven-development |
 | `$root-cause` | `$codex-systematic-debugging` | codex-systematic-debugging |

@@ -1,0 +1,261 @@
+{
+  "version": "1.0",
+  "roles": {
+    "frontend": {
+      "display": "Frontend",
+      "docs": [
+        {
+          "id": "FE-00",
+          "file": "FE-00-overview.md",
+          "title": "Frontend Overview",
+          "purpose": "Capture frontend architecture, rendering model, app shell, and client-side ownership boundaries.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-01",
+          "file": "FE-01-ui-ux.md",
+          "title": "UI/UX Flow",
+          "purpose": "Capture user journeys, screen states, interaction rules, empty states, and UX constraints.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-02",
+          "file": "FE-02-design-system.md",
+          "title": "Design System",
+          "purpose": "Capture reusable design decisions, component standards, visual language, and design-system boundaries.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-03",
+          "file": "FE-03-design-tokens.md",
+          "title": "Design Tokens",
+          "purpose": "Capture color, typography, spacing, radius, shadow, motion, and theme token decisions.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-04",
+          "file": "FE-04-component-inventory.md",
+          "title": "Component Inventory",
+          "purpose": "Track reusable components, variants, props, composition rules, and ownership notes.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-05",
+          "file": "FE-05-state-routing.md",
+          "title": "State and Routing",
+          "purpose": "Capture routes, state boundaries, URL behavior, client data flow, and navigation constraints.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "FE-06",
+          "file": "FE-06-accessibility.md",
+          "title": "Accessibility",
+          "purpose": "Capture accessibility requirements, keyboard behavior, semantic structure, and contrast decisions.",
+          "owner_agents": ["frontend-specialist", "test-engineer"]
+        },
+        {
+          "id": "FE-07",
+          "file": "FE-07-frontend-test-plan.md",
+          "title": "Frontend Test Plan",
+          "purpose": "Capture frontend unit, integration, visual, accessibility, and browser verification coverage.",
+          "owner_agents": ["frontend-specialist", "test-engineer"]
+        }
+      ]
+    },
+    "backend": {
+      "display": "Backend",
+      "docs": [
+        {
+          "id": "BE-00",
+          "file": "BE-00-architecture.md",
+          "title": "Backend Architecture",
+          "purpose": "Capture backend module boundaries, service responsibilities, runtime assumptions, and request flow.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "BE-01",
+          "file": "BE-01-api-contracts.md",
+          "title": "API Contracts",
+          "purpose": "Capture routes, request/response contracts, status codes, middleware behavior, and compatibility notes.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "BE-02",
+          "file": "BE-02-database-design.md",
+          "title": "Database Design",
+          "purpose": "Capture storage technology, schema, migrations, indexes, relations, and data integrity constraints.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "BE-03",
+          "file": "BE-03-domain-model.md",
+          "title": "Domain Model",
+          "purpose": "Capture domain entities, state transitions, invariants, and service-level business rules.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "BE-04",
+          "file": "BE-04-auth-security.md",
+          "title": "Auth and Security",
+          "purpose": "Capture authentication, authorization, session/token rules, validation, secrets, and security assumptions.",
+          "owner_agents": ["backend-specialist", "security-auditor"]
+        },
+        {
+          "id": "BE-05",
+          "file": "BE-05-integration-events.md",
+          "title": "Integrations and Events",
+          "purpose": "Capture external integrations, webhooks, queues, events, retries, and failure behavior.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "BE-06",
+          "file": "BE-06-error-logging.md",
+          "title": "Errors and Logging",
+          "purpose": "Capture error taxonomy, logging fields, observability assumptions, and incident diagnostics.",
+          "owner_agents": ["backend-specialist", "devops-engineer"]
+        },
+        {
+          "id": "BE-07",
+          "file": "BE-07-backend-test-plan.md",
+          "title": "Backend Test Plan",
+          "purpose": "Capture backend unit, integration, contract, migration, and security regression coverage.",
+          "owner_agents": ["backend-specialist", "test-engineer"]
+        }
+      ]
+    },
+    "devops": {
+      "display": "DevOps",
+      "docs": [
+        {
+          "id": "DO-00",
+          "file": "DO-00-runtime-architecture.md",
+          "title": "Runtime Architecture",
+          "purpose": "Capture runtime topology, service boundaries, environments, and operational dependencies.",
+          "owner_agents": ["devops-engineer"]
+        },
+        {
+          "id": "DO-01",
+          "file": "DO-01-environments.md",
+          "title": "Environments",
+          "purpose": "Capture local, staging, production, env vars, configuration sources, and parity risks.",
+          "owner_agents": ["devops-engineer"]
+        },
+        {
+          "id": "DO-02",
+          "file": "DO-02-ci-cd.md",
+          "title": "CI/CD",
+          "purpose": "Capture pipeline stages, required checks, release gates, and automation ownership.",
+          "owner_agents": ["devops-engineer"]
+        },
+        {
+          "id": "DO-03",
+          "file": "DO-03-deployment-runbook.md",
+          "title": "Deployment Runbook",
+          "purpose": "Capture deploy commands, pre-flight checks, smoke tests, rollback trigger points, and operators.",
+          "owner_agents": ["devops-engineer"]
+        },
+        {
+          "id": "DO-04",
+          "file": "DO-04-observability.md",
+          "title": "Observability",
+          "purpose": "Capture health checks, logs, metrics, traces, dashboards, alerts, and known blind spots.",
+          "owner_agents": ["devops-engineer"]
+        },
+        {
+          "id": "DO-05",
+          "file": "DO-05-incident-response.md",
+          "title": "Incident Response",
+          "purpose": "Capture incident roles, triage flow, severity criteria, communication, and postmortem expectations.",
+          "owner_agents": ["devops-engineer", "security-auditor"]
+        },
+        {
+          "id": "DO-06",
+          "file": "DO-06-secrets-config.md",
+          "title": "Secrets and Config",
+          "purpose": "Capture secrets handling, config loading, rotation expectations, and environment safety.",
+          "owner_agents": ["devops-engineer", "security-auditor"]
+        },
+        {
+          "id": "DO-07",
+          "file": "DO-07-rollback.md",
+          "title": "Rollback",
+          "purpose": "Capture rollback paths, data migration reversibility, backup assumptions, and stop-ship criteria.",
+          "owner_agents": ["devops-engineer"]
+        }
+      ]
+    },
+    "admin": {
+      "display": "Admin",
+      "docs": [
+        {
+          "id": "AD-00",
+          "file": "AD-00-admin-scope.md",
+          "title": "Admin Scope",
+          "purpose": "Capture admin-system goals, operator personas, permission boundary, and non-goals.",
+          "owner_agents": ["planner"]
+        },
+        {
+          "id": "AD-01",
+          "file": "AD-01-roles-permissions.md",
+          "title": "Roles and Permissions",
+          "purpose": "Capture role definitions, permission matrix, escalation rules, and authorization risks.",
+          "owner_agents": ["backend-specialist", "security-auditor"]
+        },
+        {
+          "id": "AD-02",
+          "file": "AD-02-admin-flows.md",
+          "title": "Admin Flows",
+          "purpose": "Capture admin user journeys, screens, moderation flows, approval flows, and UX constraints.",
+          "owner_agents": ["frontend-specialist"]
+        },
+        {
+          "id": "AD-03",
+          "file": "AD-03-audit-logs.md",
+          "title": "Audit Logs",
+          "purpose": "Capture audit events, retention, visibility, tamper concerns, and review workflows.",
+          "owner_agents": ["security-auditor", "backend-specialist"]
+        },
+        {
+          "id": "AD-04",
+          "file": "AD-04-data-management.md",
+          "title": "Admin Data Management",
+          "purpose": "Capture admin data operations, exports, destructive actions, recovery, and approval safeguards.",
+          "owner_agents": ["backend-specialist"]
+        },
+        {
+          "id": "AD-05",
+          "file": "AD-05-dashboard-reports.md",
+          "title": "Dashboards and Reports",
+          "purpose": "Capture admin dashboards, report definitions, metrics, filtering, and data freshness expectations.",
+          "owner_agents": ["frontend-specialist"]
+        }
+      ]
+    },
+    "qa": {
+      "display": "QA",
+      "docs": [
+        {
+          "id": "QA-00",
+          "file": "QA-00-test-strategy.md",
+          "title": "Test Strategy",
+          "purpose": "Capture test pyramid, risk-based coverage, required checks, and verification ownership.",
+          "owner_agents": ["test-engineer"]
+        },
+        {
+          "id": "QA-01",
+          "file": "QA-01-regression-map.md",
+          "title": "Regression Map",
+          "purpose": "Capture bugs, reproduction paths, regression tests, affected modules, and fix evidence.",
+          "owner_agents": ["test-engineer", "debugger"]
+        },
+        {
+          "id": "QA-02",
+          "file": "QA-02-e2e-flows.md",
+          "title": "E2E Flows",
+          "purpose": "Capture end-to-end journeys, selectors, fixtures, browser coverage, and flake risks.",
+          "owner_agents": ["test-engineer", "frontend-specialist"]
+        }
+      ]
+    }
+  }
+}

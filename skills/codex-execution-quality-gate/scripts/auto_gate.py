@@ -26,8 +26,8 @@ Runner = Callable[[Path], RunnerResult]
 
 MODE_CHECKS: Dict[str, List[str]] = {
     "quick": ["security", "pre_commit"],
-    "full": ["security", "gate", "tech_debt"],
-    "deploy": ["security", "gate", "tech_debt", "bundle", "suggestions"],
+    "full": ["security", "gate", "tech_debt", "role_docs"],
+    "deploy": ["security", "gate", "tech_debt", "role_docs", "bundle", "suggestions"],
 }
 
 
@@ -261,11 +261,81 @@ def run_suggestions(project_root: Path) -> RunnerResult:
     return make_runner_result(payload, warnings=warnings)
 
 
+def run_role_docs(project_root: Path) -> RunnerResult:
+    script_path = SCRIPT_DIR.parent.parent / "codex-role-docs" / "scripts" / "check_role_docs.py"
+    if not script_path.exists():
+        payload = {
+            "status": "skip",
+            "overall": "skip",
+            "missing_docs": 0,
+            "stale_docs": 0,
+            "suggested_updates": 0,
+            "summary": "Role docs skill is not installed.",
+        }
+        return make_runner_result(payload, warnings=["Role docs advisory skipped: codex-role-docs is not installed."])
+
+    command = [
+        sys.executable,
+        str(script_path),
+        "--project-root",
+        str(project_root),
+        "--format",
+        "json",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+        raw = json.loads(completed.stdout) if completed.stdout.strip() else {}
+    except (json.JSONDecodeError, OSError, subprocess.TimeoutExpired) as exc:
+        payload = {
+            "status": "warn",
+            "overall": "warn",
+            "missing_docs": 0,
+            "stale_docs": 0,
+            "suggested_updates": 0,
+            "summary": "Role docs advisory unavailable.",
+        }
+        return make_runner_result(payload, warnings=[f"Role docs advisory unavailable: {exc}"])
+
+    missing_count = len(raw.get("missing_docs", [])) if isinstance(raw.get("missing_docs"), list) else 0
+    stale_count = len(raw.get("stale_docs", [])) if isinstance(raw.get("stale_docs"), list) else 0
+    suggested_count = len(raw.get("suggested_updates", [])) if isinstance(raw.get("suggested_updates"), list) else 0
+    overall = str(raw.get("overall", "warn"))
+    status = "pass" if overall == "pass" else ("skip" if overall == "skip" else "warn")
+    payload = {
+        "status": status,
+        "overall": overall,
+        "missing_docs": missing_count,
+        "stale_docs": stale_count,
+        "suggested_updates": suggested_count,
+        "summary": "Role docs advisory check completed.",
+    }
+
+    warnings: List[str] = []
+    if completed.returncode != 0 or raw.get("status") == "error":
+        warnings.append(str(raw.get("message", "Role docs advisory exited with an error.")))
+    elif overall == "warn":
+        warnings.append(
+            "Role docs advisory: "
+            f"{missing_count} missing doc(s), {stale_count} stale doc(s), {suggested_count} suggested update(s)."
+        )
+    return make_runner_result(payload, warnings=warnings)
+
+
 CHECK_RUNNERS: Dict[str, Runner] = {
     "security": run_security,
     "pre_commit": run_pre_commit,
     "gate": run_gate_check,
     "tech_debt": run_tech_debt,
+    "role_docs": run_role_docs,
     "bundle": run_bundle,
     "suggestions": run_suggestions,
 }
@@ -284,6 +354,12 @@ def describe_check(name: str, payload: Dict[str, Any]) -> str:
         return f"Run gate: {status} (lint {str(payload.get('lint', 'skip')).upper()}, test {str(payload.get('test', 'skip')).upper()})"
     if name == "tech_debt":
         return f"Tech debt: {status} ({payload.get('total_issues', 0)} issues)"
+    if name == "role_docs":
+        return (
+            f"Role docs: {status} "
+            f"({payload.get('missing_docs', 0)} missing, {payload.get('stale_docs', 0)} stale, "
+            f"{payload.get('suggested_updates', 0)} updates)"
+        )
     if name == "bundle":
         return f"Bundle: {status} ({payload.get('warnings', 0)} warnings)"
     if name == "suggestions":

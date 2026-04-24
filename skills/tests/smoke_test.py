@@ -18,6 +18,10 @@ from typing import Dict, List, Tuple
 SKILLS_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS: List[Tuple[str, str]] = [
     ("codex-docs-change-sync", "scripts/map_changes_to_docs.py"),
+    ("codex-role-docs", "scripts/build_role_docs_index.py"),
+    ("codex-role-docs", "scripts/check_role_docs.py"),
+    ("codex-role-docs", "scripts/init_role_docs.py"),
+    ("codex-role-docs", "scripts/update_role_docs.py"),
     ("codex-git-autopilot", "scripts/auto_commit.py"),
     ("codex-execution-quality-gate", "scripts/accessibility_check.py"),
     ("codex-execution-quality-gate", "scripts/bundle_check.py"),

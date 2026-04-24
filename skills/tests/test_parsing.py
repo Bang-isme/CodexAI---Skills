@@ -47,6 +47,14 @@ tech_debt_scan = load_script_module(
     "skills_tech_debt_scan",
     "codex-execution-quality-gate/scripts/tech_debt_scan.py",
 )
+track_skill_usage = load_script_module(
+    "skills_track_skill_usage",
+    "codex-project-memory/scripts/track_skill_usage.py",
+)
+playwright_runner = load_script_module(
+    "skills_playwright_runner",
+    "codex-execution-quality-gate/scripts/playwright_runner.py",
+)
 explain_code = load_script_module(
     "skills_explain_code",
     "codex-workflow-autopilot/scripts/explain_code.py",
@@ -117,6 +125,42 @@ def test_security_scan_ignores_placeholder_secret(tmp_path: Path) -> None:
     report = security_scan.scan(tmp_path)
     critical_messages = [item["issue"] for item in report["critical"]]
     assert "Potential hardcoded secret value" not in critical_messages
+
+
+def test_track_skill_usage_default_root_is_portable() -> None:
+    assert str(track_skill_usage.DEFAULT_SKILLS_ROOT).endswith(".codex\\skills") or str(
+        track_skill_usage.DEFAULT_SKILLS_ROOT
+    ).endswith(".codex/skills")
+
+
+def test_track_skill_usage_recommendations_do_not_contain_mojibake() -> None:
+    recommendations = track_skill_usage.build_recommendations(
+        {
+            "codex-example": {
+                "uses": 4,
+                "failed": 1,
+                "success_rate": 0.75,
+            }
+        },
+        ["codex-unused"],
+    )
+
+    joined = "\n".join(recommendations)
+    assert "Ã" not in joined
+    assert "â" not in joined
+    assert "failure rate - review failed task notes" in joined
+    assert "0 usages - consider promoting or deprecating" in joined
+
+
+def test_playwright_generate_note_does_not_contain_mojibake(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    args = type("Args", (), {"url": "http://localhost:3000/dashboard", "test_dir": ""})()
+
+    with pytest.raises(SystemExit) as exc_info:
+        playwright_runner.mode_generate(tmp_path, args)
+
+    assert exc_info.value.code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["note"] == "Skeleton generated - fill in TODO assertions"
 
 
 def test_security_scan_ignores_generic_example_and_script_paths(tmp_path: Path) -> None:

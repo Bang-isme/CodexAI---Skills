@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-12-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1), and strict deliverable failures. Advisory: tech debt, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
+12-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1), and strict deliverable failures. Advisory: tech debt, role docs, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
 
 # Execution Quality Gate
 
@@ -62,7 +62,7 @@ Task type -> Pre-flight/setup?
 ## Runtime Enforcement
 
 - Advisory mode is the default: the AI must decide which gate scripts to run and report fresh evidence before completion.
-- `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names.
+- `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names. Full and deploy modes include role-doc checks as advisory warnings only.
 - Runtime enforcement is available through `install_hooks.py`, which installs a managed `pre-commit` hook that runs `security_scan.py` and `pre_commit_check.py` automatically before commit.
 - Use `--with-lint-test` only when the team wants heavier local enforcement that also runs `run_gate.py`.
 - Use `install_ci_gate.py` to generate CI enforcement for GitHub Actions or GitLab CI when the project should block pushes and pull requests in automation as well as locally.
@@ -111,4 +111,3 @@ When the gate identifies issues, recommend these discipline skills:
 | Recurring bug or flaky test | `codex-systematic-debugging` | `$root-cause` |
 | Complex plan needs execution | `codex-subagent-execution` | `$sdd` |
 | Multi-file changes need isolation | `codex-git-worktrees` | `$worktree` |
-

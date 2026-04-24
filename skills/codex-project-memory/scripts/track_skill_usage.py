@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
         ),
 
     )
-    parser.add_argument("--skills-root", default=r"C:\Users\tranb\.codex\skills", help="Skills root path")
+    parser.add_argument("--skills-root", default=str(DEFAULT_SKILLS_ROOT), help="Skills root path")
     parser.add_argument("--record", action="store_true", help="Record single skill usage entry")
     parser.add_argument("--skill", default="", help="Skill name for --record")
     parser.add_argument("--task", default="", help="Task description for --record")
@@ -209,11 +209,11 @@ def build_recommendations(
         if uses >= 3 and (failed > 0 or success_rate < 0.8):
             fail_rate = round((failed / uses) * 100)
             recommendations.append(
-                f"{skill_name} has {fail_rate}% failure rate Ã¢â‚¬â€ review failed task notes for improvement areas."
+                f"{skill_name} has {fail_rate}% failure rate - review failed task notes for improvement areas."
             )
 
     for skill in unused_skills[:3]:
-        recommendations.append(f"{skill} has 0 usages Ã¢â‚¬â€ consider promoting or deprecating.")
+        recommendations.append(f"{skill} has 0 usages - consider promoting or deprecating.")
 
     if not recommendations:
         recommendations.append("No critical gaps detected. Continue collecting usage data for stronger trends.")

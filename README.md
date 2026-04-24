@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-14.2.1-blue)]() [![Tests](https://img.shields.io/badge/pytest-142%2F142%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-51%2F51%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-14.3.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-161%2F161%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-55%2F55%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,15 +25,15 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 23 |
-| Entry-point Scripts | 49 |
+| Core Skills | 24 |
+| Entry-point Scripts | 53 |
 | Shared Helpers | 2 |
 | Reference Docs | 173+ |
 | Starter Templates | 29 |
 | Scrum Artifact Templates | 6 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
-| Verification | 142 unit + 51 smoke = 193 tests |
+| Verification | 161 unit + 55 smoke = 216 tests |
 
 ---
 
@@ -48,7 +48,7 @@ The pack is designed for 3 outcomes:
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
 | Documents that make readers infer too much | `codex-document-writer` forces purpose, audience, structure, complete sentences, and reliability wording |
 | No final gate before declaring done | `codex-execution-quality-gate` runs lint, tests, security, output quality, editorial quality, UX, and trend tracking |
-| Context lost between sessions | `codex-project-memory` stores decisions, summaries, genome, handoffs, and changelog inputs |
+| Context lost between sessions | `codex-role-docs` preserves role-scoped project docs, while `codex-project-memory` stores decisions, summaries, genome, handoffs, and changelog inputs |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
 
 ---
@@ -71,7 +71,7 @@ The pack is designed for 3 outcomes:
    Execute with bounded scope and explicit evidence.
 7. `codex-execution-quality-gate`
    Enforce lint, tests, security, output rigor, editorial review, and trend logging.
-8. `codex-project-memory` + `codex-git-autopilot`
+8. `codex-role-docs` + `codex-project-memory` + `codex-git-autopilot`
    Persist what matters, then commit and ship with discipline.
 
 ## Agent System
@@ -85,6 +85,18 @@ The pack now supports additive agent routing without breaking the old flow:
 5. `codex-workflow-autopilot` then routes execution mode as usual, optionally loading a workflow alias file.
 
 This keeps the pack fully backward compatible: if you never use agents or workflow aliases, the previous skill-only pipeline still works exactly the same way.
+
+## Role Documentation System
+
+`codex-role-docs` creates durable project-local docs under `.codex/project-docs/` so each specialist can preserve the context it owns:
+
+- Frontend: UI/UX, design system, design tokens, reusable components, routing, accessibility, frontend tests.
+- Backend: architecture, API contracts, database design, domain model, auth/security, integrations, logging, backend tests.
+- DevOps: environments, CI/CD, deployment runbook, observability, incidents, secrets/config, rollback.
+- Admin: scope, roles/permissions, admin flows, audit logs, data management, dashboards/reports.
+- QA: test strategy, regression map, end-to-end flows.
+
+The quality gate runs role-doc checks as advisory warnings in full/deploy mode. Missing docs never block unless a project explicitly makes documentation mandatory.
 
 ## Quick Aliases
 
@@ -127,6 +139,7 @@ This is the biggest differentiator of the pack today:
 | `codex-workflow-autopilot` | Workflow routing and mode selection |
 | `codex-reasoning-rigor` | Anti-generic reasoning and output contracts |
 | `codex-document-writer` | Professional documents, reports, memos, guides, Vietnamese style, and reliability tone |
+| `codex-role-docs` | Project-local FE/BE/DevOps/Admin/QA docs that preserve role micro-context |
 | `codex-scrum-subagents` | Scrum role kits, workflows, native custom agents, artifact generation |
 
 ### Knowledge Packs
@@ -145,6 +158,7 @@ This is the biggest differentiator of the pack today:
 | `codex-execution-quality-gate` | Pre-commit checks, security scan, smart test selection, output guard, editorial review, UX/a11y, Lighthouse, quality trends |
 | `codex-project-memory` | Decision logs, summaries, handoffs, genome, changelog, growth reporting |
 | `codex-docs-change-sync` | Code diff to docs impact mapping |
+| `codex-role-docs` | Role-scoped docs initialization, updates, indexing, and advisory coverage checks |
 | `codex-git-autopilot` | Conventional commits, signing, and gate-aware commit flow |
 | `codex-doc-renderer` | DOCX -> PDF -> PNG rendering helpers |
 
@@ -185,6 +199,9 @@ python skills/tests/smoke_test.py
 | `$codex-plan-writer` | Create an implementation plan |
 | `$codex-workflow-autopilot` | Route work into the right execution flow |
 | `$codex-reasoning-rigor` | Force deeper, less generic reasoning |
+| `$role-docs` | Load role documentation workflow |
+| `$init-docs` | Initialize `.codex/project-docs/` |
+| `$check-docs` | Check role-doc coverage and suggested updates |
 | `$design` | Load premium visual vocabulary before UI work |
 | `$design-md` | Scaffold, lint, diff, and export `DESIGN.md` contracts |
 | `$codex-execution-quality-gate` | Run verification before completion |
@@ -247,6 +264,7 @@ CodexAI---Skills/
     |-- codex-plan-writer/
     |-- codex-workflow-autopilot/
     |-- codex-reasoning-rigor/
+    |-- codex-role-docs/
     |-- codex-design-system/
     |-- codex-design-md/
     |-- codex-domain-specialist/

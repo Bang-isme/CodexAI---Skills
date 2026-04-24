@@ -52,7 +52,7 @@ def test_quality_benchmark_accepts_string_expectation_values(tmp_path: Path) -> 
             "expectations": {"decision": "Decision"},
             "sample_with_pack": [
                 "Decision: keep the release candidate open until the smoke test is rerun.",
-                "Evidence: run `python skills/tests/smoke_test.py` and verify 51/51 pass.",
+                "Evidence: run `python skills/tests/smoke_test.py` and verify 55/55 pass.",
                 "Risk: stale smoke evidence can make the release note misleading.",
                 "Next step: assign the release owner before publishing.",
             ],

@@ -6,18 +6,18 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `14.2.1` |
-| Core Skills | 23 |
-| Entry-point Scripts | 49 |
+| Version | `14.3.0` |
+| Core Skills | 24 |
+| Entry-point Scripts | 53 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
 | References | 173+ |
 | Starters | 29 |
-| Artifact Templates | 6 |
+| Artifact Templates | 9 |
 | Agent Personas | 8 |
 | Workflow Aliases | 6 |
 | Short Aliases | 25+ |
-| Pytest | 142/142 |
-| Smoke | 51/51 |
+| Pytest | 161/161 |
+| Smoke | 55/55 |
 
 ---
 
@@ -34,7 +34,7 @@ User Request
   -> TDD Implementation (RED-GREEN-REFACTOR per feature/fix)
   -> Systematic Debugging (4-phase root cause, for bugs)
   -> Execution Quality Gate
-  -> Docs Change Sync / Project Memory / Git Autopilot
+  -> Role Docs / Docs Change Sync / Project Memory / Git Autopilot
 ```
 
 ### Output Quality Path
@@ -63,6 +63,7 @@ Reasoning Rigor
 | `codex-workflow-autopilot` | Route work into build/fix/debug/review/docs/deploy/teach flows |
 | `codex-reasoning-rigor` | Force deliberate, non-generic, evidence-backed reasoning |
 | `codex-document-writer` | Professional document, report, memo, guide, and Vietnamese writing structure |
+| `codex-role-docs` | Initialize and maintain project-local FE/BE/DevOps/Admin/QA role docs |
 | `codex-scrum-subagents` | Install project Scrum kits and native `.codex/agents` |
 
 ### Knowledge Packs
@@ -82,6 +83,7 @@ Reasoning Rigor
 | `codex-execution-quality-gate` | 17 runtime scripts including gate orchestration, security scan, smart tests, output guard, editorial review, quality trends, UX/a11y, and Lighthouse |
 | `codex-project-memory` | 11 scripts plus the `genome_builder.py` helper for multi-role genome generation across Architecture, API Surface, Data Layer, Security Posture, Test Coverage, and File Map |
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
+| `codex-role-docs` | 4 scripts for role-doc initialization, updates, indexing, and advisory changed-file coverage checks |
 | `codex-git-autopilot` | Commit automation with gate awareness |
 | `codex-doc-renderer` | DOCX rendering and verification helpers |
 | `codex-test-driven-development` | **v14 NEW** - RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
@@ -161,6 +163,20 @@ These files live under `skills/.agents/` and are loaded when intent analysis sug
 
 ---
 
+## Role Documentation System
+
+`codex-role-docs` creates `.codex/project-docs/` inside the target project so specialists can keep durable context without loading the whole repository history.
+
+- Frontend docs cover UI/UX, design system, tokens, reusable components, routing, accessibility, and frontend tests.
+- Backend docs cover architecture, API contracts, database design, domain model, auth/security, integrations, logging, and backend tests.
+- DevOps docs cover environments, CI/CD, deployment, observability, incidents, secrets/config, and rollback.
+- Admin docs are documentation-only and split across planner, backend, frontend, and security ownership.
+- QA docs cover test strategy, regression map, and end-to-end flows.
+
+`auto_gate.py` runs role-doc checks in full/deploy mode as advisory warnings only.
+
+---
+
 ## Workflow Aliases
 
 Workflow aliases are shorthand entry points that load `skills/.workflows/*.md` before running the richer underlying flow.
@@ -186,6 +202,7 @@ Current suite coverage includes:
 - output rigor and editorial rubric
 - strict-output gate logic
 - quality-trend aggregation
+- role-doc initialization, changed-file mapping, indexing, and advisory gate behavior
 - Scrum installer, validator, diff, update, and native agent rendering
 - docs encoding and mojibake regression guards
 - skill validation and pre-commit hardening

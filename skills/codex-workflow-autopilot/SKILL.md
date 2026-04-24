@@ -18,6 +18,8 @@ Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teach
 5. Activate reasoning rigor on `$codex-reasoning-rigor`, `$rigor`, "don't be generic", "go deeper", "make it specific", or "use the repo, not generic advice".
 6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$review`, `$deploy`, `$handoff`.
 7. When activated via alias, load the corresponding `.workflows/<name>.md` file before executing the flow.
+8. Activate brainstorm mode on `$brainstorm`, "brainstorm", "think through options", or "explore approaches".
+9. Activate review-feedback routing on `$review-feedback`, "address review feedback", or "respond to code review".
 
 ## Behavioral Protocol Decision Tree
 

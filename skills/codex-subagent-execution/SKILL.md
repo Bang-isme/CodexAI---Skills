@@ -15,6 +15,7 @@ Dispatch fresh subagent per task → implementer works → spec reviewer verifie
 2. Activate when executing an approved implementation plan with independent tasks.
 3. Activate after `codex-plan-writer` generates plan and user approves.
 4. Activate when `codex-workflow-autopilot` routes to `implement` phase with independent tasks.
+5. Activate on `$review-feedback` or when receiving code review feedback that needs technical evaluation before changes.
 
 **Announce at start:** "I'm using codex-subagent-execution to implement this plan task-by-task."
 
@@ -65,6 +66,18 @@ Use the least powerful model that can handle each role to conserve cost and incr
 | Mechanical implementation | Fast/cheap | 1-2 files, clear spec, isolated function |
 | Integration work | Standard | Multi-file coordination, pattern matching |
 | Architecture & review | Most capable | Design judgment, broad codebase understanding |
+
+## Safe Parallel Dispatch
+
+Parallel implementation subagents are allowed only when all conditions are true:
+
+1. Tasks have disjoint write scopes and no shared migration/config/schema file.
+2. Each subagent has explicit file ownership and a clear responsibility boundary.
+3. No subagent depends on another subagent's unmerged output.
+4. The coordinator reserves final integration, conflict resolution, and verification for the main session.
+5. Each branch of work still receives spec compliance review and code quality review before completion.
+
+If write scopes overlap, run tasks sequentially. Parallel speed is not worth merge conflicts or inconsistent architecture.
 
 ## Handling Implementer Status
 
@@ -141,7 +154,7 @@ Code reviewer: ✅ Approved
 - Start implementation on main/master branch without user consent
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
-- Dispatch multiple implementation subagents in parallel (conflicts)
+- Dispatch multiple implementation subagents in parallel against overlapping files, shared schemas, or shared configuration
 - Make subagent read plan file (provide full text instead)
 - Skip scene-setting context
 - Ignore subagent questions

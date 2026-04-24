@@ -89,6 +89,13 @@ def test_auto_gate_full_mode_blocks_on_gate_failure(tmp_path: Path, monkeypatch)
             warnings=["4 tech debt signal(s) detected."],
         ),
     )
+    monkeypatch.setitem(
+        auto_gate.CHECK_RUNNERS,
+        "role_docs",
+        lambda project_root: make_result(
+            {"status": "pass", "overall": "pass", "missing_docs": 0, "stale_docs": 0, "suggested_updates": 0}
+        ),
+    )
 
     report, exit_code = auto_gate.run_auto_gate(tmp_path, "full")
     assert exit_code == 1
@@ -112,6 +119,13 @@ def test_auto_gate_deploy_mode_keeps_advisory_checks_non_blocking(tmp_path: Path
         auto_gate.CHECK_RUNNERS,
         "tech_debt",
         lambda project_root: make_result({"status": "pass", "total_issues": 0, "warnings": 0, "summary": "clean"}),
+    )
+    monkeypatch.setitem(
+        auto_gate.CHECK_RUNNERS,
+        "role_docs",
+        lambda project_root: make_result(
+            {"status": "pass", "overall": "pass", "missing_docs": 0, "stale_docs": 0, "suggested_updates": 0}
+        ),
     )
     monkeypatch.setitem(
         auto_gate.CHECK_RUNNERS,

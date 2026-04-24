@@ -1,8 +1,29 @@
 # Changelog
 
+## [14.3.0] - 2026-04-24
+
+### Added
+- Added **NEW SKILL**: `codex-role-docs` for project-local role documentation under `.codex/project-docs/`.
+- Added role-doc templates for project brief, ADR seed, and FE/BE/DevOps/Admin/QA documentation.
+- Added `init_role_docs.py`, `update_role_docs.py`, `check_role_docs.py`, and `build_role_docs_index.py`.
+- Added aliases `$role-docs`, `$init-docs`, and `$check-docs`.
+- Added role-doc regression tests for initialization, updates, indexing, changed-file mapping, agent ownership, and advisory gate behavior.
+
+### Enhanced
+- Updated agent personas so each role can edit its own `.codex/project-docs/` files without violating boundary enforcement.
+- Added advisory role-doc checks to `auto_gate.py` full/deploy modes; missing or stale docs warn but never block.
+- Added `codex-role-docs` to manifest, registry, public README, and technical internals.
+
+### Infrastructure
+- Bumped version: `14.2.1` -> `14.3.0`
+- Verified suite target: `161` unit tests + `55` smoke checks.
+
 ## [14.2.1] - 2026-04-24
 
 ### Fixed
+- Removed a user-specific default path from `track_skill_usage.py`; the script now defaults to `Path.home() / ".codex" / "skills"` for portability.
+- Replaced mojibake text in `track_skill_usage.py` recommendations with ASCII-safe separators.
+- Replaced mojibake text in `playwright_runner.py` generated-test notes with an ASCII-safe separator.
 - Added UTF-8 stdout/stderr configuration for output-quality CLIs to prevent Windows console encoding failures on Vietnamese deliverables.
 - Improved `output_guard.py` evidence detection for Vietnamese prose commands such as `Bang chung: chay python -m pytest ...`.
 - Reduced false-positive security scan noise from scanner literals, local HTTP examples, and non-production TODO references.
@@ -13,6 +34,8 @@
 - Added `utf-8-sig` corpus loading so benchmark files created by Windows tools with a UTF-8 BOM still work.
 
 ### Added
+- Added `.system/WORKFLOW_DISCIPLINE_MATRIX.md` to track CodexAI coverage against core coding-agent workflow disciplines without third-party branding.
+- Added workflow discipline regression tests for the skill invocation rule, brainstorm/review-feedback routing, and safe parallel subagent dispatch.
 - Added file-based benchmark corpus for release reports, decision memos, PR reviews, incident postmortems, technical decisions, frontend handoffs, and stakeholder status reports.
 - Expanded `benchmark_quality.py` to report output score, editorial score, quality index, and expectation hit rate.
 - Added regression tests for UTF-8 CLI output, Vietnamese command evidence, benchmark corpus loading, invalid corpus handling, BOM-encoded corpus JSON, scanner noise, BOM handling, modern command parsing, and prose false-positive prevention.
@@ -20,17 +43,20 @@
 - Added specialist integrity tests to lock domain/security reference coverage and anti-overengineering guardrails.
 
 ### Enhanced
+- Added a P0 Skill Invocation Rule to `codex-master-instructions` so relevant skills are selected before acting, without bulk-loading unrelated context.
+- Added `$brainstorm` and `$review-feedback` routing for planning and review feedback workflows.
+- Updated `codex-subagent-execution` to allow safe parallel dispatch only for disjoint write scopes with explicit ownership and final integration by the coordinator.
 - Strengthened `codex-domain-specialist` with a Scope Fit Gate, complexity budget, and explicit proof requirement before adding dependencies, services, queues, caches, or architecture layers.
 - Strengthened `codex-security-specialist` with proportional-control rules so defense-in-depth does not become unjustified WAF/SIEM/mTLS/Vault/compliance overengineering.
 
 ### Infrastructure
 - Bumped version: `14.2.0` -> `14.2.1`
-- Verified suite target: `142` unit tests + `51` smoke checks.
+- Verified suite target: `149` unit tests + `51` smoke checks.
 - Added missing `codex-verification-discipline` and `codex-branch-finisher` entries to manifest on-demand load order.
 
 ## [14.1.0] - 2026-04-19
 
-### Added - 2 New Discipline Skills (Round 2 Superpowers Parity)
+### Added - 2 New Discipline Skills (Round 2 Workflow Discipline Coverage)
 - **NEW SKILL**: `codex-verification-discipline`
   - `SKILL.md`: Iron Law "evidence before claims" behavioral constraint
   - Rationalization prevention table (8 excuses countered)
@@ -81,7 +107,7 @@
 
 ## [14.0.0] - 2026-04-19
 
-### Added - 4 New Discipline Skills (Workflow Mastery from Superpowers)
+### Added - 4 New Discipline Skills (Workflow Mastery)
 - **NEW SKILL**: `codex-test-driven-development`
   - `SKILL.md`: RED-GREEN-REFACTOR Iron Law enforcement, 12-excuse rationalization table, verification checklist
   - `references/testing-anti-patterns.md`: 7 anti-patterns with Python + TypeScript examples
@@ -219,7 +245,7 @@
 ## [12.2.1] - 2026-03-18
 
 ### Changed
-- Source pack cleanup: removed the repo/global drift doctor from the repository so `D:\CodexAI---Skills` stays focused on the clean distributable pack, while that helper can remain global-only in `C:\Users\tranb\.codex\skills` if desired.
+- Source pack cleanup: removed the repo/global drift doctor from the repository so `<SOURCE_REPO>` stays focused on the clean distributable pack, while that helper can remain global-only in `<CODEX_HOME>/skills` if desired.
 - `codex-execution-quality-gate/SKILL.md`, `README.md`, `skills/README.md`, and `docs/huong-dan-vi.md`: removed source-pack references to the repo/global drift helper and refreshed metrics for the clean source pack.
 
 ### Tests

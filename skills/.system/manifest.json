@@ -1,5 +1,5 @@
 {
-  "version": "14.2.1",
+  "version": "14.3.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -8,6 +8,7 @@
     "codex-workflow-autopilot",
     "codex-reasoning-rigor",
     "codex-document-writer",
+    "codex-role-docs",
     "codex-design-system",
     "codex-design-md",
     "codex-domain-specialist",
@@ -55,6 +56,7 @@
       "codex-workflow-autopilot",
       "codex-reasoning-rigor",
       "codex-document-writer",
+      "codex-role-docs",
       "codex-design-system",
       "codex-design-md",
       "codex-domain-specialist",

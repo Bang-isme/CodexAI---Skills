@@ -385,7 +385,7 @@ def mode_generate(project_root: Path, args: argparse.Namespace) -> None:
             "status": "generated",
             "file": file_display,
             "tests": 3,
-            "note": "Skeleton generated Ã¢â‚¬â€ fill in TODO assertions",
+            "note": "Skeleton generated - fill in TODO assertions",
         },
         exit_code=0,
     )
