@@ -13,8 +13,9 @@ CHANGELOG = SKILLS_ROOT / "CHANGELOG.md"
 VERSION = SKILLS_ROOT / "VERSION"
 MANIFEST = SKILLS_ROOT / ".system" / "manifest.json"
 BENCHMARK = SKILLS_ROOT / "tests" / "benchmark_quality.py"
+VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
 
-EXPECTED_PYTEST = 166
+EXPECTED_PYTEST = 168
 EXPECTED_SMOKE = 55
 EXPECTED_TOTAL = EXPECTED_PYTEST + EXPECTED_SMOKE
 
@@ -59,3 +60,27 @@ def test_benchmark_version_and_documented_scope_are_current() -> None:
     assert match.group(1) == "1.2"
     assert "12-case static corpus" in root_readme
     assert "output score, editorial score, quality index, and expectation hit rate" in changelog
+
+
+def test_install_instructions_copy_dot_directories() -> None:
+    root_readme = read(ROOT_README)
+    vi_guide = read(VI_GUIDE)
+
+    for text in (root_readme, vi_guide):
+        assert 'Copy-Item -Recurse -Force ".\\skills\\*"' not in text
+        assert 'cp -R ./skills/* "$HOME/.codex/skills/"' not in text
+        assert "Get-ChildItem -Force -LiteralPath $source" in text
+        assert 'cp -R ./skills/. "$HOME/.codex/skills/"' in text
+        assert ".system" in text
+        assert ".agents" in text
+        assert ".workflows" in text
+
+
+def test_vietnamese_guide_release_metadata_is_current() -> None:
+    version = read(VERSION).strip()
+    vi_guide = read(VI_GUIDE)
+
+    assert f"Phiên bản: `{version}`" in vi_guide
+    assert f"{EXPECTED_PYTEST} unit + {EXPECTED_SMOKE} smoke = {EXPECTED_TOTAL} bài test" in vi_guide
+    assert "12.6.0" not in vi_guide
+    assert "98 unit + 49 smoke" not in vi_guide

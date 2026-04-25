@@ -16,7 +16,9 @@
 
 ### Infrastructure
 - Bumped version: `14.2.1` -> `14.3.0`
-- Verified suite target: `166` unit tests + `55` smoke checks.
+- Fixed install/sync documentation so dot directories such as `.system`, `.agents`, and `.workflows` are copied into global skills.
+- Refreshed the Vietnamese usage guide for v14.3.0 release metadata and safe sync commands.
+- Verified suite target: `168` unit tests + `55` smoke checks.
 
 ## [14.2.1] - 2026-04-24
 
