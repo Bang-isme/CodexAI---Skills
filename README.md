@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-14.3.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-168%2F168%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-55%2F55%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-15.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-168%2F168%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-55%2F55%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,14 +25,14 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 24 |
+| Core Skills | 25 |
 | Entry-point Scripts | 53 |
 | Shared Helpers | 2 |
-| Reference Docs | 173+ |
+| Reference Docs | 185+ |
 | Starter Templates | 29 |
-| Scrum Artifact Templates | 6 |
+| Artifact Templates | 9 |
 | Agent Personas | 8 |
-| Workflow Aliases | 6 |
+| Workflow Aliases | 7 |
 | Verification | 168 unit + 55 smoke = 223 tests |
 
 ---

@@ -6,15 +6,15 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `14.3.0` |
-| Core Skills | 24 |
+| Version | `15.0.0` |
+| Core Skills | 25 |
 | Entry-point Scripts | 53 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 173+ |
+| References | 185+ |
 | Starters | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 8 |
-| Workflow Aliases | 6 |
+| Workflow Aliases | 7 |
 | Short Aliases | 25+ |
 | Pytest | 168/168 |
 | Smoke | 55/55 |

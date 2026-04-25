@@ -1,5 +1,5 @@
 {
-  "version": "14.3.0",
+  "version": "15.0.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -24,7 +24,8 @@
     "codex-subagent-execution",
     "codex-git-worktrees",
     "codex-verification-discipline",
-    "codex-branch-finisher"
+    "codex-branch-finisher",
+    "codex-project-pulse"
   ],
   "agents": [
     "frontend-specialist",
@@ -42,14 +43,16 @@
     "create",
     "review",
     "deploy",
-    "handoff"
+    "handoff",
+    "refactor"
   ],
   "scripts_registry": ".system/REGISTRY.md",
   "load_order": {
     "always": [
       "codex-master-instructions",
       "codex-intent-context-analyzer",
-      "codex-context-engine"
+      "codex-context-engine",
+      "codex-verification-discipline"
     ],
     "on-demand": [
       "codex-plan-writer",
@@ -71,8 +74,8 @@
       "codex-systematic-debugging",
       "codex-subagent-execution",
       "codex-git-worktrees",
-      "codex-verification-discipline",
-      "codex-branch-finisher"
+      "codex-branch-finisher",
+      "codex-project-pulse"
     ]
   }
 }

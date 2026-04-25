@@ -20,6 +20,8 @@ Purpose: keep CodexAI Skill Pack coverage explicit for core coding-agent workflo
 | git worktree isolation | `codex-git-worktrees` + `$worktree` | Covered | Isolated workspaces for complex work. |
 | branch finishing | `codex-branch-finisher` + `$finish` | Covered | Structured finish/merge/PR/cleanup options. |
 | skill authoring | `.system/skill-creator` | Covered | Skill authoring and validation exists in system skills. |
+| project status tracking | `codex-project-pulse` + `$today` + `$pulse` | Covered | Sprint state, priority queue, blockers, risks, milestones, daily brief. |
+| refactoring | `.workflows/refactor.md` + `codex-workflow-autopilot` | Covered | Tech debt baseline, blast radius prediction, incremental refactor with verification. |
 
 ## CodexAI Extensions
 
@@ -29,6 +31,7 @@ Purpose: keep CodexAI Skill Pack coverage explicit for core coding-agent workflo
 - Vietnamese document clarity and mojibake guards.
 - Project memory and multi-role project genome generation.
 - Design system and DESIGN.md visual identity support.
+- Real-time project state with autonomous daily brief generation (`codex-project-pulse`).
 
 ## Guardrail
 

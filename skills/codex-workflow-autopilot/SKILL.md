@@ -16,10 +16,11 @@ Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teach
 3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 4. Activate Scrum overlay on backlog, story, sprint, review, retrospective, release-readiness, or shorthand commands such as `$sprint-plan`, `$story-ready-check`, `$retro`, and `$release-readiness`.
 5. Activate reasoning rigor on `$codex-reasoning-rigor`, `$rigor`, "don't be generic", "go deeper", "make it specific", or "use the repo, not generic advice".
-6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$review`, `$deploy`, `$handoff`.
+6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$review`, `$deploy`, `$handoff`, `$refactor`.
 7. When activated via alias, load the corresponding `.workflows/<name>.md` file before executing the flow.
 8. Activate brainstorm mode on `$brainstorm`, "brainstorm", "think through options", or "explore approaches".
 9. Activate review-feedback routing on `$review-feedback`, "address review feedback", or "respond to code review".
+10. Activate project pulse on `$today`, `$pulse`, `$daily`, `$status`, `$brief`, "hôm nay thế nào?", "what's next?", "what should I work on?", or "project status". Route to `codex-project-pulse`.
 
 ## Behavioral Protocol Decision Tree
 
@@ -194,12 +195,14 @@ Checkpoint: wait for explicit user approval before Phase 3.
 - `references/workflow-refactor.md`: execution template for refactoring workflows.
 - `references/workflow-deploy.md`: execution template for deployment workflows.
 - `references/workflow-handoff.md`: execution template for session handoff workflows.
+- `references/workflow-plan.md`: execution template for planning and BMAD Phase 1-2 workflows.
 - `../.workflows/plan.md`: alias workflow for planning and BMAD Phase 1-2.
 - `../.workflows/debug.md`: alias workflow for 4-phase debugging.
 - `../.workflows/create.md`: alias workflow for build-mode execution.
 - `../.workflows/review.md`: alias workflow for review plus written-output quality checks.
 - `../.workflows/deploy.md`: alias workflow for ship preparation and full gate.
 - `../.workflows/handoff.md`: alias workflow for session transfer and summary generation.
+- `../.workflows/refactor.md`: alias workflow for restructuring and simplifying code.
 
 ## Helper Script
 

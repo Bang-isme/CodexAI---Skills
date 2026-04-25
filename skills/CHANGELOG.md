@@ -1,5 +1,31 @@
 # Changelog
 
+## [15.0.0] - 2026-04-26
+
+### Added
+- Added **NEW SKILL**: `codex-project-pulse` — autonomous project management with real-time state tracking.
+  - Sprint state management: `$sprint-init`, `$sprint-close`, `$add-story`, `$done`, `$wip`.
+  - Priority queue engine with automatic scoring, WIP limits, and reordering.
+  - Blocker tracking with stale detection and escalation: `$block`, `$unblock`, `$blockers`.
+  - Risk register with severity × probability matrix: `$risk`.
+  - Milestone tracking with deadline proximity alerts: `$milestone`, `$milestones`.
+  - Daily brief generation: `$today`, `$pulse`, `$daily`, `$status`, `$brief`.
+  - Vietnamese daily brief support ("hôm nay thế nào?").
+  - Sprint velocity tracking and capacity forecasting.
+  - Kanban fallback mode when no sprint is initialized.
+  - Integration with `codex-project-memory`, `codex-execution-quality-gate`, `codex-scrum-subagents`, and `codex-workflow-autopilot`.
+- Added `references/state-schemas.md`: JSON schemas for sprint-state, priority-queue, blockers, risk-register, milestones.
+- Added `references/daily-brief-template.md`: generation protocol, calculation rules, full example, Vietnamese version, edge cases.
+- Added `references/priority-engine.md`: priority scoring formula, queue algorithm, WIP limits, reordering.
+- Added `.workflows/refactor.md` alias (was missing — `workflow-refactor.md` reference existed without alias).
+- Added `references/workflow-plan.md` to `codex-workflow-autopilot` (consistency fix — all other workflows had both ref + alias).
+
+### Changed
+- Enriched all 7 Scrum ceremony workflows (backlog-refinement, sprint-planning, daily-scrum, story-delivery, sprint-review, retrospective, release-readiness) from stubs (~500B) to production-grade with templates, checklists, anti-patterns, and examples (~3KB each).
+- Updated `codex-workflow-autopilot/SKILL.md` to reference `workflow-plan.md` and `refactor.md` alias.
+- Updated `manifest.json`: added `refactor` to workflows list, added `codex-project-pulse` to skills and on-demand load order.
+- Bumped version from 14.3.0 to 15.0.0.
+
 ## [14.3.0] - 2026-04-24
 
 ### Added
