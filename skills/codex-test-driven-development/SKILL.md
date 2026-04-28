@@ -1,6 +1,6 @@
 ---
 name: codex-test-driven-development
-description: Enforce Red-Green-Refactor cycle for every feature, bugfix, and refactor. Use before writing any implementation code. No production code without a failing test first.
+description: Use before feature, bugfix, or refactor implementation when behavior can be tested; enforces Red-Green-Refactor discipline.
 load_priority: on-demand
 ---
 

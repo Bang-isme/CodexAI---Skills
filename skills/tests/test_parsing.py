@@ -270,8 +270,25 @@ def test_run_gate_strict_output_blocks_generic_deliverable(tmp_path: Path) -> No
         output_min_score=60,
     )
     assert report["gate_passed"] is False
-    assert "Written deliverable failed strict output quality checks." in report["blocking_issues"]
     assert report["output_guard"]["status"] == "fail"
+    assert "Written deliverable failed strict output quality checks." in report["blocking_issues"]
+
+
+def test_run_gate_detects_pytest_from_tests_directory(tmp_path: Path) -> None:
+    write_text(tmp_path / "tests" / "test_sample.py", "def test_sample():\n    assert True\n")
+
+    report = run_gate.build_gate_report(
+        tmp_path,
+        timeout_lint=5,
+        timeout_test=20,
+        skip_lint=True,
+        skip_test=False,
+    )
+
+    assert report["test"]["detected"] is True
+    assert report["test"]["tool"] == "pytest"
+    assert "-m pytest" in report["test"]["command"]
+    assert report["test"]["passed"] is True
 
 
 def test_run_gate_strict_output_blocks_editorially_weak_deliverable(tmp_path: Path) -> None:

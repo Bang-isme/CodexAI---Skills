@@ -103,3 +103,27 @@ def test_check_boundaries_blocks_and_suggests_handoff() -> None:
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert payload == report
+
+
+def test_check_boundaries_has_no_external_yaml_dependency() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            str(BOUNDARY_SCRIPT),
+            "--agent",
+            "frontend-specialist",
+            "--files",
+            "src/components/Header.vue",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=10,
+        check=False,
+    )
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0
+    assert payload["files_allowed"] == ["src/components/Header.vue"]

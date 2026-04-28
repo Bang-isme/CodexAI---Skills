@@ -1,6 +1,6 @@
 ---
 name: codex-intent-context-analyzer
-description: Analyze code-change prompts into structured intent JSON with goal, constraints, missing info, normalized prompt, complexity, and confirmation gating. Use before implementation for build, fix, debug, review, and docs tasks.
+description: Use before build, fix, debug, review, or docs implementation; converts prompts into structured intent JSON with goal, constraints, and routing.
 load_priority: always
 ---
 

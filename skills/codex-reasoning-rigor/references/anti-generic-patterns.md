@@ -1,6 +1,6 @@
 ﻿# Anti-Generic Patterns
 
-Use this reference when an answer sounds correct but could apply to almost any project. Generic output is the #1 failure mode for AI assistants â€” it satisfies no one and wastes the reader's time.
+Use this reference when an answer sounds correct but could apply to almost any project. Generic output is the #1 failure mode for AI assistants -- it satisfies no one and wastes the reader's time.
 
 ## The Generic Output Problem
 
@@ -19,17 +19,17 @@ Generic output has these symptoms:
 
 | Generic (Fails) | Specific (Works) |
 |---|---|
-| "Add error handling to your API" | "Add try/catch to `src/controllers/user.ts:34-52` â€” the `createUser` handler awaits Prisma without catching `P2002` (unique constraint)" |
-| "Improve your test coverage" | "Add integration tests for `POST /api/orders` â€” 0 tests exist for the order flow in `tests/`" |
-| "Optimize database queries" | "Add index on `orders.user_id` â€” `EXPLAIN ANALYZE` shows sequential scan on 50K rows for `/api/users/:id/orders`" |
+| "Add error handling to your API" | "Add try/catch to `src/controllers/user.ts:34-52` -- the `createUser` handler awaits Prisma without catching `P2002` (unique constraint)" |
+| "Improve your test coverage" | "Add integration tests for `POST /api/orders` -- 0 tests exist for the order flow in `tests/`" |
+| "Optimize database queries" | "Add index on `orders.user_id` -- `EXPLAIN ANALYZE` shows sequential scan on 50K rows for `/api/users/:id/orders`" |
 
 ### 2. Improvement Language Without Measurement
 
 | Generic | Specific |
 |---|---|
 | "This will improve performance" | "This reduces P95 from 800ms to 200ms (measured with `k6 run load-test.js`)" |
-| "Enhances maintainability" | "Extracts 3 duplicated validation blocks into `src/utils/validate.ts` â€” removes 45 lines of duplication" |
-| "Better user experience" | "Login form now shows field-level errors instead of a generic toast â€” reduces support tickets for 'can't login'" |
+| "Enhances maintainability" | "Extracts 3 duplicated validation blocks into `src/utils/validate.ts` -- removes 45 lines of duplication" |
+| "Better user experience" | "Login form now shows field-level errors instead of a generic toast -- reduces support tickets for 'can't login'" |
 
 ### 3. Single Path Without Tradeoffs
 
@@ -42,7 +42,7 @@ Generic output has these symptoms:
 
 | Generic | Specific |
 |---|---|
-| "Follow SOLID principles" | "The `OrderService` class handles validation, pricing, inventory, and email â€” extract `InventoryService` and `NotificationService` to respect single responsibility" |
+| "Follow SOLID principles" | "The `OrderService` class handles validation, pricing, inventory, and email -- extract `InventoryService` and `NotificationService` to respect single responsibility" |
 | "Use proper error handling" | "Replace `console.log(err)` on line 45 with `throw new AppError('Payment failed', 502, { cause: err })` so the error middleware returns structured JSON" |
 | "Implement security best practices" | "Add `helmet()` middleware, set `httpOnly: true` on session cookie in `src/config/session.ts`, and validate `Content-Type` header in upload endpoint" |
 
@@ -78,7 +78,7 @@ After:  "Use connection pooling (max 20). Without it, 50+ concurrent requests
 ### Move 5: Ground In This Repo
 ```
 Before: "Consider adding rate limiting"
-After:  "`request_log` shows 12K requests/min from same IP on April 15 â€”
+After:  "`request_log` shows 12K requests/min from same IP on April 15 --
          add express-rate-limit to `src/middleware/` with 100 req/min per IP"
 ```
 
@@ -117,7 +117,7 @@ If you can't answer all 5, the output is still too generic.
 > "The application would benefit from adding caching to improve performance. Consider using Redis as a caching layer. This is a common pattern that follows industry best practices for web application optimization. Make sure to implement proper cache invalidation to ensure data consistency."
 
 ### âœ… Specific Version
-> **Finding:** `GET /api/products` averages 780ms (measured: `curl -w '%{time_total}' localhost:3000/api/products` over 20 requests). The query in `src/services/product.ts:23` runs `SELECT * FROM products JOIN categories` on every request â€” 2,400 products, no cache.
+> **Finding:** `GET /api/products` averages 780ms (measured: `curl -w '%{time_total}' localhost:3000/api/products` over 20 requests). The query in `src/services/product.ts:23` runs `SELECT * FROM products JOIN categories` on every request -- 2,400 products, no cache.
 >
 > **Recommendation:** Add Redis caching with 60s TTL to `GET /api/products`.
 >
@@ -129,6 +129,6 @@ If you can't answer all 5, the output is still too generic.
 >
 > **Risk:** Stale data for up to 60s after product update. Mitigation: explicit `cache.invalidate('products')` in write handlers.
 >
-> **Verification:** `curl -w '%{time_total}' /api/products` â†’ expect < 50ms on cache hit.
+> **Verification:** `curl -w '%{time_total}' /api/products` -> expect < 50ms on cache hit.
 >
-> **Not Changed:** Category list endpoint (`/api/categories`) â€” only 12 categories, not worth caching.
+> **Not Changed:** Category list endpoint (`/api/categories`) -- only 12 categories, not worth caching.

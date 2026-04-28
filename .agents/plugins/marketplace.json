@@ -1,0 +1,20 @@
+{
+  "name": "local-codexai-plugins",
+  "interface": {
+    "displayName": "Local CodexAI Plugins"
+  },
+  "plugins": [
+    {
+      "name": "codexai-agentic-workflow",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

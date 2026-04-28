@@ -1,11 +1,11 @@
 ---
 name: codex-project-memory
-description: Tracks project knowledge, decisions, and patterns across sessions
+description: Use for project memory, decisions, handoffs, genome, knowledge index, changelog, and patterns that must persist across sessions.
 load_priority: on-demand
 ---
 
 ## TL;DR
-11 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph/project-genome. Maintain -> compact old context. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`, `$compact-context`, `$codex-genome`.
+12 scripts for project knowledge persistence. Decision tree: Log -> decision/feedback/skill-usage. Generate -> changelog/session-summary/handoff/growth-report. Analyze -> patterns/knowledge-graph/knowledge-index/project-genome. Maintain -> compact old context. Triggers: `$changelog`, `$growth-report`, `$session-summary`, `$log-decision`, `$compact-context`, `$knowledge`, `$codex-genome`.
 
 # Codex Project Memory
 
@@ -26,6 +26,7 @@ load_priority: on-demand
 13. Activate on `$growth-report` to generate a developer growth report.
 14. Activate on `$compact-context` or "clean up old sessions".
 15. Activate on `$codex-genome`, `$generate-genome`, or `$genome` to create layered project context docs.
+16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`.
 
 ## Decision Tree Routing
 
@@ -45,6 +46,7 @@ User intent -> Memory action?
     |- Analyze -> What?
     |   |- Patterns -> analyze_patterns.py
     |   |- Dependencies -> build_knowledge_graph.py
+    |   |- Tacit knowledge index -> build_knowledge_index.py
     |   `- Context genome -> generate_genome.py
     |
     |- Maintain -> What?
@@ -73,6 +75,8 @@ User intent -> Memory action?
 - `references/feedback-tracker-spec.md`: feedback logging and aggregate usage.
 - `references/skill-evolution-spec.md`: skill usage analytics and optimization.
 - `references/knowledge-graph-spec.md`: deep architecture mapping and refresh guidance.
+- `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, and config; redacts secret-like values and stores provenance/confidence.
+- `references/knowledge-index.schema.json`: output contract for `.codex/knowledge/index.json`.
 - `references/context-compactor-spec.md`: retention policy, archive layout, and dry-run expectations.
 - `references/behavior-guide.md`: detailed per-script behaviors, defaults, and chaining guidance.
 - `references/script-commands.md`

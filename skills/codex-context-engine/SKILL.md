@@ -1,6 +1,6 @@
 ---
 name: codex-context-engine
-description: Generate and load multi-layer project context documentation to reduce AI hallucination. Use before any task on a project with 50+ files, or on explicit $codex-genome command.
+description: Use when a project has 50+ files, missing context, or explicit $codex-genome request; generates multi-layer project context to reduce hallucination.
 load_priority: always
 ---
 

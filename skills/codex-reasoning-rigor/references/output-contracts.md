@@ -1,6 +1,6 @@
 ﻿# Output Contracts
 
-Use output contracts to make answers falsifiable and actionable. An output contract forces the answer to include enough structure that the reader can verify, challenge, or act on it â€” instead of just nodding along.
+Use output contracts to make answers falsifiable and actionable. An output contract forces the answer to include enough structure that the reader can verify, challenge, or act on it -- instead of just nodding along.
 
 ## Why Output Contracts Matter
 
@@ -32,13 +32,13 @@ Every non-trivial answer must include these fields:
 <The single most important action to take next, with owner if applicable.>
 ```
 
-**Example â€” Bad (No Contract):**
+**Example -- Bad (No Contract):**
 > "You should use Redis for caching. It's fast and widely used. Let me know if you need help setting it up."
 
-**Example â€” Good (With Contract):**
+**Example -- Good (With Contract):**
 > **Decision:** Use Redis for API response caching because the current P95 response time (800ms) exceeds the 500ms target, and 70% of requests are repeated reads.
 >
-> **Evidence:** `curl -w '%{time_total}' /api/products` â†’ 820ms average over 10 requests. `SELECT count(*) FROM request_log WHERE path='/api/products' AND created_at > now()-interval '1h'` â†’ 4,200 requests, 3,100 unique.
+> **Evidence:** `curl -w '%{time_total}' /api/products` -> 820ms average over 10 requests. `SELECT count(*) FROM request_log WHERE path='/api/products' AND created_at > now()-interval '1h'` -> 4,200 requests, 3,100 unique.
 >
 > **Risks:** Cache invalidation on product updates. Mitigation: TTL of 60s + explicit invalidation on write endpoints.
 >
@@ -77,10 +77,10 @@ For reviews, audits, and code assessments:
 
 ```markdown
 ## Finding
-<What was found â€” specific, not vague.>
+<What was found -- specific, not vague.>
 
 ## Impact
-<Why it matters â€” what breaks, degrades, or becomes risky.>
+<Why it matters -- what breaks, degrades, or becomes risky.>
 
 ## Boundary
 <Exact files, functions, or lines affected.>
@@ -89,17 +89,17 @@ For reviews, audits, and code assessments:
 <Specific action or decision needed.>
 ```
 
-**Example â€” Bad:**
+**Example -- Bad:**
 > "The error handling could be improved."
 
-**Example â€” Good:**
-> **Finding:** Unhandled promise rejection in `src/services/payment.ts:42` â€” `processPayment()` awaits `stripe.charges.create()` without try/catch.
+**Example -- Good:**
+> **Finding:** Unhandled promise rejection in `src/services/payment.ts:42` -- `processPayment()` awaits `stripe.charges.create()` without try/catch.
 >
 > **Impact:** Stripe API timeout (>30s) crashes the server process. Production logs show 3 instances in the past week.
 >
 > **Boundary:** `src/services/payment.ts:42-58`, `src/controllers/order.ts:23` (caller).
 >
-> **Fix:** Wrap in try/catch, return typed error to controller, add timeout configuration (30s â†’ 10s with retry).
+> **Fix:** Wrap in try/catch, return typed error to controller, add timeout configuration (30s -> 10s with retry).
 
 ### Implementation Contract
 
@@ -129,11 +129,11 @@ For code work and feature delivery:
 > | `src/config/limits.ts` | New config file for rate limit thresholds |
 > | `tests/middleware/auth.test.ts` | Added 3 rate-limit test cases |
 >
-> **Verification:** `npm test -- --grep "rate limit"` â†’ 3/3 pass
+> **Verification:** `npm test -- --grep "rate limit"` -> 3/3 pass
 >
 > **Behavior Change:** Requests exceeding 100/min from same IP now receive 429 Too Many Requests instead of proceeding.
 >
-> **Deliberately Unchanged:** Login endpoint not rate-limited separately â€” will address in next sprint with account-based limiting.
+> **Deliberately Unchanged:** Login endpoint not rate-limited separately -- will address in next sprint with account-based limiting.
 
 ### Planning Contract
 
@@ -149,7 +149,7 @@ For plans, proposals, and roadmaps:
 | <item> | <item> |
 
 ## Success Criteria
-<How we know this is done â€” specific, testable conditions.>
+<How we know this is done -- specific, testable conditions.>
 
 ## Dependencies
 <What must be true before this can start.>

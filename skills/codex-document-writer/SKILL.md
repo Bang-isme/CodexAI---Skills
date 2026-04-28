@@ -1,6 +1,6 @@
 ---
 name: codex-document-writer
-description: Draft and revise documents, reports, memos, guides, academic papers, and formal text with clear structure, reliable tone, professional formatting, and visual diagrams.
+description: Use for documents, reports, memos, guides, academic papers, or formal text that needs clear structure, reliable tone, formatting, and diagrams.
 load_priority: on-demand
 ---
 

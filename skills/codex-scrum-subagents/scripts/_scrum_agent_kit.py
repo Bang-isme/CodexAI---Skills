@@ -280,14 +280,15 @@ def render_native_agent_prompt(agent_name: str, description: str, skills: Sequen
     ).strip()
 
 
-def render_native_agent_toml(description: str, prompt: str) -> str:
-    if "'''" in prompt:
-        raise ValueError("Native agent prompt cannot contain triple single quotes")
+def render_native_agent_toml(name: str, description: str, developer_instructions: str) -> str:
+    if "'''" in developer_instructions:
+        raise ValueError("Native agent developer_instructions cannot contain triple single quotes")
     return "\n".join(
         [
+            f"name = {json.dumps(name, ensure_ascii=False)}",
             f"description = {json.dumps(description, ensure_ascii=False)}",
-            "prompt = '''",
-            prompt.rstrip(),
+            "developer_instructions = '''",
+            developer_instructions.rstrip(),
             "'''",
             "",
         ]
@@ -308,7 +309,8 @@ def native_agent_specs(bundle_root: Path) -> Dict[str, str]:
         skills = [str(item) for item in raw_skills] if isinstance(raw_skills, list) else []
         role_brief = strip_frontmatter(path.read_text(encoding="utf-8"))
         prompt = render_native_agent_prompt(agent_name, description, skills, role_brief)
-        specs[native_agent_filename(agent_name)] = render_native_agent_toml(description, prompt)
+        native_name = native_agent_filename(agent_name)[:-5]
+        specs[native_agent_filename(agent_name)] = render_native_agent_toml(native_name, description, prompt)
     return specs
 
 
@@ -325,12 +327,18 @@ def validate_native_agent_specs(bundle_root: Path) -> List[str]:
         except tomllib.TOMLDecodeError as exc:
             errors.append(f"native-agents/{filename}: invalid TOML ({exc})")
             continue
+        name = payload.get("name")
         description = payload.get("description")
-        prompt = payload.get("prompt")
+        developer_instructions = payload.get("developer_instructions")
+        unsupported = sorted(set(payload) - {"name", "description", "developer_instructions", "sandbox_mode", "model", "model_reasoning_effort", "mcp_servers", "skills", "nickname_candidates"})
+        if unsupported:
+            errors.append(f"native-agents/{filename}: unsupported field(s): {', '.join(unsupported)}")
+        if not isinstance(name, str) or not name.strip():
+            errors.append(f"native-agents/{filename}: missing non-empty 'name'")
         if not isinstance(description, str) or not description.strip():
             errors.append(f"native-agents/{filename}: missing non-empty 'description'")
-        if not isinstance(prompt, str) or not prompt.strip():
-            errors.append(f"native-agents/{filename}: missing non-empty 'prompt'")
+        if not isinstance(developer_instructions, str) or not developer_instructions.strip():
+            errors.append(f"native-agents/{filename}: missing non-empty 'developer_instructions'")
     return errors
 
 

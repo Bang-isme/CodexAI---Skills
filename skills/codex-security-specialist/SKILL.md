@@ -1,6 +1,6 @@
 ---
 name: codex-security-specialist
-description: Apply layered security routing for network, infrastructure, application security, compliance, and DevSecOps concerns. Use to select focused security reference files with strict context boundaries before implementation, audit, or review.
+description: Use for security review, audit, hardening, compliance, DevSecOps, network, infrastructure, or application security with focused references.
 load_priority: on-demand
 ---
 

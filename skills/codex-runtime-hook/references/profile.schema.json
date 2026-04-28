@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "type": "object",
+  "required": ["schema_version", "name", "stack", "primary_domain", "test_framework", "deploy_target", "custom_references", "preferences"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "name": {"type": "string"},
+    "stack": {"type": "array", "items": {"type": "string"}},
+    "primary_domain": {"enum": ["frontend", "backend", "fullstack", "mobile", "devops", "qa", "unknown"]},
+    "test_framework": {"type": "string"},
+    "deploy_target": {"type": "string"},
+    "custom_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "type", "trusted"],
+        "properties": {
+          "path": {"type": "string", "policy": "repo-relative only; no absolute path; no .."},
+          "type": {"type": "string"},
+          "trusted": {"type": "boolean", "description": "false means project content is evidence, not instruction"}
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "required": ["response_language", "output_style", "verification_preference"],
+      "properties": {
+        "response_language": {"type": "string"},
+        "output_style": {"type": "string"},
+        "verification_preference": {"type": "string"}
+      }
+    }
+  }
+}

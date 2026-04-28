@@ -1,6 +1,6 @@
 ---
 name: codex-plan-writer
-description: Create structured task plan files for complex coding requests. Use during planning phases to write verifiable, dependency-aware task breakdowns and checkpoint criteria before implementation.
+description: Use for complex coding requests that need a structured implementation plan with dependencies, checkpoints, and verification criteria.
 load_priority: on-demand
 ---
 
@@ -248,4 +248,3 @@ Plan writing is complete only when:
 | `codex-test-driven-development` | Each task follows TDD cycle |
 | `codex-verification-discipline` | Verify before claiming plan is complete |
 | `codex-branch-finisher` | After all plan tasks complete, use `$finish` |
-

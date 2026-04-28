@@ -135,8 +135,10 @@ def test_native_agent_specs_render_prefixed_toml_agents() -> None:
     assert "scrum-product-owner.toml" in specs
     assert "scrum-master.toml" in specs
     assert "scrum-solution-architect.toml" in specs
+    assert 'name = "scrum-product-owner"' in specs["scrum-product-owner.toml"]
     assert "description =" in specs["scrum-product-owner.toml"]
-    assert "prompt = '''" in specs["scrum-product-owner.toml"]
+    assert "developer_instructions = '''" in specs["scrum-product-owner.toml"]
+    assert "prompt =" not in specs["scrum-product-owner.toml"]
 
 
 def test_copy_and_compare_native_agents(tmp_path: Path) -> None:

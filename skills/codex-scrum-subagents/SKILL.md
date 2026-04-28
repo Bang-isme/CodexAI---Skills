@@ -1,6 +1,6 @@
 ---
 name: codex-scrum-subagents
-description: Install and operate a Scrum-oriented subagent kit for Codex projects. Use when work should follow Scrum roles or ceremonies such as Product Owner, Scrum Master, backlog refinement, sprint planning, daily scrum, sprint review, retrospective, story delivery, or release readiness with explicit handoffs between planning, implementation, QA, security, UX, and DevOps.
+description: Use when work needs Scrum roles, ceremonies, backlog refinement, sprint planning, story delivery, release readiness, or role handoffs.
 load_priority: on-demand
 ---
 

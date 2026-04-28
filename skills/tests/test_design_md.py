@@ -93,3 +93,40 @@ def test_cli_scaffold_writes_output(tmp_path: Path) -> None:
     text = output_path.read_text(encoding="utf-8")
     assert "Atlas Console" in text
     assert "## Components" in text
+
+
+def test_cli_help_works_without_external_site_packages() -> None:
+    result = subprocess.run(
+        [sys.executable, "-S", str(SCRIPT_PATH), "--help"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "DESIGN.md" in result.stdout
+
+
+def test_cli_spec_does_not_read_unrelated_cwd_docs_spec(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "spec.md").write_text("# Wrong Project Spec\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "spec", "--format", "markdown"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "Wrong Project Spec" not in result.stdout
+    assert result.stdout.strip()
+    assert any(marker in result.stdout for marker in ("Generated from spec.mdx", "DESIGN.md Format", "DESIGN.md"))

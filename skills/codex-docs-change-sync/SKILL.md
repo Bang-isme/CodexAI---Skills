@@ -1,6 +1,6 @@
 ---
 name: codex-docs-change-sync
-description: Map code changes to candidate documentation updates using git diff and mapping rules. Use during docs steps to report impacted docs in MVP without auto-editing documentation.
+description: Use when code changes may require documentation updates; maps git diff to candidate docs without auto-editing documentation.
 load_priority: lazy
 ---
 

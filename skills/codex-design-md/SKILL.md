@@ -1,6 +1,6 @@
 ---
 name: codex-design-md
-description: Author, scaffold, lint, diff, and export DESIGN.md visual identity contracts using the upstream DESIGN.md spec and CLI.
+description: Use for DESIGN.md visual identity contracts; author, scaffold, lint, diff, and export design contracts with the upstream spec and CLI.
 load_priority: on-demand
 ---
 

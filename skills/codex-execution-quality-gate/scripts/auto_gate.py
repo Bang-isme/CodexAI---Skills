@@ -25,9 +25,9 @@ RunnerResult = Dict[str, Any]
 Runner = Callable[[Path], RunnerResult]
 
 MODE_CHECKS: Dict[str, List[str]] = {
-    "quick": ["security", "pre_commit"],
-    "full": ["security", "gate", "tech_debt", "role_docs"],
-    "deploy": ["security", "gate", "tech_debt", "role_docs", "bundle", "suggestions"],
+    "quick": ["runtime_hook", "security", "pre_commit"],
+    "full": ["runtime_hook", "security", "gate", "tech_debt", "role_docs", "specs", "knowledge"],
+    "deploy": ["runtime_hook", "security", "gate", "tech_debt", "role_docs", "specs", "knowledge", "bundle", "suggestions"],
 }
 
 
@@ -230,6 +230,37 @@ def run_json_subprocess(script_name: str, args: List[str], project_root: Path) -
     return payload, completed.returncode
 
 
+def git_changed_files(project_root: Path) -> List[str]:
+    commands = [
+        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "diff", "--cached", "--name-only"],
+    ]
+    changed: List[str] = []
+    seen: set[str] = set()
+    for command in commands:
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+                timeout=20,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if completed.returncode != 0:
+            continue
+        for line in completed.stdout.splitlines():
+            normalized = line.strip().replace("\\", "/")
+            if normalized and normalized not in seen:
+                changed.append(normalized)
+                seen.add(normalized)
+    return changed
+
+
 def run_suggestions(project_root: Path) -> RunnerResult:
     try:
         raw, exit_code = run_json_subprocess(
@@ -330,12 +361,188 @@ def run_role_docs(project_root: Path) -> RunnerResult:
     return make_runner_result(payload, warnings=warnings)
 
 
+def run_specs(project_root: Path) -> RunnerResult:
+    specs_root = project_root / ".codex" / "specs"
+    if not specs_root.exists():
+        payload = {
+            "status": "skip",
+            "overall": "skip",
+            "matched_specs": 0,
+            "unmapped_files": 0,
+            "summary": "Spec advisory skipped because .codex/specs is absent.",
+        }
+        return make_runner_result(payload)
+
+    script_path = SCRIPT_DIR.parent.parent / "codex-spec-driven-development" / "scripts" / "check_spec.py"
+    if not script_path.exists():
+        payload = {
+            "status": "warn",
+            "overall": "warn",
+            "matched_specs": 0,
+            "unmapped_files": 0,
+            "summary": "Spec advisory unavailable.",
+        }
+        return make_runner_result(payload, warnings=["Spec advisory skipped: codex-spec-driven-development is not installed."])
+
+    changed_files = git_changed_files(project_root)
+    command = [
+        sys.executable,
+        str(script_path),
+        "--project-root",
+        str(project_root),
+        "--changed-files",
+        ",".join(changed_files),
+        "--format",
+        "json",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+        raw = json.loads(completed.stdout) if completed.stdout.strip() else {}
+    except (json.JSONDecodeError, OSError, subprocess.TimeoutExpired) as exc:
+        payload = {"status": "warn", "overall": "warn", "matched_specs": 0, "unmapped_files": 0, "summary": "Spec advisory unavailable."}
+        return make_runner_result(payload, warnings=[f"Spec advisory unavailable: {exc}"])
+
+    unmapped = raw.get("unmapped_files", [])
+    matched = raw.get("matched_specs", [])
+    unmapped_count = len(unmapped) if isinstance(unmapped, list) else 0
+    matched_count = len(matched) if isinstance(matched, list) else 0
+    overall = str(raw.get("overall", "warn"))
+    payload = {
+        "status": "pass" if overall == "pass" else ("skip" if overall == "skip" else "warn"),
+        "overall": overall,
+        "matched_specs": matched_count,
+        "unmapped_files": unmapped_count,
+        "changed_files": len(changed_files),
+        "summary": "Spec traceability advisory completed.",
+    }
+    warnings: List[str] = []
+    if completed.returncode != 0 or raw.get("status") == "error":
+        warnings.append(str(raw.get("message", "Spec advisory exited with an error.")))
+    elif unmapped_count:
+        warnings.append(f"Spec advisory: {unmapped_count} changed file(s) are not mapped to a spec.")
+    return make_runner_result(payload, warnings=warnings)
+
+
+def run_knowledge(project_root: Path) -> RunnerResult:
+    index_path = project_root / ".codex" / "knowledge" / "index.json"
+    if not index_path.exists():
+        payload = {
+            "status": "skip",
+            "overall": "skip",
+            "summary": "Knowledge index advisory skipped because .codex/knowledge/index.json is absent.",
+        }
+        return make_runner_result(payload)
+    try:
+        raw = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        payload = {"status": "warn", "overall": "warn", "summary": "Knowledge index is unreadable."}
+        return make_runner_result(payload, warnings=[f"Knowledge index unreadable: {exc}"])
+
+    stale_sources: List[str] = []
+    index_mtime = index_path.stat().st_mtime
+    for rel in [".codex/context/genome.md", ".codex/project-docs/index.json"]:
+        source = project_root / rel
+        if source.exists() and source.stat().st_mtime > index_mtime:
+            stale_sources.append(rel)
+    payload = {
+        "status": "warn" if stale_sources else "pass",
+        "overall": "warn" if stale_sources else "pass",
+        "sources": raw.get("sources", {}),
+        "stale_sources": stale_sources,
+        "summary": "Knowledge index advisory completed.",
+    }
+    warnings = [f"Knowledge index is older than: {', '.join(stale_sources)}."] if stale_sources else []
+    return make_runner_result(payload, warnings=warnings)
+
+
+def run_runtime_hook(project_root: Path) -> RunnerResult:
+    script_path = SCRIPT_DIR.parent.parent / "codex-runtime-hook" / "scripts" / "runtime_hook.py"
+    if not script_path.exists():
+        payload = {
+            "status": "skip",
+            "overall": "skip",
+            "detected_domains": [],
+            "suggested_agent": None,
+            "missing_readiness": 0,
+            "recommended_commands": [],
+            "summary": "Runtime hook skill is not installed.",
+        }
+        return make_runner_result(payload)
+
+    command = [
+        sys.executable,
+        str(script_path),
+        "--project-root",
+        str(project_root),
+        "--format",
+        "json",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=60,
+        )
+        raw = json.loads(completed.stdout) if completed.stdout.strip() else {}
+    except (json.JSONDecodeError, OSError, subprocess.TimeoutExpired) as exc:
+        payload = {
+            "status": "warn",
+            "overall": "warn",
+            "detected_domains": [],
+            "suggested_agent": None,
+            "missing_readiness": 0,
+            "recommended_commands": [],
+            "summary": "Runtime hook advisory unavailable.",
+        }
+        return make_runner_result(payload, warnings=[f"Runtime hook advisory unavailable: {exc}"])
+
+    domains = raw.get("detected_domains", [])
+    missing = raw.get("missing", [])
+    commands = raw.get("recommended_commands", [])
+    missing_count = len(missing) if isinstance(missing, list) else 0
+    overall = str(raw.get("overall", "warn"))
+    status = "pass" if overall == "pass" else ("skip" if overall == "skip" else "warn")
+    payload = {
+        "status": status,
+        "overall": overall,
+        "detected_domains": domains if isinstance(domains, list) else [],
+        "suggested_agent": raw.get("suggested_agent"),
+        "missing_readiness": missing_count,
+        "recommended_commands": commands if isinstance(commands, list) else [],
+        "summary": "Runtime hook advisory check completed.",
+    }
+
+    warnings: List[str] = []
+    if completed.returncode != 0 or raw.get("status") == "error":
+        warnings.append(str(raw.get("message", "Runtime hook advisory exited with an error.")))
+    elif status == "warn" and missing_count:
+        warnings.append(f"Runtime hook found {missing_count} readiness gap(s).")
+    return make_runner_result(payload, warnings=warnings)
+
+
 CHECK_RUNNERS: Dict[str, Runner] = {
+    "runtime_hook": run_runtime_hook,
     "security": run_security,
     "pre_commit": run_pre_commit,
     "gate": run_gate_check,
     "tech_debt": run_tech_debt,
     "role_docs": run_role_docs,
+    "specs": run_specs,
+    "knowledge": run_knowledge,
     "bundle": run_bundle,
     "suggestions": run_suggestions,
 }
@@ -343,6 +550,13 @@ CHECK_RUNNERS: Dict[str, Runner] = {
 
 def describe_check(name: str, payload: Dict[str, Any]) -> str:
     status = str(payload.get("status", "skip")).upper()
+    if name == "runtime_hook":
+        domains = payload.get("detected_domains", [])
+        domain_text = ",".join(str(item) for item in domains) if isinstance(domains, list) and domains else "none"
+        return (
+            f"Runtime hook: {status} "
+            f"({domain_text}; {payload.get('missing_readiness', 0)} readiness gaps)"
+        )
     if name == "security":
         return f"Security: {status} ({payload.get('critical', 0)} critical, {payload.get('warnings', 0)} warnings)"
     if name == "pre_commit":
@@ -360,6 +574,15 @@ def describe_check(name: str, payload: Dict[str, Any]) -> str:
             f"({payload.get('missing_docs', 0)} missing, {payload.get('stale_docs', 0)} stale, "
             f"{payload.get('suggested_updates', 0)} updates)"
         )
+    if name == "specs":
+        return (
+            f"Specs: {status} "
+            f"({payload.get('matched_specs', 0)} matched, {payload.get('unmapped_files', 0)} unmapped)"
+        )
+    if name == "knowledge":
+        stale = payload.get("stale_sources", [])
+        stale_count = len(stale) if isinstance(stale, list) else 0
+        return f"Knowledge: {status} ({stale_count} stale source(s))"
     if name == "bundle":
         return f"Bundle: {status} ({payload.get('warnings', 0)} warnings)"
     if name == "suggestions":

@@ -1,6 +1,6 @@
 ---
 name: codex-workflow-autopilot
-description: Generate execution workflows from confirmed intent using behavioral modes, BMAD phases, checkpoints, and Phase X verification. Route build, fix, review, debug, docs, and Scrum ceremony requests into ordered steps with exit criteria.
+description: Use after intent is known to route build, fix, review, debug, docs, or Scrum requests into ordered workflow steps with exit criteria.
 load_priority: on-demand
 ---
 
@@ -16,11 +16,12 @@ Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teach
 3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 4. Activate Scrum overlay on backlog, story, sprint, review, retrospective, release-readiness, or shorthand commands such as `$sprint-plan`, `$story-ready-check`, `$retro`, and `$release-readiness`.
 5. Activate reasoning rigor on `$codex-reasoning-rigor`, `$rigor`, "don't be generic", "go deeper", "make it specific", or "use the repo, not generic advice".
-6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$review`, `$deploy`, `$handoff`, `$refactor`.
+6. Activate on alias triggers: `$plan`, `$debug`, `$create`, `$prototype`, `$review`, `$deploy`, `$handoff`, `$refactor`.
 7. When activated via alias, load the corresponding `.workflows/<name>.md` file before executing the flow.
 8. Activate brainstorm mode on `$brainstorm`, "brainstorm", "think through options", or "explore approaches".
 9. Activate review-feedback routing on `$review-feedback`, "address review feedback", or "respond to code review".
-10. Activate project pulse on `$today`, `$pulse`, `$daily`, `$status`, `$brief`, "hôm nay thế nào?", "what's next?", "what should I work on?", or "project status". Route to `codex-project-pulse`.
+10. Route "prototype", "MVP", "fullstack", "from scratch", or "build whole app" to `$prototype` and require `codex-spec-driven-development` before implementation.
+11. Activate project pulse on `$today`, `$pulse`, `$daily`, `$status`, `$brief`, "hôm nay thế nào?", "what's next?", "what should I work on?", or "project status". Route to `codex-project-pulse`.
 
 ## Behavioral Protocol Decision Tree
 
@@ -47,6 +48,7 @@ Agent context loaded?
 | what if, ideas, options | brainstorm | ask clarifying questions and present alternatives, no code |
 | think with me, compare options, help me decide | thinking-partner | co-think with tradeoff-first framing and explicit decision criteria |
 | build, create, implement | implement | execute quickly with production-focused output, enforce TDD |
+| prototype, MVP, fullstack, from scratch | prototype | run `$hook` -> `$init-profile` if needed -> `$genome`/`$init-docs` -> `$spec` -> `$plan` -> implementation -> `$check-full` |
 | test first, TDD, red-green, failing test | tdd | enforce RED-GREEN-REFACTOR cycle via `$tdd`, no production code without failing test |
 | error, bug, broken | debug | 4-phase systematic debugging via `$root-cause`: root cause → pattern → hypothesis → fix |
 | review, audit, check | review | inspect and report findings by severity |
@@ -128,6 +130,7 @@ Trigger this mode when user asks to understand project code, not to modify it.
 | Intent | Steps | Exit Criteria |
 | --- | --- | --- |
 | build | analyze → plan ($plan) → isolate ($worktree) → TDD implement ($tdd) → test → gate | tests pass, TDD verified, gate pass |
+| prototype | preflight ($hook) -> profile/context/docs -> spec ($spec) -> plan ($plan) -> TDD implementation -> role-doc/knowledge update -> full gate | spec exists, acceptance criteria pass, full gate pass or advisory warnings listed |
 | fix | systematic debug ($root-cause) → root-cause → regression test ($tdd) → fix → gate | root cause found, regression test pass, gate pass |
 | review | inspect → categorize findings → recommend actions | findings documented with severity |
 | debug | systematic debug ($root-cause) → Phase 1-4 → test → gate | verified fix with evidence, gate pass |
@@ -190,6 +193,7 @@ Checkpoint: wait for explicit user approval before Phase 3.
 - `references/teaching-mode-spec.md`: use when user asks for code walkthrough, explanation, or teaching.
 - `references/workflow-scrum.md`: use when the request maps to Scrum ceremonies, story readiness, or release readiness.
 - `references/workflow-create.md`: execution template for new feature workflows.
+- `../.workflows/prototype.md`: alias workflow for MVP/fullstack prototype execution.
 - `references/workflow-debug.md`: execution template for debugging workflows.
 - `references/workflow-review.md`: execution template for review workflows.
 - `references/workflow-refactor.md`: execution template for refactoring workflows.

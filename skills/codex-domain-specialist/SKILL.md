@@ -1,11 +1,11 @@
 ---
 name: codex-domain-specialist
-description: Apply layered domain routing for frontend, backend, mobile, debugging, security, and specialized engineering concerns. Use to select focused reference files with strict context boundaries before implementation or review.
+description: Use for frontend, backend, mobile, debugging, security, or specialized engineering work that needs focused domain references and strict boundaries.
 load_priority: on-demand
 ---
 
 ## TL;DR
-Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.yaml` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references. Keep solutions project-specific without adding abstractions, dependencies, services, or architecture layers that the task does not justify.
+Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.json` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references. Keep solutions project-specific without adding abstractions, dependencies, services, or architecture layers that the task does not justify.
 
 ## Output Quality Mandate (MANDATORY)
 
@@ -32,7 +32,7 @@ This reference prevents generic, tutorial-style output and irresponsible overeng
 
 ## Project Profile (Fast Path)
 
-Before running detection, check for `.codex/profile.yaml` in the project root.
+Before running detection, check for `.codex/profile.json` in the project root.
 If the file exists:
 1. Parse `primary_domain` and map to the routing decision table directly.
 2. Use `stack` entries as supplemental signals for "Load On Signal" column.

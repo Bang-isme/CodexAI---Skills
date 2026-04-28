@@ -7,74 +7,74 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 ### Decision Logger
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\decision_logger.py" --project-root <path> --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/decision_logger.py" --project-root <path> --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/decision_logger.py" --project-root <path> --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/decision_logger.py" --project-root <path> --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>`
 
 ### Context Handoff Generator
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_handoff.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_handoff.py" --project-root <path>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_handoff.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_handoff.py" --project-root <path>`
 
 ### Session Summary Generator
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_session_summary.py" --project-root <path> --since today`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
 
 ### Changelog Generator
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_changelog.py" --project-root <path> --since "30 days ago"`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
 
 ### Growth Report Generator
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_growth_report.py" --project-root <path> --skills-root "$env:USERPROFILE\\.codex\\skills"`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "<SKILLS_ROOT>"`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "$HOME/.codex/skills"`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "<SKILLS_ROOT>"`
 
 ### Pattern Learner
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\analyze_patterns.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/analyze_patterns.py" --project-root <path>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/analyze_patterns.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/analyze_patterns.py" --project-root <path>`
 
 ### Feedback Tracker
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\track_feedback.py" --project-root <path> --file <file> --ai-version <text> --user-fix <text> --category <category>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_feedback.py" --project-root <path> --file <file> --ai-version <text> --user-fix <text> --category <category>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/track_feedback.py" --project-root <path> --file <file> --ai-version <text> --user-fix <text> --category <category>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_feedback.py" --project-root <path> --file <file> --ai-version <text> --user-fix <text> --category <category>`
 - Aggregate:
   `python ".../track_feedback.py" --project-root <path> --aggregate`
 
 ### Skill Evolution Tracker
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\track_skill_usage.py" --skills-root "$env:USERPROFILE\\.codex\\skills" --record --skill <skill-name> --task <task> --outcome <success|partial|failed> --notes <text>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_skill_usage.py" --skills-root "<SKILLS_ROOT>" --record --skill <skill-name> --task <task> --outcome <success|partial|failed> --notes <text>`
 - Report:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\track_skill_usage.py" --skills-root "$env:USERPROFILE\\.codex\\skills" --report`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_skill_usage.py" --skills-root "<SKILLS_ROOT>" --report`
 
 ### Knowledge Graph Builder
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\build_knowledge_graph.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
 
 ### Project Genome Generator
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\generate_genome.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
 - Options:
   `--depth auto|shallow|full` (default: auto), `--force` to regenerate
 - Output:
@@ -91,8 +91,8 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 ### Context Compactor
 
 - Windows:
-  `python "$env:USERPROFILE\\.codex\\skills\\codex-project-memory\\scripts\\compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
 - macOS/Linux:
-  `python "$HOME/.codex/skills/codex-project-memory/scripts/compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/compact_context.py" --project-root <path> --max-age-days 90 --keep-latest 5`
 - Dry run:
   `python ".../compact_context.py" --project-root <path> --dry-run`

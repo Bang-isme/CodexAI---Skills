@@ -1,6 +1,6 @@
 ---
 name: codex-subagent-execution
-description: Execute implementation plans by dispatching fresh subagent per task with two-stage review (spec compliance then code quality). Use when plan has independent tasks ready for execution.
+description: Use when an approved plan has independent tasks ready for delegated execution with fresh subagents and two-stage review.
 load_priority: on-demand
 ---
 

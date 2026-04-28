@@ -1,6 +1,6 @@
 ---
 name: codex-master-instructions
-description: Master behavior rules for Codex. Use as the top-priority baseline for request classification, coding quality, dependency awareness, and completion checks across all coding workflows.
+description: Use as the top-priority baseline for Codex request classification, coding quality, dependency awareness, and completion checks.
 load_priority: always
 ---
 
@@ -39,7 +39,7 @@ If uncertain, state the chosen routing briefly and continue with the safest matc
 
 ## Short Aliases
 
-Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`, and `$handoff` live in the `Workflow Aliases` table below.
+Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$prototype`, `$review`, `$deploy`, and `$handoff` live in the `Workflow Aliases` table below.
 
 | Alias | Full Command | Skill |
 | --- | --- | --- |
@@ -47,7 +47,14 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$intent` | `$codex-intent-context-analyzer` | codex-intent-context-analyzer |
 | `$route` | `$codex-workflow-autopilot` | codex-workflow-autopilot |
 | `$brainstorm` | `brainstorm mode` | codex-workflow-autopilot |
+| `$think` | `$codex-logical-decision-layer` | codex-logical-decision-layer |
+| `$decide` | `$codex-logical-decision-layer` | codex-logical-decision-layer |
+| `$hook` | `runtime_hook.py` | codex-runtime-hook |
+| `$preflight` | `runtime_hook.py` | codex-runtime-hook |
+| `$health` | `check_pack_health.py` | .system |
+| `$init-profile` | `init_profile.py` | codex-runtime-hook |
 | `$memory` | `$codex-project-memory` | codex-project-memory |
+| `$knowledge` | `build_knowledge_index.py` | codex-project-memory |
 | `$rigor` | `$codex-reasoning-rigor` | codex-reasoning-rigor |
 | `$doc` | `$codex-document-writer` | codex-document-writer |
 | `$report` | `$codex-document-writer` | codex-document-writer |
@@ -55,6 +62,7 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$review`, `$deploy`
 | `$role-docs` | `$codex-role-docs` | codex-role-docs |
 | `$init-docs` | `init_role_docs.py` | codex-role-docs |
 | `$check-docs` | `check_role_docs.py` | codex-role-docs |
+| `$spec` | `init_spec.py` / `check_spec.py` | codex-spec-driven-development |
 | `$design` | `$codex-design-system` | codex-design-system |
 | `$design-md` | `$codex-design-md` | codex-design-md |
 | `$genome` | `$codex-genome` | codex-project-memory |
@@ -112,6 +120,7 @@ Workflow aliases are shortcuts. They run alongside the legacy triggers and do no
 | `$plan` | `.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
 | `$debug` | `.workflows/debug.md` | `$codex-systematic-debugging` + 4-phase root cause |
 | `$create` | `.workflows/create.md` | `workflow-create.md` + TDD |
+| `$prototype` | `.workflows/prototype.md` | `$spec` + `$plan` + role docs + full gate |
 | `$review` | `.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `.workflows/handoff.md` | `workflow-handoff.md` + session summary |
@@ -132,20 +141,36 @@ Before acting, classify the request:
 | survey | analyze repo, list files, overview | inspect and report, do not modify files |
 | simple-code | fix/add/change in small scope | analyze intent, implement with TDD (`$tdd`), run gate |
 | complex-code | build/create/refactor multi-step | full flow: intent, plan (`$plan`), isolate (`$worktree`), implement with TDD, gate |
+| prototype | MVP, fullstack prototype, from scratch, build whole app | run `$hook` -> `$init-profile` if needed -> `$genome`/`$init-docs` -> `$spec` -> `$plan` -> implement -> `$check-full` |
 | debug | error, bug, broken, not working | systematic debugging (`$root-cause`): 4-phase root cause → fix → regression test |
 | review | review, audit, check quality | inspect, findings by severity, recommendations |
 | document | draft, rewrite, report, memo, guide, soạn tài liệu, viết báo cáo | load `codex-document-writer`, choose document structure, then run editorial review when quality matters |
 
 If the user explicitly asks for deeper thinking, less generic output, stronger specificity, or repo-grounded reasoning, activate `codex-reasoning-rigor` or `$rigor` alongside the normal workflow.
+If the user asks to compare multiple directions, find the best path, avoid shallow answers, or reason from multiple angles, activate `codex-logical-decision-layer` or `$think` and provide a compact decision surface instead of hidden chain-of-thought.
 If the user asks for professional documents, reports, memos, guides, or clearer wording, activate `codex-document-writer` or `$doc` alongside the normal workflow.
 
 ## Context Loading Rule
 
 Before acting on any code-change request:
 
-1. Check if `.codex/context/genome.md` exists in the project root.
-2. If yes, read it first. This is your project briefing.
-3. If project has 50+ files and no `genome.md` exists, suggest: "This project has [N] files. Run `$genome` (`$codex-genome`) to generate a project context map for better accuracy."
+1. For medium/large work, run `$hook` (`runtime_hook.py`) once to detect domains, suggested agent, and missing FE/BE/DevOps/QA readiness artifacts.
+2. Check if `.codex/context/genome.md` exists in the project root.
+3. If yes, read it first. This is your project briefing.
+4. If project has 50+ files and no `genome.md` exists, suggest: "This project has [N] files. Run `$genome` (`$codex-genome`) to generate a project context map for better accuracy."
+5. If `.codex/profile.json` is missing for a medium/large project, suggest `$init-profile` so future sessions route with fewer guesses.
+6. If `.codex/knowledge/index.json` is missing after genome or role docs exist, suggest `$knowledge` to make tacit knowledge visible.
+7. For prototype, MVP, fullstack, or multi-domain work, require `$spec` before `$plan` and implementation.
+
+## Operation Runbook
+
+For install, sync, global verification, project preflight, role-doc initialization, boundary checks, gate selection, hooks, CI, and troubleshooting, use `.system/OPERATION_RUNBOOK.md`.
+
+If the user asks whether the pack is installed correctly or behaving consistently, run `$health`:
+
+```bash
+python "<SKILLS_ROOT>/.system/scripts/check_pack_health.py" --skills-root "<SKILLS_ROOT>" --global-root "<GLOBAL_SKILLS_ROOT>" --format text
+```
 
 ### Auto-Commit Rule
 

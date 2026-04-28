@@ -28,18 +28,18 @@ Use this workflow for technical review, risk assessment, and codebase quality ev
 ## Example Sequence
 
 1. Run technical debt scan:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\tech_debt_scan.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/tech_debt_scan.py" --project-root .`
 2. Run trend report for recent baseline:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\quality_trend.py" --project-root . --report --days 30`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/quality_trend.py" --project-root . --report --days 30`
 3. Run security scan for risk exposure:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\security_scan.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/security_scan.py" --project-root .`
 4. Aggregate findings and group severity as `critical > high > medium > low`.
 5. Present top findings with clear remediation actions, owner suggestions, and urgency labels.
 6. If findings are broad and cross-domain, trigger deeper workflow review before sign-off.
 7. If release readiness is unclear, run pre-commit intelligence against staged follow-up fixes:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\pre_commit_check.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/pre_commit_check.py" --project-root .`
 8. For dependency-risk review context, run bundle signal check:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\bundle_check.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/bundle_check.py" --project-root .`
 9. Summarize decisions in a concise action matrix: blocker, owner, due window, and verification command.
 
 ## When to Escalate

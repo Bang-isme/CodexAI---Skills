@@ -1,6 +1,6 @@
 ---
 name: codex-git-autopilot
-description: Automated git commit with CI/CD gate, GPG signing, and conventional commits
+description: Use when committing or pushing completed work; automates gate-aware conventional commits with optional signing and CI/CD checks.
 load_priority: on-demand
 ---
 

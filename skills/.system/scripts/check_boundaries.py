@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import sys
@@ -9,8 +10,6 @@ from dataclasses import dataclass
 from fnmatch import fnmatchcase
 from pathlib import Path, PurePosixPath
 from typing import Iterable
-
-import yaml
 
 
 SKILLS_ROOT = Path(__file__).resolve().parents[2]
@@ -39,9 +38,24 @@ def parse_frontmatter(path: Path) -> dict[str, object]:
     match = FRONTMATTER_RE.match(content)
     if not match:
         raise ValueError(f"{path} is missing YAML frontmatter")
-    payload = yaml.safe_load(match.group(1))
-    if not isinstance(payload, dict):
-        raise ValueError(f"{path} frontmatter must be a YAML object")
+    payload: dict[str, object] = {}
+    for raw_line in match.group(1).splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, separator, value = line.partition(":")
+        if not separator:
+            raise ValueError(f"{path} frontmatter line is not key/value YAML: {raw_line}")
+        key = key.strip()
+        value = value.strip()
+        if value.startswith("[") and value.endswith("]"):
+            try:
+                parsed = ast.literal_eval(value)
+            except (SyntaxError, ValueError) as exc:
+                raise ValueError(f"{path} frontmatter list is invalid for '{key}'") from exc
+            payload[key] = parsed
+            continue
+        payload[key] = value.strip('"').strip("'")
     return payload
 
 

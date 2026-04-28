@@ -1,5 +1,5 @@
 {
-  "version": "15.0.0",
+  "version": "15.2.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -9,6 +9,7 @@
     "codex-reasoning-rigor",
     "codex-document-writer",
     "codex-role-docs",
+    "codex-spec-driven-development",
     "codex-design-system",
     "codex-design-md",
     "codex-domain-specialist",
@@ -25,7 +26,9 @@
     "codex-git-worktrees",
     "codex-verification-discipline",
     "codex-branch-finisher",
-    "codex-project-pulse"
+    "codex-project-pulse",
+    "codex-runtime-hook",
+    "codex-logical-decision-layer"
   ],
   "agents": [
     "frontend-specialist",
@@ -44,9 +47,17 @@
     "review",
     "deploy",
     "handoff",
-    "refactor"
+    "refactor",
+    "prototype"
   ],
   "scripts_registry": ".system/REGISTRY.md",
+  "codex_plugin": {
+    "manifest": "../.codex-plugin/plugin.json",
+    "marketplace": "../.agents/plugins/marketplace.json",
+    "native_install_script": ".system/scripts/install_codex_native.py",
+    "plugin_validator": ".system/scripts/validate_codex_plugin.py",
+    "agents_bridge_script": ".system/scripts/init_agents_md.py"
+  },
   "load_order": {
     "always": [
       "codex-master-instructions",
@@ -60,6 +71,7 @@
       "codex-reasoning-rigor",
       "codex-document-writer",
       "codex-role-docs",
+      "codex-spec-driven-development",
       "codex-design-system",
       "codex-design-md",
       "codex-domain-specialist",
@@ -75,7 +87,10 @@
       "codex-subagent-execution",
       "codex-git-worktrees",
       "codex-branch-finisher",
-      "codex-project-pulse"
+      "codex-project-pulse",
+      "codex-runtime-hook",
+      "codex-logical-decision-layer"
     ]
-  }
+  },
+  "operation_runbook": ".system/OPERATION_RUNBOOK.md"
 }

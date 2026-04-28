@@ -1,6 +1,6 @@
 ---
 name: codex-project-pulse
-description: Real-time project state tracking — sprint status, priority queue, blockers, deadlines, risk register, and daily brief generation. Use when asking about project status, what to do next, or managing sprint progress.
+description: Use when asking project status, next priority, sprint health, blockers, deadlines, risk register, or daily brief generation.
 load_priority: on-demand
 ---
 

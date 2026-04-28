@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"<SKILLS_ROOT>/codex-runtime-hook/scripts/runtime_hook.py\" --project-root \"<PROJECT_ROOT>\" --format prompt",
+            "timeout": 30,
+            "statusMessage": "Checking CodexAI project readiness"
+          }
+        ]
+      }
+    ]
+  }
+}

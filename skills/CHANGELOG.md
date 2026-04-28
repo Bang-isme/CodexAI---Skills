@@ -1,5 +1,52 @@
 # Changelog
 
+## [15.2.0] - 2026-04-28
+
+### Added
+- Added native Codex plugin packaging with `.codex-plugin/plugin.json`.
+- Added local marketplace entry at `.agents/plugins/marketplace.json`.
+- Added `.system/scripts/validate_codex_plugin.py` for plugin manifest, marketplace, skill metadata, native agent TOML, and path-rule validation.
+- Added `.system/scripts/install_codex_native.py` with repo/user/admin/legacy/custom install targets for Codex-native skill directories.
+- Added `.system/scripts/init_agents_md.py` to create a small Codex-native `AGENTS.md` bridge instead of copying the full rule set.
+- Added `install_codex_hooks.py`, `validate_codex_hooks.py`, and `templates/codex-hooks.json` for project-local Codex hook integration.
+- Added `runtime_hook.py --format prompt` for compact hook output.
+
+### Changed
+- Prefer Codex-native plugin/marketplace install over legacy global skills sync for normal users.
+- Treat `sync_global_skills.py` as a development compatibility path.
+- Rewrote skill descriptions to front-load "Use for" / "Use when" triggers for better Codex progressive disclosure.
+
+### Fixed
+- Avoid relying on `~/.codex/skills` as the only install target.
+- Ensure generated Codex hook commands use explicit project and skills paths.
+- Add native plugin validation coverage so packaging drift is caught by tests.
+
+### Infrastructure
+- Bumped version: `15.1.0` -> `15.2.0`
+- Verified suite target: `204` unit tests + `68` smoke checks.
+
+## [15.1.0] - 2026-04-28
+
+### Added
+- Added **NEW SKILL**: `codex-spec-driven-development` for spec-first prototype, MVP, and fullstack workflows.
+- Added `$spec` and `$prototype` aliases plus `.workflows/prototype.md`.
+- Added `init_spec.py` and `check_spec.py` for `.codex/specs/<slug>/SPEC.md` creation and advisory traceability checks.
+- Added `init_profile.py` for optional `.codex/profile.json` routing hints and user/project preferences.
+- Added `build_knowledge_index.py` to generate `.codex/knowledge/INDEX.md` and `index.json` from genome, role docs, decisions, commits, and config.
+- Added `.system/scripts/sync_global_skills.py` to sync global skills with dot directories, dry-run/apply mode, backups, and protected built-in Codex system skills.
+
+### Changed
+- Upgraded `runtime_hook.py` with profile priority, context readiness, knowledge/spec status, workflow recommendation, and monorepo advisory output.
+- Added schema-versioned contracts for profile JSON, runtime hook output, spec markdown, and knowledge index.
+- Hardened knowledge index output with redaction, provenance, confidence, and untrusted-content labeling.
+- Updated `$create` and `$prototype` routing so fullstack/MVP work follows preflight -> profile/context -> role docs -> spec -> plan -> implementation -> full gate.
+- Updated `auto_gate.py` full/deploy modes with non-blocking spec and knowledge advisory checks.
+- Updated README, Vietnamese guide, registry, manifest, operation runbook, and smoke coverage for the full-cycle development workflow.
+
+### Infrastructure
+- Bumped version: `15.0.0` -> `15.1.0`
+- Verified suite target: `197` unit tests + `63` smoke checks.
+
 ## [15.0.0] - 2026-04-26
 
 ### Added
@@ -19,11 +66,21 @@
 - Added `references/priority-engine.md`: priority scoring formula, queue algorithm, WIP limits, reordering.
 - Added `.workflows/refactor.md` alias (was missing — `workflow-refactor.md` reference existed without alias).
 - Added `references/workflow-plan.md` to `codex-workflow-autopilot` (consistency fix — all other workflows had both ref + alias).
+- Added **NEW SKILL**: `codex-runtime-hook` for one-command project preflight, domain detection, missing FE/BE/DevOps/QA readiness artifacts, and suggested next commands.
+- Added **NEW SKILL**: `codex-logical-decision-layer` for compact option comparison, evidence, tradeoff, verification, and stop-condition contracts without leaking hidden chain-of-thought.
+- Added `$hook`, `$preflight`, `$think`, and `$decide` aliases to master instructions.
+- Added `runtime_hook.py` and `build_decision_matrix.py` to the central registry and smoke coverage.
+- Added `.system/OPERATION_RUNBOOK.md` for exact install, preflight, role-doc, gate, hook, CI, and troubleshooting operations.
+- Added `.system/scripts/check_pack_health.py` to verify manifest, registry, aliases, dot directories, global sync, and markdown encoding drift.
 
 ### Changed
 - Enriched all 7 Scrum ceremony workflows (backlog-refinement, sprint-planning, daily-scrum, story-delivery, sprint-review, retrospective, release-readiness) from stubs (~500B) to production-grade with templates, checklists, anti-patterns, and examples (~3KB each).
 - Updated `codex-workflow-autopilot/SKILL.md` to reference `workflow-plan.md` and `refactor.md` alias.
 - Updated `manifest.json`: added `refactor` to workflows list, added `codex-project-pulse` to skills and on-demand load order.
+- Updated `manifest.json`: added `codex-runtime-hook` and `codex-logical-decision-layer` to on-demand load order.
+- Updated `auto_gate.py` quick/full/deploy modes to include runtime preflight as a non-blocking advisory check.
+- Repaired the Vietnamese usage guide from mojibake to valid UTF-8 text.
+- Verified suite target: `184` unit tests + `58` smoke checks.
 - Bumped version from 14.3.0 to 15.0.0.
 
 ## [14.3.0] - 2026-04-24

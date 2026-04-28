@@ -46,7 +46,7 @@ def test_public_readme_keeps_utf8_sections_intact() -> None:
 
     text = README.read_text(encoding="utf-8")
     assert "> Production-ready instruction framework for Codex - deterministic workflows" in text
-    assert "Intent -> Plan -> Route -> Implement -> Verify -> Persist -> Commit" in text
+    assert "Intent -> Spec -> Plan -> Route -> Implement -> Verify -> Persist -> Commit" in text
     assert "|-- README.md" in text
 
 
@@ -57,4 +57,4 @@ def test_vietnamese_guide_keeps_utf8_sections_intact() -> None:
     text = VI_GUIDE.read_text(encoding="utf-8")
     assert "# Hướng Dẫn Sử Dụng CodexAI Skill Pack" in text
     assert "## 2. Điểm mạnh chính" in text
-    assert "`Phân tích yêu cầu -> Lập kế hoạch -> Route đúng domain -> Triển khai -> Kiểm tra -> Lưu tri thức -> Commit`" in text
+    assert "`Phân tích yêu cầu -> Lập đặc tả -> Lập kế hoạch -> Route đúng agent/domain -> Triển khai -> Kiểm tra -> Lưu tri thức -> Handoff/Commit`" in text

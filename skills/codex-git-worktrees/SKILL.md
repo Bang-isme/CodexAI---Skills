@@ -1,6 +1,6 @@
 ---
 name: codex-git-worktrees
-description: Create isolated git worktrees for feature work with smart directory selection, safety verification, and clean test baseline. Use before executing implementation plans or when work needs isolation from current workspace.
+description: Use when implementation needs isolation from the current workspace; creates git worktrees with safe directory selection and baseline verification.
 load_priority: on-demand
 ---
 

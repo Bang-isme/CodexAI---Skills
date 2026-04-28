@@ -12,7 +12,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - exercised in clean Python environments
+    yaml = None  # type: ignore[assignment]
 
 
 SOURCE_REPO_ENV_VAR = "CODEX_DESIGN_MD_SOURCE_REPO"
@@ -118,14 +121,14 @@ def emit(payload: Dict[str, object], fmt: str) -> None:
 
 
 def is_upstream_source_repo(candidate: Path) -> bool:
-    return (
-        candidate.exists()
-        and (
-            (candidate / "docs" / "spec.md").exists()
-            or (candidate / "packages" / "cli" / "src" / "index.ts").exists()
-            or (candidate / "packages" / "cli" / "dist" / "index.js").exists()
-        )
+    if not candidate.exists():
+        return False
+    has_spec = (candidate / "docs" / "spec.md").exists()
+    has_cli = (
+        (candidate / "packages" / "cli" / "src" / "index.ts").exists()
+        or (candidate / "packages" / "cli" / "dist" / "index.js").exists()
     )
+    return has_spec and has_cli
 
 
 def resolve_source_repo(source_repo_arg: str) -> Optional[Path]:
@@ -243,7 +246,7 @@ def normalize_newlines(content: str) -> str:
 
 
 def normalize_heading(heading: str) -> str:
-    cleaned = heading.strip().lower().replace("’", "'")
+    cleaned = heading.strip().lower().replace("\u2019", "'")
     return SECTION_ALIASES.get(cleaned, "")
 
 
@@ -264,12 +267,54 @@ def split_design_content(content: str) -> tuple[str, str, Optional[str]]:
     return frontmatter, body, None
 
 
+def parse_simple_yaml_scalar(value: str) -> Any:
+    text = value.strip()
+    if not text:
+        return ""
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        return text[1:-1]
+    lowered = text.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"null", "none", "~"}:
+        return None
+    if re.fullmatch(r"-?\d+", text):
+        return int(text)
+    return text
+
+
+def simple_yaml_load(raw: str) -> Dict[str, Any]:
+    root: Dict[str, Any] = {}
+    stack: List[tuple[int, Dict[str, Any]]] = [(-1, root)]
+    for line_number, raw_line in enumerate(raw.splitlines(), start=1):
+        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
+            continue
+        if "\t" in raw_line[: len(raw_line) - len(raw_line.lstrip(" "))]:
+            raise ValueError(f"Tabs are not supported in frontmatter at line {line_number}.")
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+        key, separator, value = raw_line.strip().partition(":")
+        if not separator or not key:
+            raise ValueError(f"Expected key/value frontmatter at line {line_number}.")
+        while stack and indent <= stack[-1][0]:
+            stack.pop()
+        if not stack:
+            raise ValueError(f"Invalid indentation at line {line_number}.")
+        parent = stack[-1][1]
+        if value.strip() == "":
+            child: Dict[str, Any] = {}
+            parent[key] = child
+            stack.append((indent, child))
+        else:
+            parent[key] = parse_simple_yaml_scalar(value)
+    return root
+
+
 def safe_yaml_load(raw: str) -> tuple[Dict[str, Any], Optional[str]]:
     if not raw.strip():
         return {}, None
     try:
-        payload = yaml.safe_load(raw)
-    except yaml.YAMLError as exc:
+        payload = yaml.safe_load(raw) if yaml is not None else simple_yaml_load(raw)
+    except Exception as exc:
         return {}, str(exc)
     if payload is None:
         return {}, None
@@ -527,7 +572,7 @@ def maybe_emit_upstream(result: subprocess.CompletedProcess[str]) -> bool:
     return False
 
 
-def render_spec_payload(source_repo: Path, include_rules: bool, rules_only: bool) -> Dict[str, Any]:
+def render_spec_payload(source_repo: Optional[Path], include_rules: bool, rules_only: bool) -> Dict[str, Any]:
     spec_path = source_repo / "docs" / "spec.md" if source_repo else None
     fallback_summary_path = SKILL_DIR / "references" / "spec-essentials.md"
     if spec_path and spec_path.exists():
@@ -639,7 +684,7 @@ def execute_bundled(args: argparse.Namespace) -> int:
         return 1 if report["summary"]["errors"] > 0 else 0
 
     if args.command == "spec":
-        payload = render_spec_payload(Path(args.source_repo).expanduser().resolve(), args.rules, args.rules_only)
+        payload = render_spec_payload(resolve_source_repo(args.source_repo), args.rules, args.rules_only)
         if args.format == "markdown":
             if args.rules_only:
                 lines = ["## Bundled Lint Rules", ""]

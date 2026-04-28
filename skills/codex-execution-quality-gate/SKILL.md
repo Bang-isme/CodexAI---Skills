@@ -1,11 +1,11 @@
 ---
 name: codex-execution-quality-gate
-description: Run verification checks before completion using lint/test, security scanning, and optional bundle plus tech debt analysis. Use at final gate steps and block completion when mandatory failures are detected.
+description: Use before completion, PR, deploy, handoff, or when verifying code changes. Runs advisory or blocking checks and reports evidence.
 load_priority: on-demand
 ---
 
 ## TL;DR
-12-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1), and strict deliverable failures. Advisory: tech debt, role docs, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
+12-priority verification chain plus environment pre-flight. Blocking: security (critical), lint (exit 1), tests (exit 1), and strict deliverable failures. Advisory: tech debt, role docs, specs, knowledge index, UX audit, a11y, Lighthouse, Playwright, suggestions, impact prediction, quality trend. Run decision tree to select checks. Fix blockers before completion.
 
 # Execution Quality Gate
 
@@ -35,6 +35,7 @@ load_priority: on-demand
 22. Activate on `$check` or "run quick gate".
 23. Activate on `$check-full` or "run full gate".
 24. Activate on `$check-deploy` or "run deploy gate".
+25. Activate on `$health` or "check skill pack health".
 
 ## Decision Tree Routing
 
@@ -62,7 +63,8 @@ Task type -> Pre-flight/setup?
 ## Runtime Enforcement
 
 - Advisory mode is the default: the AI must decide which gate scripts to run and report fresh evidence before completion.
-- `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names. Full and deploy modes include role-doc checks as advisory warnings only.
+- `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names. Full and deploy modes include role-doc, spec, and knowledge-index checks as advisory warnings only.
+- `check_pack_health.py` is the pack-level integrity check for manifest, registry, aliases, dot directories, global sync, and markdown encoding drift.
 - Runtime enforcement is available through `install_hooks.py`, which installs a managed `pre-commit` hook that runs `security_scan.py` and `pre_commit_check.py` automatically before commit.
 - Use `--with-lint-test` only when the team wants heavier local enforcement that also runs `run_gate.py`.
 - Use `install_ci_gate.py` to generate CI enforcement for GitHub Actions or GitLab CI when the project should block pushes and pull requests in automation as well as locally.

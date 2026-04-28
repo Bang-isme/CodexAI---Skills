@@ -129,10 +129,17 @@ def detect_test_command(project_root: Path, is_windows: bool, package_data: Dict
 
     if (
         contains_pyproject_section(project_root, "[tool.pytest]")
+        or contains_pyproject_section(project_root, "[tool.pytest.ini_options]")
         or (project_root / "pytest.ini").exists()
         or (project_root / "conftest.py").exists()
     ):
-        return make_command(["pytest"], "pytest", is_windows)
+        return make_command([sys.executable, "-m", "pytest"], "pytest", is_windows)
+
+    if (project_root / "tests").is_dir():
+        return make_command([sys.executable, "-m", "pytest", "tests"], "pytest", is_windows)
+
+    if any(project_root.glob("test_*.py")) or any(project_root.glob("**/test_*.py")):
+        return make_command([sys.executable, "-m", "pytest", "."], "pytest", is_windows)
 
     if (project_root / "Cargo.toml").exists():
         return make_command(["cargo", "test"], "cargo", is_windows)

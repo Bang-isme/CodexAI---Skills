@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "format": "markdown",
+  "required_fields": [
+    "Schema-Version: 1.0",
+    "Spec-ID",
+    "Status",
+    "Domains",
+    "Problem",
+    "Goals",
+    "Non-Goals",
+    "Requirements",
+    "Acceptance Criteria",
+    "Validation Plan",
+    "Traceability"
+  ],
+  "acceptance_criteria": {
+    "id_format": "AC-001",
+    "required_subfields": ["Files", "Validation"]
+  },
+  "traceability_table": ["Changed File", "AC ID", "Validation Command", "Notes"],
+  "status_values": ["draft", "active", "implemented", "superseded"]
+}

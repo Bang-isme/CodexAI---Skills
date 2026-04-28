@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "type": "object",
+  "required": ["schema_version", "status", "generated_at", "sources", "tacit_knowledge"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"enum": ["built", "error"]},
+    "sources": {
+      "type": "object",
+      "required": ["genome", "role_docs", "decisions", "commits", "configs", "redaction", "trust"]
+    },
+    "tacit_knowledge": {
+      "type": "object",
+      "required": ["conventions", "risk_hotspots", "verification_commands"],
+      "insight_contract": {
+        "required": ["type", "value", "source", "confidence", "last_seen", "generated_by"],
+        "confidence_values": ["low", "medium", "high"]
+      }
+    }
+  }
+}

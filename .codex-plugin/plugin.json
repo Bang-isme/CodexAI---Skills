@@ -1,0 +1,35 @@
+{
+  "name": "codexai-agentic-workflow",
+  "version": "15.2.0",
+  "description": "Spec-first, quality-gated Codex workflow pack for full-cycle agentic development.",
+  "author": {
+    "name": "Bang Isme",
+    "url": "https://github.com/Bang-isme"
+  },
+  "homepage": "https://github.com/Bang-isme/CodexAI---Skills",
+  "repository": "https://github.com/Bang-isme/CodexAI---Skills",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agentic-development",
+    "spec-driven-development",
+    "quality-gate",
+    "project-memory",
+    "runtime-hook"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CodexAI Agentic Workflow",
+    "shortDescription": "Spec-first development, project memory, runtime routing, and quality gates for Codex.",
+    "longDescription": "A Codex workflow plugin that routes requests through project profile, context, specs, role docs, planning, implementation, verification, and handoff.",
+    "developerName": "Bang Isme",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": [
+      "Turn this request into a spec-first implementation plan.",
+      "Run CodexAI preflight and recommend the right workflow.",
+      "Verify this change with the CodexAI quality gate."
+    ],
+    "brandColor": "#0F172A"
+  }
+}

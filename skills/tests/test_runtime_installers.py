@@ -102,8 +102,35 @@ def test_install_ci_gate_resolves_skills_root_without_vendored_codex_skills(tmp_
     assert "python .codex/skills/" not in gitlab_text
 
 
+def test_install_ci_gate_rejects_file_project_root(tmp_path: Path) -> None:
+    project_root = tmp_path / "not-a-directory"
+    project_root.write_text("not a dir\n", encoding="utf-8")
+
+    result = run_python([str(CI_INSTALLER), "--project-root", str(project_root), "--ci", "github"])
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert "not a directory" in payload["message"]
+
+
+def test_install_ci_gate_does_not_overwrite_custom_github_workflow_without_force(tmp_path: Path) -> None:
+    workflow = tmp_path / ".github" / "workflows" / "quality-gate.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("name: Existing Custom Workflow\n", encoding="utf-8")
+
+    result = run_python([str(CI_INSTALLER), "--project-root", str(tmp_path), "--ci", "github"])
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert "Refusing to overwrite existing workflow" in payload["message"]
+    assert workflow.read_text(encoding="utf-8") == "name: Existing Custom Workflow\n"
+
+
 def test_registry_lists_output_quality_scripts() -> None:
     registry_text = REGISTRY.read_text(encoding="utf-8")
 
     assert "`output_guard.py`" in registry_text
     assert "`editorial_review.py`" in registry_text
+    assert "`check_boundaries.py`" in registry_text

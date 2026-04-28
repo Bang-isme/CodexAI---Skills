@@ -1,6 +1,6 @@
 ---
 name: codex-role-docs
-description: Initialize, update, index, and check role-scoped project documentation under .codex/project-docs to preserve micro-context across long-running projects.
+description: Use for role-scoped FE/BE/DevOps/Admin/QA project docs under .codex/project-docs to preserve micro-context across long projects.
 load_priority: on-demand
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: codex-design-system
-description: Modern design vocabulary with palettes, typography, layouts, animations, and composition principles. Prevents generic output and injects professional-grade aesthetics.
+description: Use for UI, frontend, styling, landing page, or component creation; injects palettes, typography, layouts, motion, and anti-generic design rules.
 load_priority: on-demand
 ---
 

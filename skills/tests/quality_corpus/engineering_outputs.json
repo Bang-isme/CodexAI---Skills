@@ -98,7 +98,7 @@
     },
     "sample_with_pack": [
       "Mục đích: báo cáo này giúp người đọc không chuyên kỹ thuật hiểu trạng thái hiện tại, phạm vi đã hoàn thành, bằng chứng kiểm chứng, và phần còn cần theo dõi.",
-      "Trạng thái: quality gate đang pass ở mức bắt buộc; `python -m pytest skills/tests -q` đạt 161/161 và `python skills/tests/smoke_test.py` đạt 55/55.",
+      "Trạng thái: quality gate đang pass ở mức bắt buộc; `python -m pytest skills/tests -q` đạt 197/197 và `python skills/tests/smoke_test.py` đạt 63/63.",
       "Bằng chứng bổ sung: `python skills/codex-execution-quality-gate/scripts/auto_gate.py --project-root D:\\CodexAI---Skills --mode full` trả về overall pass, security 0 critical và 0 warnings.",
       "Rủi ro: tech debt scan vẫn còn 174 tín hiệu advisory, chủ yếu là long functions, long files, và duplicate blocks; đây chưa phải lỗi chặn release nhưng cần kế hoạch dọn theo đợt.",
       "Người phụ trách: maintainer pack xác nhận các tín hiệu advisory theo từng skill; Bước tiếp theo: ưu tiên xử lý các file có duplicate block cao trước khi mở rộng thêm corpus benchmark."

@@ -6,18 +6,20 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `15.0.0` |
-| Core Skills | 25 |
-| Entry-point Scripts | 53 |
+| Version | `15.2.0` |
+| Core Skills | 28 |
+| Entry-point Scripts | 66 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 185+ |
+| References | 188+ |
 | Starters | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 8 |
-| Workflow Aliases | 7 |
+| Workflow Aliases | 8 |
 | Short Aliases | 25+ |
-| Pytest | 168/168 |
-| Smoke | 55/55 |
+| Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
+| Local Marketplace | `../.agents/plugins/marketplace.json` |
+| Pytest | 204/204 |
+| Smoke | 68/68 |
 
 ---
 
@@ -25,7 +27,11 @@
 
 ```text
 User Request
+  -> Pack Health (when install/sync/runtime metadata is in doubt)
+  -> Runtime Hook (one-command preflight for domains, readiness gaps, suggested agent)
+  -> Project Profile / Knowledge Index (stable routing + visible tacit knowledge)
   -> Intent Context Analyzer
+  -> Logical Decision Layer (when multiple paths or hidden tradeoffs exist)
   -> Plan Writer (when task is medium/large, with TDD steps + No Placeholders)
   -> Workflow Autopilot (routes to mode + TDD/Debug/Subagent skills)
   -> Domain/Security Routing
@@ -61,9 +67,12 @@ Reasoning Rigor
 | `codex-context-engine` | Generate/load `.codex/context/genome.md` |
 | `codex-plan-writer` | Create verifiable task plans |
 | `codex-workflow-autopilot` | Route work into build/fix/debug/review/docs/deploy/teach flows |
+| `codex-runtime-hook` | Detect project domains, readiness gaps, suggested agent, and next commands before loading heavy context |
+| `codex-logical-decision-layer` | Compare 2-4 options with evidence, cost, risk, reversibility, and verification without leaking hidden chain-of-thought |
 | `codex-reasoning-rigor` | Force deliberate, non-generic, evidence-backed reasoning |
 | `codex-document-writer` | Professional document, report, memo, guide, and Vietnamese writing structure |
 | `codex-role-docs` | Initialize and maintain project-local FE/BE/DevOps/Admin/QA role docs |
+| `codex-spec-driven-development` | Spec-first requirements, acceptance criteria, and traceability for prototype/fullstack work |
 | `codex-scrum-subagents` | Install project Scrum kits and native `.codex/agents` |
 
 ### Knowledge Packs
@@ -81,7 +90,7 @@ Reasoning Rigor
 | Skill | Notes |
 | --- | --- |
 | `codex-execution-quality-gate` | 17 runtime scripts including gate orchestration, security scan, smart tests, output guard, editorial review, quality trends, UX/a11y, and Lighthouse |
-| `codex-project-memory` | 11 scripts plus the `genome_builder.py` helper for multi-role genome generation across Architecture, API Surface, Data Layer, Security Posture, Test Coverage, and File Map |
+| `codex-project-memory` | 12 scripts plus the `genome_builder.py` helper for genome and knowledge-index generation across Architecture, API Surface, Data Layer, Security Posture, Test Coverage, File Map, and tacit project knowledge |
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
 | `codex-role-docs` | 4 scripts for role-doc initialization, updates, indexing, and advisory changed-file coverage checks |
 | `codex-git-autopilot` | Commit automation with gate awareness |
@@ -102,6 +111,7 @@ Reasoning Rigor
 | Script | Purpose |
 | --- | --- |
 | `auto_gate.py` | Single entry point for quick, full, and deploy verification modes |
+| `check_pack_health.py` | Pack operational integrity check for manifest, registry, aliases, dot directories, global sync, and markdown encoding |
 | `run_gate.py` | Aggregate lint, test, and deliverable quality into a single gate decision |
 | `pre_commit_check.py` | Fast staged-file checks before commit |
 | `smart_test_selector.py` | Run only relevant tests for the current change surface |
@@ -174,6 +184,8 @@ These files live under `skills/.agents/` and are loaded when intent analysis sug
 - QA docs cover test strategy, regression map, and end-to-end flows.
 
 `auto_gate.py` runs role-doc checks in full/deploy mode as advisory warnings only.
+
+For exact operating steps, use `.system/OPERATION_RUNBOOK.md`.
 
 ---
 

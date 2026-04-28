@@ -67,6 +67,52 @@ def test_auto_gate_quick_mode_passes_and_collects_warnings(tmp_path: Path, monke
     assert report["warnings"] == ["2 security warning(s)."]
 
 
+def test_auto_gate_surfaces_runtime_hook_readiness_warnings(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setitem(
+        auto_gate.CHECK_RUNNERS,
+        "runtime_hook",
+        lambda project_root: make_result(
+            {
+                "status": "warn",
+                "overall": "warn",
+                "detected_domains": ["frontend"],
+                "suggested_agent": "frontend-specialist",
+                "missing_readiness": 2,
+                "recommended_commands": ["$init-docs"],
+                "summary": "Runtime hook advisory check completed.",
+            },
+            warnings=["Runtime hook found 2 readiness gap(s)."],
+        ),
+    )
+    monkeypatch.setitem(
+        auto_gate.CHECK_RUNNERS,
+        "security",
+        lambda project_root: make_result({"status": "pass", "critical": 0, "warnings": 0, "summary": "ok"}),
+    )
+    monkeypatch.setitem(
+        auto_gate.CHECK_RUNNERS,
+        "pre_commit",
+        lambda project_root: make_result(
+            {
+                "status": "pass",
+                "staged_files": 0,
+                "checks_run": 0,
+                "checks_skipped": 0,
+                "lint": "skip",
+                "test": "skip",
+                "warnings": 0,
+                "summary": "no files staged",
+            }
+        ),
+    )
+
+    report, exit_code = auto_gate.run_auto_gate(tmp_path, "quick")
+
+    assert exit_code == 0
+    assert report["overall"] == "pass"
+    assert "Runtime hook found 2 readiness gap(s)." in report["warnings"]
+
+
 def test_auto_gate_full_mode_blocks_on_gate_failure(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setitem(
         auto_gate.CHECK_RUNNERS,

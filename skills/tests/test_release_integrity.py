@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
@@ -15,9 +17,14 @@ MANIFEST = SKILLS_ROOT / ".system" / "manifest.json"
 BENCHMARK = SKILLS_ROOT / "tests" / "benchmark_quality.py"
 VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
 
-EXPECTED_PYTEST = 168
-EXPECTED_SMOKE = 55
+EXPECTED_PYTEST = 204
+EXPECTED_SMOKE = 68
 EXPECTED_TOTAL = EXPECTED_PYTEST + EXPECTED_SMOKE
+
+if not (REPO_ROOT / "README.md").exists() or not (REPO_ROOT / "docs").exists():
+    pytestmark = pytest.mark.skip(
+        reason="release-integrity metadata tests require the full source repo, not a global skills-only install"
+    )
 
 
 def read(path: Path) -> str:
@@ -69,8 +76,9 @@ def test_install_instructions_copy_dot_directories() -> None:
     for text in (root_readme, vi_guide):
         assert 'Copy-Item -Recurse -Force ".\\skills\\*"' not in text
         assert 'cp -R ./skills/* "$HOME/.codex/skills/"' not in text
-        assert "Get-ChildItem -Force -LiteralPath $source" in text
-        assert 'cp -R ./skills/. "$HOME/.codex/skills/"' in text
+        assert "sync_global_skills.py" in text
+        assert "--source-root" in text
+        assert "--global-root" in text
         assert ".system" in text
         assert ".agents" in text
         assert ".workflows" in text
@@ -84,3 +92,5 @@ def test_vietnamese_guide_release_metadata_is_current() -> None:
     assert f"{EXPECTED_PYTEST} unit + {EXPECTED_SMOKE} smoke = {EXPECTED_TOTAL} bài test" in vi_guide
     assert "12.6.0" not in vi_guide
     assert "98 unit + 49 smoke" not in vi_guide
+    assert "PhiÃªn" not in vi_guide
+    assert "bÃ i test" not in vi_guide

@@ -31,16 +31,16 @@ Use this workflow for bug investigations and production issue resolution.
 
 1. Reproduce the issue and document expected versus actual behavior.
 2. Check prior feedback signals:
-   `python "$env:USERPROFILE\.codex\skills\codex-project-memory\scripts\track_feedback.py" --project-root . --aggregate`
+   `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_feedback.py" --project-root . --aggregate`
 3. Analyze the code path and isolate the root cause before editing.
 4. Apply the minimal fix and run staged checks:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\pre_commit_check.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/pre_commit_check.py" --project-root .`
 5. Run targeted tests only:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\smart_test_selector.py" --project-root . --source staged`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/smart_test_selector.py" --project-root . --source staged`
 6. If AI-generated code caused the bug, log a feedback entry:
-   `python "$env:USERPROFILE\.codex\skills\codex-project-memory\scripts\track_feedback.py" --project-root . --file <file> --ai-version <text> --user-fix <text> --category logic`
+   `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_feedback.py" --project-root . --file <file> --ai-version <text> --user-fix <text> --category logic`
 7. If issue scope expands across modules, re-run impact advisory:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\predict_impact.py" --project-root . --files "<changed-file-1>,<changed-file-2>" --depth 2`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/predict_impact.py" --project-root . --files "<changed-file-1>,<changed-file-2>" --depth 2`
 
 ## When to Escalate
 

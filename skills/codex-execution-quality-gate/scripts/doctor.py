@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -46,6 +47,27 @@ def is_windows() -> bool:
     return os.name == "nt"
 
 
+def resolve_command(command: Sequence[str]) -> List[str]:
+    parts = list(command)
+    if not parts:
+        return parts
+
+    executable = parts[0]
+    resolved = shutil.which(executable)
+    if resolved:
+        parts[0] = resolved
+        return parts
+
+    if is_windows() and Path(executable).suffix == "":
+        for suffix in (".cmd", ".bat", ".exe"):
+            resolved = shutil.which(f"{executable}{suffix}")
+            if resolved:
+                parts[0] = resolved
+                return parts
+
+    return parts
+
+
 def tool_specs() -> List[ToolSpec]:
     return [
         ToolSpec(
@@ -74,19 +96,19 @@ def tool_specs() -> List[ToolSpec]:
         ),
         ToolSpec(
             name="eslint",
-            commands=[["npx", "eslint", "--version"]],
+            commands=[["npx", "--no-install", "eslint", "--version"]],
             required_by=["run_gate"],
             install_hint="npm install -D eslint (project) or npm install -g eslint (global)",
         ),
         ToolSpec(
             name="lighthouse",
-            commands=[["npx", "lighthouse", "--version"]],
+            commands=[["npx", "--no-install", "lighthouse", "--version"]],
             required_by=["lighthouse_audit"],
             install_hint="npm install -D lighthouse (project) or npm install -g lighthouse (global)",
         ),
         ToolSpec(
             name="playwright",
-            commands=[["npx", "playwright", "--version"]],
+            commands=[["npx", "--no-install", "playwright", "--version"]],
             required_by=["playwright_runner"],
             install_hint="npm install -D @playwright/test && npx playwright install",
         ),
@@ -106,7 +128,7 @@ def tool_specs() -> List[ToolSpec]:
 
 
 def run_command(command: Sequence[str]) -> Tuple[bool, str]:
-    cmd = list(command)
+    cmd = resolve_command(command)
     try:
         result = subprocess.run(
             cmd,

@@ -1,6 +1,6 @@
 ---
 name: codex-reasoning-rigor
-description: Force deliberate, evidence-backed, non-generic reasoning for complex engineering work. Use when the user asks for deeper thinking, less generic output, higher specificity, better workflow discipline, monitoring plans, or stronger quality-oriented delivery instead of shallow best-practice answers.
+description: Use when work needs deeper thinking, less generic output, repo evidence, tradeoffs, monitoring signals, or stronger quality discipline.
 load_priority: on-demand
 ---
 

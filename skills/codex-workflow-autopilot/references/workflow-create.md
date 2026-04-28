@@ -32,18 +32,18 @@ Use this workflow for new feature implementation with moderate/high impact.
 ## Example Sequence
 
 1. Run impact prediction:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\predict_impact.py" --project-root . --files "src/models/user.ts,src/api/users.ts"`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/predict_impact.py" --project-root . --files "src/models/user.ts,src/api/users.ts"`
 2. Review blast radius and confirm implementation scope with user constraints.
 3. Implement the planned changes in small commits.
 4. Run staged quality checks:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\pre_commit_check.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/pre_commit_check.py" --project-root .`
 5. Select focused tests:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\smart_test_selector.py" --project-root . --source staged`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/smart_test_selector.py" --project-root . --source staged`
 6. Run post-task suggestions and decision logging:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\suggest_improvements.py" --project-root . --source last-commit`
-   then `python "$env:USERPROFILE\.codex\skills\codex-project-memory\scripts\decision_logger.py" --project-root . --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>` if a tradeoff emerged.
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/suggest_improvements.py" --project-root . --source last-commit`
+   then `python "<SKILLS_ROOT>/codex-project-memory/scripts/decision_logger.py" --project-root . --title <slug> --decision <text> --alternatives <text> --reasoning <text> --context <text>` if a tradeoff emerged.
 7. Run full completion gate before final handoff:
-   `python "$env:USERPROFILE\.codex\skills\codex-execution-quality-gate\scripts\run_gate.py" --project-root .`
+   `python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/run_gate.py" --project-root .`
 
 ## When to Escalate
 

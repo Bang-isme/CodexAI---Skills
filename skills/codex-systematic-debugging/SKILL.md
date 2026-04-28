@@ -1,6 +1,6 @@
 ---
 name: codex-systematic-debugging
-description: Enforce 4-phase root-cause debugging for any bug, test failure, or unexpected behavior. Use before proposing fixes. No fixes without root cause investigation first.
+description: Use for bugs, test failures, broken behavior, or unexpected results; enforces 4-phase root-cause debugging before fixes.
 load_priority: on-demand
 ---
 

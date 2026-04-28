@@ -65,6 +65,17 @@ jobs:
 """
 
 
+def write_github_workflow(output_path: Path, force: bool) -> None:
+    if output_path.exists():
+        existing_text = output_path.read_text(encoding="utf-8", errors="ignore")
+        if "CodexAI Quality Gate" not in existing_text and not force:
+            raise FileExistsError(
+                f"Refusing to overwrite existing workflow without --force: {output_path}"
+            )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(github_workflow(), encoding="utf-8", newline="\n")
+
+
 def gitlab_block() -> str:
     return f"""{START_MARKER}
 codex_quality_gate:
@@ -100,21 +111,28 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate CodexAI quality gate CI configuration.")
     parser.add_argument("--project-root", required=True, help="Project root that will receive the CI file")
     parser.add_argument("--ci", required=True, choices=("github", "gitlab"), help="CI platform to generate")
+    parser.add_argument("--force", action="store_true", help="Overwrite an existing non-CodexAI GitHub workflow file")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).expanduser().resolve()
     if not project_root.exists():
         print(json.dumps({"status": "error", "message": f"Project root does not exist: {project_root}"}, indent=2))
         return 1
+    if not project_root.is_dir():
+        print(json.dumps({"status": "error", "message": f"Project root is not a directory: {project_root}"}, indent=2))
+        return 1
 
-    if args.ci == "github":
-        output_path = project_root / ".github" / "workflows" / "quality-gate.yml"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(github_workflow(), encoding="utf-8", newline="\n")
-    else:
-        output_path = project_root / ".gitlab-ci.yml"
-        existing_text = output_path.read_text(encoding="utf-8", errors="ignore") if output_path.exists() else ""
-        output_path.write_text(merge_gitlab_content(existing_text), encoding="utf-8", newline="\n")
+    try:
+        if args.ci == "github":
+            output_path = project_root / ".github" / "workflows" / "quality-gate.yml"
+            write_github_workflow(output_path, args.force)
+        else:
+            output_path = project_root / ".gitlab-ci.yml"
+            existing_text = output_path.read_text(encoding="utf-8", errors="ignore") if output_path.exists() else ""
+            output_path.write_text(merge_gitlab_content(existing_text), encoding="utf-8", newline="\n")
+    except OSError as exc:
+        print(json.dumps({"status": "error", "message": str(exc)}, indent=2))
+        return 1
 
     print(
         json.dumps(
