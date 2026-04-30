@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -31,6 +32,18 @@ boundary_checker = load_script_module(
     "skills_check_boundaries",
     ".system/scripts/check_boundaries.py",
 )
+
+
+def run_boundary_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(BOUNDARY_SCRIPT), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=10,
+        check=False,
+    )
 
 
 def parse_frontmatter(path: Path) -> dict[str, object]:
@@ -107,15 +120,7 @@ def test_check_boundaries_blocks_and_suggests_handoff() -> None:
 
 def test_check_boundaries_has_no_external_yaml_dependency() -> None:
     result = subprocess.run(
-        [
-            sys.executable,
-            "-S",
-            str(BOUNDARY_SCRIPT),
-            "--agent",
-            "frontend-specialist",
-            "--files",
-            "src/components/Header.vue",
-        ],
+        [sys.executable, "-S", str(BOUNDARY_SCRIPT), "--agent", "frontend-specialist", "--files", "src/components/Header.vue"],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -127,3 +132,109 @@ def test_check_boundaries_has_no_external_yaml_dependency() -> None:
     payload = json.loads(result.stdout)
     assert result.returncode == 0
     assert payload["files_allowed"] == ["src/components/Header.vue"]
+
+
+def test_check_boundaries_normalizes_windows_paths_and_empty_entries() -> None:
+    report = boundary_checker.build_report(
+        "frontend-specialist",
+        [r".\src\components\Header.tsx", " ", r".\api\users.py"],
+    )
+
+    assert report["files_allowed"] == ["src/components/Header.tsx"]
+    assert report["files_blocked"] == ["api/users.py"]
+    assert report["suggested_handoff"]["api/users.py"] == "backend-specialist"
+
+
+def test_check_boundaries_cli_returns_json_error_for_missing_agent() -> None:
+    result = run_boundary_cli("--agent", "unknown-agent", "--files", "src/main.ts")
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert "Agent file not found" in payload["message"]
+
+
+def test_check_boundaries_cli_rejects_missing_required_args() -> None:
+    result = run_boundary_cli("--agent", "frontend-specialist")
+
+    assert result.returncode == 2
+    assert "usage:" in result.stderr
+
+
+def test_check_boundaries_load_all_agents_missing_root_returns_empty(tmp_path: Path) -> None:
+    assert boundary_checker.load_all_agents(tmp_path / "missing") == []
+
+
+def test_check_boundaries_reports_invalid_frontmatter_shape(tmp_path: Path) -> None:
+    agents_root = tmp_path / "agents"
+    agents_root.mkdir()
+    (agents_root / "broken.md").write_text(
+        """---
+name: broken
+description: Broken agent.
+skills: not-a-list
+file_ownership: ["src/**"]
+---
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="skills.*list of strings"):
+        boundary_checker.load_agent("broken", agents_root)
+
+
+def test_check_boundaries_reports_malformed_frontmatter_list(tmp_path: Path) -> None:
+    agents_root = tmp_path / "agents"
+    agents_root.mkdir()
+    (agents_root / "broken.md").write_text(
+        """---
+name: broken
+description: Broken agent.
+skills: [codex-domain-specialist]
+file_ownership: ["src/**"]
+---
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="frontmatter list is invalid"):
+        boundary_checker.load_agent("broken", agents_root)
+
+
+def test_check_boundaries_uses_most_specific_handoff_match(tmp_path: Path) -> None:
+    agents_root = tmp_path / "agents"
+    agents_root.mkdir()
+    (agents_root / "current.md").write_text(
+        """---
+name: current
+description: Current agent.
+skills: ["codex-domain-specialist"]
+file_ownership: ["docs/**"]
+---
+""",
+        encoding="utf-8",
+    )
+    (agents_root / "broad.md").write_text(
+        """---
+name: broad
+description: Broad owner.
+skills: ["codex-domain-specialist"]
+file_ownership: ["src/**"]
+---
+""",
+        encoding="utf-8",
+    )
+    (agents_root / "specific.md").write_text(
+        """---
+name: specific
+description: Specific owner.
+skills: ["codex-domain-specialist"]
+file_ownership: ["src/server/**/*.py"]
+---
+""",
+        encoding="utf-8",
+    )
+
+    suggestion = boundary_checker.suggest_handoff("src/server/api/users.py", "current", agents_root)
+
+    assert suggestion == "specific"

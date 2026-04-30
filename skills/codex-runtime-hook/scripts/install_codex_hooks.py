@@ -23,9 +23,23 @@ def validate_project_root(path: Path) -> Path:
     return root
 
 
+def validate_skills_root(path: Path) -> Path:
+    root = path.expanduser().resolve()
+    runtime_hook = root / "codex-runtime-hook" / "scripts" / "runtime_hook.py"
+    if not runtime_hook.exists():
+        raise FileNotFoundError(f"runtime_hook.py not found under skills root: {runtime_hook}")
+    if not runtime_hook.is_file():
+        raise FileNotFoundError(f"runtime_hook.py is not a file: {runtime_hook}")
+    return root
+
+
+def quote_arg(value: Path | str) -> str:
+    return '"' + str(value).replace('"', '\\"') + '"'
+
+
 def hook_command(project_root: Path, skills_root: Path) -> str:
     runtime_hook = skills_root / "codex-runtime-hook" / "scripts" / "runtime_hook.py"
-    return f'{sys.executable} "{runtime_hook}" --project-root "{project_root}" --format prompt'
+    return f'{quote_arg(sys.executable)} {quote_arg(runtime_hook)} --project-root {quote_arg(project_root)} --format prompt'
 
 
 def codexai_session_hook(project_root: Path, skills_root: Path) -> dict[str, Any]:
@@ -62,6 +76,7 @@ def merge_hooks(existing: dict[str, Any], hook_entry: dict[str, Any]) -> tuple[d
 
 
 def install(project_root: Path, skills_root: Path, dry_run: bool, force: bool) -> dict[str, Any]:
+    skills_root = validate_skills_root(skills_root)
     hooks_path = project_root / ".codex" / "hooks.json"
     hook_entry = codexai_session_hook(project_root, skills_root)
     if force:
@@ -96,7 +111,7 @@ def main() -> int:
     args = parse_args()
     try:
         project_root = validate_project_root(Path(args.project_root))
-        skills_root = Path(args.skills_root).expanduser().resolve() if args.skills_root else SKILLS_ROOT
+        skills_root = validate_skills_root(Path(args.skills_root)) if args.skills_root else validate_skills_root(SKILLS_ROOT)
         dry_run = not args.apply or args.dry_run
         payload = install(project_root, skills_root, dry_run=dry_run, force=args.force)
     except Exception as exc:

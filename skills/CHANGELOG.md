@@ -5,9 +5,15 @@
 ### Added
 - Added native Codex plugin packaging with `.codex-plugin/plugin.json`.
 - Added local marketplace entry at `.agents/plugins/marketplace.json`.
+- Added Claude Code plugin packaging with `.claude-plugin/plugin.json` and `hooks/hooks.json`.
 - Added `.system/scripts/validate_codex_plugin.py` for plugin manifest, marketplace, skill metadata, native agent TOML, and path-rule validation.
 - Added `.system/scripts/install_codex_native.py` with repo/user/admin/legacy/custom install targets for Codex-native skill directories.
+- Added `.system/scripts/validate_claude_plugin.py` and `.system/scripts/install_claude_native.py` for Claude Code compatibility.
 - Added `.system/scripts/init_agents_md.py` to create a small Codex-native `AGENTS.md` bridge instead of copying the full rule set.
+- Added `.system/scripts/build_release_zip.py` to build clean release archives without `.git`, cache, backup, coverage, or pycache artifacts.
+- Added `.coveragerc` to measure shipped runtime scripts as source and exclude tests/cache/build artifacts from the coverage denominator.
+- Added dependency and usage analytics regression tests for npm/pip/cargo warnings, lockfile/threshold edge cases, malformed usage logs, JSON CLI errors, and trend/recommendation calculations.
+- Added expanded runtime regression tests for DESIGN.md contracts, agent boundaries, pack health, Scrum aliases, smart test selection, Playwright wrapper behavior, impact prediction, and spec-driven traceability.
 - Added `install_codex_hooks.py`, `validate_codex_hooks.py`, and `templates/codex-hooks.json` for project-local Codex hook integration.
 - Added `runtime_hook.py --format prompt` for compact hook output.
 
@@ -20,10 +26,14 @@
 - Avoid relying on `~/.codex/skills` as the only install target.
 - Ensure generated Codex hook commands use explicit project and skills paths.
 - Add native plugin validation coverage so packaging drift is caught by tests.
+- Fixed `render_docx.py --help` so optional `pdf2image` is lazy-loaded only when PDF metadata or rasterization is needed.
+- Fixed `smart_test_selector.py --human` output to use ASCII box drawing and avoid mojibake in Windows/Codex terminals.
+- Fixed `check_spec.py` domain classification so test files such as `tests/test_api.py` map to QA before broad backend extension rules.
+- Normalized `.gitignore` to UTF-8 without BOM and expanded runtime/cache/release artifact ignores.
 
 ### Infrastructure
 - Bumped version: `15.1.0` -> `15.2.0`
-- Verified suite target: `204` unit tests + `68` smoke checks.
+- Verified suite target: `336` unit tests + `71` smoke checks.
 
 ## [15.1.0] - 2026-04-28
 

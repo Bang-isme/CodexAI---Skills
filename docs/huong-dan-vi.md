@@ -15,14 +15,14 @@ Luồng chuẩn của pack:
 | Hạng mục | Giá trị |
 | --- | --- |
 | Core skills | 28 |
-| Entry-point scripts | 66 |
+| Entry-point scripts | 67 |
 | Shared helpers | 2 |
 | References | 188+ |
 | Starters | 29 |
 | Artifact templates | 9 |
 | Agent personas | 8 |
 | Workflow aliases | 8 |
-| Kiểm thử | 204 unit + 68 smoke = 272 bài test |
+| Kiểm thử | 336 unit + 71 smoke = 407 bài test |
 
 ## 2. Điểm mạnh chính
 
@@ -49,6 +49,20 @@ python ".\skills\.system\scripts\install_codex_native.py" --source ".\skills" --
 
 Repo này cũng có `.codex-plugin/plugin.json` và `.agents/plugins/marketplace.json` để test plugin discovery theo native plugin lifecycle.
 
+Nếu dùng Claude Code, repo cũng có `.claude-plugin/plugin.json` và `hooks/hooks.json`. Có thể cài standalone vào `~/.claude/skills`:
+
+```powershell
+python ".\skills\.system\scripts\install_claude_native.py" --source ".\skills" --scope user --dry-run --format text
+python ".\skills\.system\scripts\install_claude_native.py" --source ".\skills" --scope user --apply --format text
+```
+
+Hoặc test plugin trực tiếp:
+
+```powershell
+python ".\skills\.system\scripts\validate_claude_plugin.py" --plugin-root "." --format text
+claude --plugin-dir .
+```
+
 ### Windows PowerShell
 
 ```powershell
@@ -70,6 +84,7 @@ python -m pytest skills/tests -q
 python skills/tests/smoke_test.py
 python skills/.system/scripts/check_pack_health.py --skills-root skills --global-root "$HOME/.codex/skills" --format text
 python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --format text
+python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format text
 ```
 
 Trên Windows PowerShell:

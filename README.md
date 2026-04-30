@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-15.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-204%2F204%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-68%2F68%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-15.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-336%2F336%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-71%2F71%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -26,15 +26,16 @@ The pack is designed for 3 outcomes:
 | Metric | Value |
 | --- | --- |
 | Core Skills | 28 |
-| Entry-point Scripts | 66 |
+| Entry-point Scripts | 67 |
 | Shared Helpers | 2 |
 | Reference Docs | 188+ |
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 8 |
 | Workflow Aliases | 8 |
-| Verification | 204 unit + 68 smoke = 272 tests |
+| Verification | 336 unit + 71 smoke = 407 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
+| Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 
 ---
 
@@ -53,6 +54,7 @@ The pack is designed for 3 outcomes:
 | Tacit knowledge stays invisible | `build_knowledge_index.py` turns genome, role docs, decisions, commits, and configs into `.codex/knowledge/INDEX.md` |
 | Fullstack prototypes start from vague prompts | `codex-spec-driven-development` forces spec-first acceptance criteria before `$plan` and implementation |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
+| Skills only work in one agent app | Dual Codex + Claude plugin metadata lets both agents load the same `skills/<name>/SKILL.md` contracts |
 
 ---
 
@@ -199,6 +201,22 @@ python ".\skills\.system\scripts\install_codex_native.py" --source ".\skills" --
 
 The repo also ships a native plugin manifest at `.codex-plugin/plugin.json` and a local marketplace entry at `.agents/plugins/marketplace.json`.
 
+**Claude Code user install**
+
+```powershell
+python ".\skills\.system\scripts\install_claude_native.py" --source ".\skills" --scope user --dry-run --format text
+python ".\skills\.system\scripts\install_claude_native.py" --source ".\skills" --scope user --apply --format text
+```
+
+**Claude Code plugin mode**
+
+```powershell
+python ".\skills\.system\scripts\validate_claude_plugin.py" --plugin-root "." --format text
+claude --plugin-dir .
+```
+
+Claude Code uses `.claude-plugin/plugin.json`, `skills/<skill>/SKILL.md`, and `hooks/hooks.json`. In plugin mode, skills are namespaced as `/codexai-agentic-workflow:<skill-name>`.
+
 **Windows (PowerShell)**
 
 ```powershell
@@ -227,6 +245,11 @@ python skills/tests/smoke_test.py
 # Pack operation health
 python skills/.system/scripts/check_pack_health.py --skills-root skills --format text
 python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --format text
+python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format text
+
+# Clean release archive preview/build
+python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format text
+python skills/.system/scripts/build_release_zip.py --project-root . --apply --format text
 ```
 
 ### 3. Useful Commands

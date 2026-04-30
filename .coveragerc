@@ -1,0 +1,28 @@
+[run]
+source =
+    skills/.system/scripts
+    skills/codex-doc-renderer/scripts
+    skills/codex-docs-change-sync/scripts
+    skills/codex-execution-quality-gate/scripts
+    skills/codex-logical-decision-layer/scripts
+    skills/codex-project-memory/scripts
+    skills/codex-reasoning-rigor/scripts
+    skills/codex-role-docs/scripts
+    skills/codex-runtime-hook/scripts
+    skills/codex-scrum-subagents/scripts
+    skills/codex-spec-driven-development/scripts
+    skills/codex-workflow-autopilot/scripts
+omit =
+    */tests/*
+    */__pycache__/*
+    */.pytest_cache/*
+    */.codexai-backups/*
+    */dist/*
+    */build/*
+
+[report]
+show_missing = true
+skip_covered = false
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

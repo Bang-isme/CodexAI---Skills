@@ -17,8 +17,8 @@ MANIFEST = SKILLS_ROOT / ".system" / "manifest.json"
 BENCHMARK = SKILLS_ROOT / "tests" / "benchmark_quality.py"
 VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
 
-EXPECTED_PYTEST = 204
-EXPECTED_SMOKE = 68
+EXPECTED_PYTEST = 336
+EXPECTED_SMOKE = 71
 EXPECTED_TOTAL = EXPECTED_PYTEST + EXPECTED_SMOKE
 
 if not (REPO_ROOT / "README.md").exists() or not (REPO_ROOT / "docs").exists():

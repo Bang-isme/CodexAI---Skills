@@ -45,7 +45,10 @@ def validate_project_root(path: Path) -> Path:
 
 def classify_file(path: str) -> str:
     lowered = path.lower()
-    for domain, patterns in DOMAIN_PATTERNS.items():
+    # Test paths must win before broad language-extension patterns such as ".py".
+    priority = ("qa", "devops", "data", "frontend", "backend")
+    for domain in priority:
+        patterns = DOMAIN_PATTERNS[domain]
         if any(lowered.startswith(pattern.lower()) or pattern.lower() in lowered for pattern in patterns):
             return domain
     return "unknown"

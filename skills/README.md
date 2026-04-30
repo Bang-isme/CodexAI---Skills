@@ -8,7 +8,7 @@
 | --- | --- |
 | Version | `15.2.0` |
 | Core Skills | 28 |
-| Entry-point Scripts | 66 |
+| Entry-point Scripts | 67 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
 | References | 188+ |
 | Starters | 29 |
@@ -18,8 +18,10 @@
 | Short Aliases | 25+ |
 | Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
 | Local Marketplace | `../.agents/plugins/marketplace.json` |
-| Pytest | 204/204 |
-| Smoke | 68/68 |
+| Claude Plugin Manifest | `../.claude-plugin/plugin.json` |
+| Claude Hooks | `../hooks/hooks.json` |
+| Pytest | 336/336 |
+| Smoke | 71/71 |
 
 ---
 
@@ -112,6 +114,7 @@ Reasoning Rigor
 | --- | --- |
 | `auto_gate.py` | Single entry point for quick, full, and deploy verification modes |
 | `check_pack_health.py` | Pack operational integrity check for manifest, registry, aliases, dot directories, global sync, and markdown encoding |
+| `build_release_zip.py` | Clean release archive builder that excludes `.git`, cache, backup, coverage, and pycache artifacts |
 | `run_gate.py` | Aggregate lint, test, and deliverable quality into a single gate decision |
 | `pre_commit_check.py` | Fast staged-file checks before commit |
 | `smart_test_selector.py` | Run only relevant tests for the current change surface |

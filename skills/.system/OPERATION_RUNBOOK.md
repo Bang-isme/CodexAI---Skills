@@ -41,6 +41,23 @@ Plugin packaging:
 - Local marketplace: `<PLUGIN_ROOT>/.agents/plugins/marketplace.json`
 - Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_codex_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
 
+Claude Code packaging:
+
+- Manifest: `<PLUGIN_ROOT>/.claude-plugin/plugin.json`
+- Hooks: `<PLUGIN_ROOT>/hooks/hooks.json`
+- Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_claude_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
+- Standalone install: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\install_claude_native.py" --source "<SOURCE_SKILLS_ROOT>" --scope user --dry-run --format text`
+- Plugin test: `claude --plugin-dir "<PLUGIN_ROOT>"`
+
+Clean release archive:
+
+```powershell
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-root "<PLUGIN_ROOT>" --dry-run --format text
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-root "<PLUGIN_ROOT>" --apply --format text
+```
+
+The release ZIP builder excludes `.git`, `__pycache__`, `.pytest_cache`, `.codexai-backups`, coverage output, logs, cache/state directories, and the built-in `.system` marker.
+
 Legacy global sync remains available for development compatibility.
 
 Windows PowerShell:

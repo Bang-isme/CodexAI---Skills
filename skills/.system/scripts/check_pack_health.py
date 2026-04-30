@@ -31,7 +31,9 @@ REQUIRED_ALIASES = [
 REQUIRED_DOT_DIRS = [".system", ".agents", ".workflows"]
 REQUIRED_PLUGIN_ROOT_PATHS = [
     ".codex-plugin/plugin.json",
+    ".claude-plugin/plugin.json",
     ".agents/plugins/marketplace.json",
+    "hooks/hooks.json",
 ]
 MOJIBAKE_PATTERNS = [
     "\u00e2\u20ac\u201d",
@@ -175,9 +177,9 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
     missing_plugin_paths = [path for path in REQUIRED_PLUGIN_ROOT_PATHS if not (repo_root / path).exists()]
     add(
         checks,
-        "codex_native_plugin_paths",
+        "native_plugin_paths",
         "pass" if not missing_plugin_paths else "fail",
-        "native plugin manifest and marketplace present" if not missing_plugin_paths else ", ".join(missing_plugin_paths),
+        "Codex and Claude plugin metadata present" if not missing_plugin_paths else ", ".join(missing_plugin_paths),
         missing=missing_plugin_paths,
     )
 
@@ -194,6 +196,20 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
             )
         except Exception as exc:
             add(checks, "codex_native_plugin_version", "fail", f"plugin.json parse failed: {exc}")
+
+    claude_plugin_path = repo_root / ".claude-plugin" / "plugin.json"
+    if claude_plugin_path.exists():
+        try:
+            plugin = json.loads(read_text(claude_plugin_path))
+            version = read_text(skills_root / "VERSION").strip() if (skills_root / "VERSION").exists() else ""
+            add(
+                checks,
+                "claude_plugin_version",
+                "pass" if plugin.get("version") == version else "fail",
+                f"plugin={plugin.get('version')}, VERSION={version}",
+            )
+        except Exception as exc:
+            add(checks, "claude_plugin_version", "fail", f"plugin.json parse failed: {exc}")
 
     registry_path = skills_root / ".system" / "REGISTRY.md"
     registry_text = read_text(registry_path) if registry_path.exists() else ""
@@ -345,8 +361,11 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         ".system/scripts/check_pack_health.py",
         ".system/scripts/sync_global_skills.py",
         ".system/scripts/install_codex_native.py",
+        ".system/scripts/install_claude_native.py",
         ".system/scripts/validate_codex_plugin.py",
+        ".system/scripts/validate_claude_plugin.py",
         ".system/scripts/init_agents_md.py",
+        ".system/scripts/build_release_zip.py",
         ".agents/frontend-specialist.md",
         ".workflows/plan.md",
         ".workflows/prototype.md",

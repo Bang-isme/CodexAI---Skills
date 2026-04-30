@@ -56,7 +56,14 @@
     "marketplace": "../.agents/plugins/marketplace.json",
     "native_install_script": ".system/scripts/install_codex_native.py",
     "plugin_validator": ".system/scripts/validate_codex_plugin.py",
-    "agents_bridge_script": ".system/scripts/init_agents_md.py"
+    "agents_bridge_script": ".system/scripts/init_agents_md.py",
+    "release_packager": ".system/scripts/build_release_zip.py"
+  },
+  "claude_plugin": {
+    "manifest": "../.claude-plugin/plugin.json",
+    "hooks": "../hooks/hooks.json",
+    "native_install_script": ".system/scripts/install_claude_native.py",
+    "plugin_validator": ".system/scripts/validate_claude_plugin.py"
   },
   "load_order": {
     "always": [

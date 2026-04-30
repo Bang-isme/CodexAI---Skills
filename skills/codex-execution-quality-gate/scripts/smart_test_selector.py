@@ -389,12 +389,12 @@ def coverage_estimate(selected_count: int, total_count: int) -> str:
 
 def render_human_box(title: str, rows: List[str]) -> str:
     width = max(38, len(title), *(len(row) for row in rows))
-    top = "╔" + ("═" * width) + "╗"
-    mid = "╠" + ("═" * width) + "╣"
-    bottom = "╚" + ("═" * width) + "╝"
-    out = [top, f"║{title.center(width)}║", mid]
+    top = "+" + ("=" * width) + "+"
+    mid = "+" + ("=" * width) + "+"
+    bottom = "+" + ("=" * width) + "+"
+    out = [top, f"|{title.center(width)}|", mid]
     for row in rows:
-        out.append(f"║ {'{}'.format(row).ljust(width - 2)} ║")
+        out.append(f"| {row.ljust(width - 2)} |")
     out.append(bottom)
     return "\n".join(out)
 

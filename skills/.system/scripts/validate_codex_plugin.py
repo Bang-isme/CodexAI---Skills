@@ -20,7 +20,10 @@ def default_plugin_root() -> Path:
 
 
 def read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("JSON root must be an object")
+    return payload
 
 
 def read_text(path: Path) -> str:
@@ -118,6 +121,9 @@ def check_marketplace(plugin_root: Path, plugin_name: str, checks: list[dict[str
     add(checks, "marketplace_exists", "pass", str(marketplace_path))
 
     plugins = marketplace.get("plugins", [])
+    if not isinstance(plugins, list):
+        add(checks, "marketplace_entry", "fail", "plugins must be a list")
+        return
     matching = [item for item in plugins if isinstance(item, dict) and item.get("name") == plugin_name]
     if not matching:
         add(checks, "marketplace_entry", "fail", f"{plugin_name} not listed")
@@ -154,7 +160,11 @@ def check_marketplace(plugin_root: Path, plugin_name: str, checks: list[dict[str
 def check_skill_metadata(skills_root: Path, checks: list[dict[str, Any]]) -> None:
     failures: list[str] = []
     warnings: list[str] = []
+    if not skills_root.exists() or not skills_root.is_dir():
+        add(checks, "skill_metadata", "fail", f"skills root missing: {skills_root}", failures=[str(skills_root)])
+        return
     total = 0
+    seen_names: dict[str, str] = {}
     for skill_md in sorted(skills_root.glob("*/SKILL.md")):
         if skill_md.parent.name.startswith("."):
             continue
@@ -164,6 +174,13 @@ def check_skill_metadata(skills_root: Path, checks: list[dict[str, Any]]) -> Non
         description = frontmatter.get("description", "")
         if not name:
             failures.append(f"{skill_md.parent.name}: missing name")
+        elif name != skill_md.parent.name:
+            failures.append(f"{skill_md.parent.name}: folder name does not match skill name {name}")
+        if name:
+            previous = seen_names.get(name)
+            if previous:
+                failures.append(f"{skill_md.parent.name}: duplicate skill name {name} also used by {previous}")
+            seen_names[name] = skill_md.parent.name
         if not description:
             failures.append(f"{skill_md.parent.name}: missing description")
             continue

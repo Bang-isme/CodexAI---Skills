@@ -12,6 +12,7 @@ from pathlib import Path
 SKILLS_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER_SCRIPT = SKILLS_ROOT / "codex-scrum-subagents" / "scripts" / "install_scrum_subagents.py"
 VALIDATOR_SCRIPT = SKILLS_ROOT / "codex-scrum-subagents" / "scripts" / "validate_scrum_agent_kit.py"
+ALIAS_SCRIPT = SKILLS_ROOT / "codex-scrum-subagents" / "scripts" / "run_scrum_alias.py"
 
 
 def load_script_module(name: str, relative_path: str):
@@ -47,6 +48,18 @@ def run_validator_cli(*args: str, env: dict[str, str] | None = None) -> subproce
         timeout=20,
         check=False,
         env=env,
+    )
+
+
+def run_alias_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(ALIAS_SCRIPT), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=20,
+        check=False,
     )
 
 
@@ -304,6 +317,114 @@ def test_run_scrum_alias_scaffold_mode_is_explicit(tmp_path: Path) -> None:
     assert payload["status"] == "scaffold"
     assert "persona" in payload["missing_fields"]
     assert output_path.exists()
+
+
+def test_run_scrum_alias_workflow_without_artifact_reports_required_fields() -> None:
+    payload = alias_runner.build_workflow_payload(
+        alias="$daily-scrum",
+        artifact_output=None,
+        fields={},
+    )
+
+    assert payload["status"] == "ok"
+    assert payload["workflow"] == "daily-scrum"
+    assert payload["template"] == "daily-scrum"
+    assert "date" in payload["required_fields"]
+    assert "blockers" in payload["required_fields"]
+
+
+def test_run_scrum_alias_table_format_includes_missing_fields(tmp_path: Path) -> None:
+    output_path = tmp_path / "story.md"
+    result = run_alias_cli(
+        "--alias",
+        "$story-ready-check",
+        "--artifact-output",
+        str(output_path),
+        "--field",
+        "title=Checkout validation",
+        "--allow-placeholders",
+        "--format",
+        "table",
+    )
+
+    assert result.returncode == 0
+    assert "status       : scaffold" in result.stdout
+    assert "missing      :" in result.stdout
+    assert output_path.exists()
+
+
+def test_run_scrum_alias_rejects_invalid_field_syntax_json() -> None:
+    result = run_alias_cli("--alias", "$daily-scrum", "--field", "not-key-value", "--format", "json")
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload["status"] == "error"
+    assert "Invalid --field value: not-key-value" in payload["message"]
+
+
+def test_run_scrum_alias_installer_requires_target_root_json() -> None:
+    result = run_alias_cli("--alias", "$scrum-diff", "--format", "json")
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert payload == {"status": "error", "alias": "$scrum-diff", "message": "--target-root is required"}
+
+
+def test_run_scrum_alias_installer_requires_target_root_table() -> None:
+    result = run_alias_cli("--alias", "$scrum-install", "--format", "table")
+
+    assert result.returncode == 1
+    assert "status       : error" in result.stdout
+    assert "message      : --target-root is required" in result.stdout
+
+
+def test_run_scrum_alias_installer_forwards_diff_to_installer(tmp_path: Path) -> None:
+    target_root = tmp_path / "project"
+    target_root.mkdir()
+
+    result = run_alias_cli(
+        "--alias",
+        "$scrum-diff",
+        "--target-root",
+        str(target_root),
+        "--native-scope",
+        "project",
+        "--format",
+        "json",
+    )
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0
+    assert payload["alias"] == "$scrum-diff"
+    assert payload["kind"] == "installer"
+    assert payload["status"] == "diff"
+    assert payload["exit_code"] == 0
+
+
+def test_run_scrum_alias_json_command_handles_plain_stdout(monkeypatch) -> None:
+    class FakeResult:
+        stdout = "plain text output"
+        stderr = ""
+        returncode = 7
+
+    monkeypatch.setattr(alias_runner.subprocess, "run", lambda *args, **kwargs: FakeResult())
+
+    payload = alias_runner.run_json_command(["fake"])
+
+    assert payload == {"status": "error", "message": "plain text output", "exit_code": 7}
+
+
+def test_run_scrum_alias_json_command_handles_empty_stdout_with_stderr(monkeypatch) -> None:
+    class FakeResult:
+        stdout = ""
+        stderr = "boom"
+        returncode = 3
+
+    monkeypatch.setattr(alias_runner.subprocess, "run", lambda *args, **kwargs: FakeResult())
+
+    payload = alias_runner.run_json_command(["fake"])
+
+    assert payload == {"status": "error", "message": "boom", "exit_code": 3}
 
 
 def test_validator_script_format_table_includes_diff_counts(tmp_path: Path) -> None:

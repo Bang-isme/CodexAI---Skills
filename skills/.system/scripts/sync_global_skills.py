@@ -12,8 +12,24 @@ from pathlib import Path
 from typing import Any
 
 
-SKIP_NAMES = {".codex", ".codexai-backups", ".pytest_cache", "__pycache__"}
-SKIP_SUFFIXES = {".pyc", ".pyo"}
+SKIP_NAMES = {
+    ".analytics",
+    ".codex",
+    ".codexai-backups",
+    ".coverage",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "cache",
+    "dist",
+    "htmlcov",
+    "node_modules",
+    "state",
+}
+SKIP_SUFFIXES = {".bak", ".log", ".pyc", ".pyd", ".pyo", ".tmp"}
 PROTECTED_RELATIVE_PREFIXES = {
     ".system/.codex-system-skills.marker",
     ".system/imagegen",

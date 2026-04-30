@@ -58,6 +58,76 @@ def test_validate_codex_plugin_current_repo_has_no_blocking_failures() -> None:
     assert "skill_metadata" in names
 
 
+def test_validate_codex_plugin_rejects_non_object_manifest(tmp_path: Path) -> None:
+    write(tmp_path / ".codex-plugin" / "plugin.json", "[]\n")
+    write(tmp_path / "skills" / "VERSION", "1.0.0\n")
+
+    payload = validate_plugin.validate(tmp_path)
+
+    assert payload["status"] == "fail"
+    assert any(item["name"] == "plugin_manifest_json" for item in payload["checks"])
+
+
+def test_validate_codex_plugin_rejects_non_object_marketplace(tmp_path: Path) -> None:
+    write(
+        tmp_path / ".codex-plugin" / "plugin.json",
+        json.dumps(
+            {
+                "name": "codexai-test",
+                "version": "1.0.0",
+                "skills": "./skills/",
+                "interface": {
+                    "displayName": "Test",
+                    "shortDescription": "Test",
+                    "longDescription": "Test",
+                    "developerName": "Test",
+                    "category": "Productivity",
+                    "capabilities": ["Read"],
+                },
+            }
+        ),
+    )
+    write(tmp_path / "skills" / "VERSION", "1.0.0\n")
+    write(tmp_path / "skills" / "codex-demo" / "SKILL.md", "---\nname: codex-demo\ndescription: Use for demo.\n---\n")
+    write(tmp_path / ".agents" / "plugins" / "marketplace.json", "[]\n")
+
+    payload = validate_plugin.validate(tmp_path)
+
+    assert payload["status"] == "fail"
+    assert any(item["name"] == "marketplace_json" and "root must be an object" in item["detail"] for item in payload["checks"])
+
+
+def test_validate_codex_plugin_flags_duplicate_or_mismatched_skill_names(tmp_path: Path) -> None:
+    write(
+        tmp_path / ".codex-plugin" / "plugin.json",
+        json.dumps(
+            {
+                "name": "codexai-test",
+                "version": "1.0.0",
+                "skills": "./skills/",
+                "interface": {
+                    "displayName": "Test",
+                    "shortDescription": "Test",
+                    "longDescription": "Test",
+                    "developerName": "Test",
+                    "category": "Productivity",
+                    "capabilities": ["Read"],
+                },
+            }
+        ),
+    )
+    write(tmp_path / "skills" / "VERSION", "1.0.0\n")
+    write(tmp_path / "skills" / "first" / "SKILL.md", "---\nname: duplicate-name\ndescription: Use for demo.\n---\n")
+    write(tmp_path / "skills" / "second" / "SKILL.md", "---\nname: duplicate-name\ndescription: Use for demo.\n---\n")
+
+    payload = validate_plugin.validate(tmp_path)
+    metadata = next(item for item in payload["checks"] if item["name"] == "skill_metadata")
+
+    assert payload["status"] == "fail"
+    assert any("duplicate skill name" in failure for failure in metadata["failures"])
+    assert any("folder name does not match skill name" in failure for failure in metadata["failures"])
+
+
 def test_install_codex_native_repo_scope_maps_to_agents_skills(tmp_path: Path) -> None:
     source = tmp_path / "source"
     repo = tmp_path / "repo"
@@ -110,3 +180,66 @@ def test_codex_hooks_installer_is_idempotent(tmp_path: Path) -> None:
 
     assert first["changed"] is True
     assert second["changed"] is False
+
+
+def test_codex_hooks_command_quotes_executable_and_project_paths(tmp_path: Path) -> None:
+    project_root = tmp_path / "repo with spaces"
+    project_root.mkdir()
+
+    command = install_hooks.hook_command(project_root, SKILLS_ROOT)
+
+    assert command.startswith('"')
+    assert f'"{SKILLS_ROOT / "codex-runtime-hook" / "scripts" / "runtime_hook.py"}"' in command
+    assert f'--project-root "{project_root}"' in command
+    assert "--format prompt" in command
+
+
+def test_codex_hooks_installer_rejects_missing_runtime_hook(tmp_path: Path) -> None:
+    skills_root = tmp_path / "missing-skills"
+    skills_root.mkdir()
+
+    try:
+        install_hooks.install(tmp_path, skills_root, dry_run=False, force=False)
+    except FileNotFoundError as exc:
+        assert "runtime_hook.py" in str(exc)
+    else:
+        raise AssertionError("install should reject a skills root without runtime_hook.py")
+
+
+def test_codex_hooks_validator_rejects_incomplete_hook_contract(tmp_path: Path) -> None:
+    write(
+        tmp_path / ".codex" / "hooks.json",
+        json.dumps(
+            {
+                "hooks": {
+                    "SessionStart": [
+                        {
+                            "matcher": "startup|resume",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "python runtime_hook.py --format json",
+                                    "timeout": 30,
+                                    "statusMessage": validate_hooks.STATUS_MESSAGE,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+        ),
+    )
+
+    validation = validate_hooks.validate_hooks(tmp_path)
+
+    assert validation["status"] == "fail"
+    assert "--project-root" in validation["message"]
+
+
+def test_codex_hooks_validator_reports_malformed_json(tmp_path: Path) -> None:
+    write(tmp_path / ".codex" / "hooks.json", "{not-json")
+
+    validation = validate_hooks.validate_hooks(tmp_path)
+
+    assert validation["status"] == "fail"
+    assert "invalid JSON" in validation["message"]

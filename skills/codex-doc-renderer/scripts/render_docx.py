@@ -8,12 +8,12 @@ from os import makedirs, replace
 from os.path import abspath, basename, exists, expanduser, join, splitext
 from shutil import which
 import sys
-from typing import Sequence, cast
+from typing import Any, Callable, Sequence, cast
 from zipfile import ZipFile
 
-from pdf2image import convert_from_path, pdfinfo_from_path
-
 TWIPS_PER_INCH: int = 1440
+PdfInfoFn = Callable[[str], dict[str, Any]]
+ConvertFromPathFn = Callable[..., list[str]]
 
 
 def ensure_system_tools() -> None:
@@ -26,6 +26,18 @@ def ensure_system_tools() -> None:
         raise RuntimeError(
             f"Missing required system tool(s): {tools}. Install LibreOffice and Poppler, then retry."
         )
+
+
+def load_pdf2image() -> tuple[ConvertFromPathFn, PdfInfoFn]:
+    """Load optional pdf2image dependency only when PDF rasterisation is needed."""
+    try:
+        from pdf2image import convert_from_path, pdfinfo_from_path
+    except ImportError as exc:
+        raise RuntimeError(
+            "Missing optional Python dependency: pdf2image. "
+            "Install skill extras with `pip install pdf2image` and Poppler, then retry."
+        ) from exc
+    return cast(ConvertFromPathFn, convert_from_path), cast(PdfInfoFn, pdfinfo_from_path)
 
 
 def calc_dpi_via_ooxml_docx(input_path: str, max_w_px: int, max_h_px: int) -> int:
@@ -68,6 +80,7 @@ def calc_dpi_via_ooxml_docx(input_path: str, max_w_px: int, max_h_px: int) -> in
 
 def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int) -> int:
     """Convert input to PDF and compute DPI from its page size."""
+    _, pdfinfo_from_path = load_pdf2image()
     with tempfile.TemporaryDirectory(prefix="soffice_profile_") as user_profile:
         with tempfile.TemporaryDirectory(prefix="soffice_convert_") as convert_tmp_dir:
             stem = splitext(basename(input_path))[0]
@@ -183,6 +196,7 @@ def rasterize(
 
     Images are named as page-<N>.<ext> with pages starting at 1.
     """
+    convert_from_path, _ = load_pdf2image()
     makedirs(out_dir, exist_ok=True)
     doc_path = abspath(doc_path)
     stem = splitext(basename(doc_path))[0]
