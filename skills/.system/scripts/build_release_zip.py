@@ -76,9 +76,13 @@ def is_excluded(relative_path: str) -> bool:
     return any(name.endswith(suffix) for suffix in EXCLUDED_SUFFIXES)
 
 
-def iter_release_files(project_root: Path, include_tests: bool = True) -> list[Path]:
+def iter_release_files(project_root: Path, include_tests: bool = True, skipped_symlinks: list[str] | None = None) -> list[Path]:
     files: list[Path] = []
     for item in sorted(project_root.rglob("*"), key=lambda p: p.as_posix().lower()):
+        if item.is_symlink():
+            if skipped_symlinks is not None:
+                skipped_symlinks.append(rel_posix(project_root, item))
+            continue
         if not item.is_file():
             continue
         rel = rel_posix(project_root, item)
@@ -97,7 +101,8 @@ def build_zip(project_root: Path, output_path: Path, include_tests: bool, dry_ru
     if not project_root.exists() or not project_root.is_dir():
         raise FileNotFoundError(f"Project root does not exist or is not a directory: {project_root}")
 
-    files = iter_release_files(project_root, include_tests=include_tests)
+    skipped_symlinks: list[str] = []
+    files = iter_release_files(project_root, include_tests=include_tests, skipped_symlinks=skipped_symlinks)
     entries = [rel_posix(project_root, path) for path in files]
     payload: dict[str, Any] = {
         "status": "dry_run" if dry_run else "generated",
@@ -108,7 +113,10 @@ def build_zip(project_root: Path, output_path: Path, include_tests: bool, dry_ru
         "excluded_policy": {
             "directories": sorted(EXCLUDED_DIR_NAMES),
             "suffixes": sorted(EXCLUDED_SUFFIXES),
+            "symlinks": "skipped",
         },
+        "skipped_symlinks": skipped_symlinks,
+        "skipped_symlinks_count": len(skipped_symlinks),
         "sample_entries": entries[:20],
     }
     if dry_run:

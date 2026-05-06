@@ -8,7 +8,7 @@
 | --- | --- |
 | Version | `15.2.0` |
 | Core Skills | 28 |
-| Entry-point Scripts | 67 |
+| Entry-point Scripts | 69 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
 | References | 188+ |
 | Starters | 29 |
@@ -20,7 +20,7 @@
 | Local Marketplace | `../.agents/plugins/marketplace.json` |
 | Claude Plugin Manifest | `../.claude-plugin/plugin.json` |
 | Claude Hooks | `../hooks/hooks.json` |
-| Pytest | 336/336 |
+| Pytest | 341/341 |
 | Smoke | 71/71 |
 
 ---

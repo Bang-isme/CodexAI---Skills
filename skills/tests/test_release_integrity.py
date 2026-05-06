@@ -17,7 +17,7 @@ MANIFEST = SKILLS_ROOT / ".system" / "manifest.json"
 BENCHMARK = SKILLS_ROOT / "tests" / "benchmark_quality.py"
 VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
 
-EXPECTED_PYTEST = 336
+EXPECTED_PYTEST = 341
 EXPECTED_SMOKE = 71
 EXPECTED_TOTAL = EXPECTED_PYTEST + EXPECTED_SMOKE
 

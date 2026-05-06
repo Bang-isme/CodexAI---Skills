@@ -118,10 +118,14 @@ def sync(source_root: Path, global_root: Path, dry_run: bool = True, backup_dir:
     unchanged_files: list[str] = []
     backed_up_files: list[str] = []
     protected_skipped: list[str] = []
+    symlink_skipped: list[str] = []
     backup_root = backup_dir or default_backup_dir(global_root)
 
     for source in source_files:
         rel = relative_posix(source_root, source)
+        if source.is_symlink():
+            symlink_skipped.append(rel)
+            continue
         if is_protected(rel):
             protected_skipped.append(rel)
             continue
@@ -153,9 +157,11 @@ def sync(source_root: Path, global_root: Path, dry_run: bool = True, backup_dir:
         "unchanged_files_count": len(unchanged_files),
         "protected_skipped": protected_skipped,
         "protected_skipped_count": len(protected_skipped),
+        "symlink_skipped": symlink_skipped,
+        "symlink_skipped_count": len(symlink_skipped),
         "backup_dir": str(backup_root) if (not dry_run and backed_up_files) else "",
         "backed_up_files": backed_up_files,
-        "protected_system_policy": "skip built-in .system skills and marker files",
+        "protected_system_policy": "skip built-in .system skills, marker files, and symlinks",
     }
 
 
@@ -165,7 +171,7 @@ def restore_backup(backup_dir: Path, global_root: Path, dry_run: bool = True) ->
     restored: list[str] = []
     planned: list[str] = []
     for source in sorted(backup_dir.rglob("*"), key=lambda p: p.as_posix().lower()):
-        if not source.is_file():
+        if source.is_symlink() or not source.is_file():
             continue
         rel = relative_posix(backup_dir, source)
         planned.append(rel)

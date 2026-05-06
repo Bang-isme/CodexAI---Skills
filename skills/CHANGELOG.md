@@ -11,6 +11,8 @@
 - Added `.system/scripts/validate_claude_plugin.py` and `.system/scripts/install_claude_native.py` for Claude Code compatibility.
 - Added `.system/scripts/init_agents_md.py` to create a small Codex-native `AGENTS.md` bridge instead of copying the full rule set.
 - Added `.system/scripts/build_release_zip.py` to build clean release archives without `.git`, cache, backup, coverage, or pycache artifacts.
+- Added `.system/scripts/prompt_router.py` for portable prompt-to-workflow routing in generic CLI/IDE harnesses.
+- Added `.system/scripts/trust_harness.py` as a one-command generic setup and evidence runner for CLI/IDE adapters outside Codex and Claude Code.
 - Added `.coveragerc` to measure shipped runtime scripts as source and exclude tests/cache/build artifacts from the coverage denominator.
 - Added dependency and usage analytics regression tests for npm/pip/cargo warnings, lockfile/threshold edge cases, malformed usage logs, JSON CLI errors, and trend/recommendation calculations.
 - Added expanded runtime regression tests for DESIGN.md contracts, agent boundaries, pack health, Scrum aliases, smart test selection, Playwright wrapper behavior, impact prediction, and spec-driven traceability.
@@ -30,10 +32,11 @@
 - Fixed `smart_test_selector.py --human` output to use ASCII box drawing and avoid mojibake in Windows/Codex terminals.
 - Fixed `check_spec.py` domain classification so test files such as `tests/test_api.py` map to QA before broad backend extension rules.
 - Normalized `.gitignore` to UTF-8 without BOM and expanded runtime/cache/release artifact ignores.
+- Skipped symlink files during skill sync and release packaging so outside-repo file contents cannot be copied into installs or archives through linked paths.
 
 ### Infrastructure
 - Bumped version: `15.1.0` -> `15.2.0`
-- Verified suite target: `336` unit tests + `71` smoke checks.
+- Verified suite target: `341` unit tests + `71` smoke checks.
 
 ## [15.1.0] - 2026-04-28
 

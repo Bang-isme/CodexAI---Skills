@@ -15,14 +15,14 @@ Luồng chuẩn của pack:
 | Hạng mục | Giá trị |
 | --- | --- |
 | Core skills | 28 |
-| Entry-point scripts | 67 |
+| Entry-point scripts | 69 |
 | Shared helpers | 2 |
 | References | 188+ |
 | Starters | 29 |
 | Artifact templates | 9 |
 | Agent personas | 8 |
 | Workflow aliases | 8 |
-| Kiểm thử | 336 unit + 71 smoke = 407 bài test |
+| Kiểm thử | 341 unit + 71 smoke = 412 bài test |
 
 ## 2. Điểm mạnh chính
 
@@ -39,6 +39,14 @@ Luồng chuẩn của pack:
 ## 3. Cài Đặt Hoặc Sync Global Skills
 
 Chạy từ root repo `CodexAI---Skills`. Không dùng `skills/*`, vì wildcard đó có thể bỏ sót `.system`, `.agents`, và `.workflows`.
+
+Generic CLI/IDE harness:
+
+```powershell
+python ".\skills\.system\scripts\trust_harness.py" --project-root "." --skills-root ".\skills" --setup generic --apply --evidence ".\.codexai\evidence\trust-harness.json" --format text
+```
+
+Lệnh này tạo `.codexai/skills`, `AGENTS.md` bridge, và `.codexai/hooks/pre_prompt.json` để IDE/CLI bất kỳ có thể gọi router trước mỗi prompt.
 
 Ưu tiên cài theo Codex-native target:
 
@@ -85,6 +93,7 @@ python skills/tests/smoke_test.py
 python skills/.system/scripts/check_pack_health.py --skills-root skills --global-root "$HOME/.codex/skills" --format text
 python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --format text
 python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format text
+python skills/.system/scripts/trust_harness.py --project-root . --skills-root skills --setup generic --evidence .codexai/evidence/trust-harness.json --format text
 ```
 
 Trên Windows PowerShell:

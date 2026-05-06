@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-15.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-336%2F336%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-71%2F71%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-15.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-341%2F341%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-71%2F71%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -26,14 +26,14 @@ The pack is designed for 3 outcomes:
 | Metric | Value |
 | --- | --- |
 | Core Skills | 28 |
-| Entry-point Scripts | 67 |
+| Entry-point Scripts | 69 |
 | Shared Helpers | 2 |
 | Reference Docs | 188+ |
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 8 |
 | Workflow Aliases | 8 |
-| Verification | 336 unit + 71 smoke = 407 tests |
+| Verification | 341 unit + 71 smoke = 412 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 
@@ -186,6 +186,16 @@ This is the biggest differentiator of the pack today:
 
 ### 1. Install
 
+**Preferred: generic CLI/IDE trust harness**
+
+Use this when the agent app is not Codex or Claude Code, or when you want one command that installs a portable project adapter and writes evidence:
+
+```powershell
+python ".\skills\.system\scripts\trust_harness.py" --project-root "." --skills-root ".\skills" --setup generic --apply --evidence ".\.codexai\evidence\trust-harness.json" --format text
+```
+
+For a dry-run that does not write files, omit `--apply`. The generic adapter creates `.codexai/skills`, merges a bounded `AGENTS.md` bridge, writes `.codexai/hooks/pre_prompt.json` for host IDE/CLI pre-prompt integration, validates Codex/Claude packaging, runs the prompt-router corpus, checks release packaging, and stores JSON evidence.
+
 **Preferred: Codex-native user install**
 
 ```powershell
@@ -246,6 +256,7 @@ python skills/tests/smoke_test.py
 python skills/.system/scripts/check_pack_health.py --skills-root skills --format text
 python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --format text
 python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format text
+python skills/.system/scripts/trust_harness.py --project-root . --skills-root skills --setup generic --evidence .codexai/evidence/trust-harness.json --format text
 
 # Clean release archive preview/build
 python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format text

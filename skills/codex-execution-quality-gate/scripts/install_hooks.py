@@ -146,6 +146,17 @@ def resolve_git_dir(project_root: Path) -> Path:
         raise RuntimeError("Git is required to install hooks.") from exc
 
     if result.returncode == 0:
+        top = subprocess.run(
+            ["git", "-C", str(project_root), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+            check=False,
+        )
+        if top.returncode != 0 or Path(top.stdout.strip()).resolve() != project_root.resolve():
+            raise RuntimeError(f"Unable to locate .git directory for: {project_root}")
         git_dir = Path(result.stdout.strip())
         if not git_dir.is_absolute():
             git_dir = project_root / git_dir

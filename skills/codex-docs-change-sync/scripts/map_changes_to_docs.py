@@ -67,9 +67,15 @@ def run_git(project_root: Path, args: List[str]) -> Optional[subprocess.Complete
 
 def is_git_repo(project_root: Path) -> bool:
     result = run_git(project_root, ["rev-parse", "--is-inside-work-tree"])
-    if result is None:
+    if result is None or not (result.returncode == 0 and result.stdout.strip().lower() == "true"):
         return False
-    return result.returncode == 0 and result.stdout.strip().lower() == "true"
+    top = run_git(project_root, ["rev-parse", "--show-toplevel"])
+    if top is None or top.returncode != 0:
+        return False
+    try:
+        return Path(top.stdout.strip()).resolve() == project_root.resolve()
+    except OSError:
+        return False
 
 
 def detect_default_branch(project_root: Path) -> str:

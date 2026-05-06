@@ -366,6 +366,8 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         ".system/scripts/validate_claude_plugin.py",
         ".system/scripts/init_agents_md.py",
         ".system/scripts/build_release_zip.py",
+        ".system/scripts/prompt_router.py",
+        ".system/scripts/trust_harness.py",
         ".agents/frontend-specialist.md",
         ".workflows/plan.md",
         ".workflows/prototype.md",

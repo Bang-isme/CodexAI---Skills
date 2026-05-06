@@ -57,13 +57,20 @@
     "native_install_script": ".system/scripts/install_codex_native.py",
     "plugin_validator": ".system/scripts/validate_codex_plugin.py",
     "agents_bridge_script": ".system/scripts/init_agents_md.py",
-    "release_packager": ".system/scripts/build_release_zip.py"
+    "release_packager": ".system/scripts/build_release_zip.py",
+    "generic_trust_harness": ".system/scripts/trust_harness.py",
+    "prompt_router": ".system/scripts/prompt_router.py"
   },
   "claude_plugin": {
     "manifest": "../.claude-plugin/plugin.json",
     "hooks": "../hooks/hooks.json",
     "native_install_script": ".system/scripts/install_claude_native.py",
     "plugin_validator": ".system/scripts/validate_claude_plugin.py"
+  },
+  "generic_adapter": {
+    "trust_harness": ".system/scripts/trust_harness.py",
+    "prompt_router": ".system/scripts/prompt_router.py",
+    "hook_contract": ".codexai/hooks/pre_prompt.json"
   },
   "load_order": {
     "always": [
