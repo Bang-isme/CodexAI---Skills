@@ -24,6 +24,7 @@ init_profile = load_script_module("full_cycle_init_profile", "codex-runtime-hook
 init_spec = load_script_module("full_cycle_init_spec", "codex-spec-driven-development/scripts/init_spec.py")
 check_spec = load_script_module("full_cycle_check_spec", "codex-spec-driven-development/scripts/check_spec.py")
 knowledge_index = load_script_module("full_cycle_knowledge_index", "codex-project-memory/scripts/build_knowledge_index.py")
+knowledge_graph = load_script_module("full_cycle_knowledge_graph", "codex-project-memory/scripts/build_knowledge_graph.py")
 sync_global = load_script_module("full_cycle_sync_global", ".system/scripts/sync_global_skills.py")
 auto_gate = load_script_module("full_cycle_auto_gate", "codex-execution-quality-gate/scripts/auto_gate.py")
 
@@ -167,6 +168,92 @@ def test_knowledge_index_builds_from_docs_and_config(tmp_path: Path) -> None:
     assert index["tacit_knowledge"]["verification_commands"]
     first_insight = index["tacit_knowledge"]["verification_commands"][0]
     assert {"source", "confidence", "generated_by", "last_seen"}.issubset(first_insight)
+
+
+def test_knowledge_graph_builds_code_index_and_ai_context(tmp_path: Path) -> None:
+    write(
+        tmp_path / "src" / "routes" / "auth.routes.js",
+        """
+        const router = require('express').Router();
+        const authController = require('../controllers/auth.controller');
+        router.post('/login', authController.login);
+        module.exports = router;
+        """,
+    )
+    write(
+        tmp_path / "src" / "controllers" / "auth.controller.js",
+        """
+        const User = require('../models/user.model');
+        exports.login = async function login(req, res) {
+          return res.json({ ok: true });
+        };
+        """,
+    )
+    write(
+        tmp_path / "src" / "models" / "user.model.js",
+        """
+        const mongoose = require('mongoose');
+        const UserSchema = new mongoose.Schema({ email: String, passwordHash: String });
+        module.exports = mongoose.model('User', UserSchema);
+        """,
+    )
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+
+    assert graph["stats"]["total_files"] == 3
+    assert graph["code_index"]["src/controllers/auth.controller.js"]["module"] == "controllers"
+    assert "src/models/user.model.js" in graph["code_index"]["src/controllers/auth.controller.js"]["imports"]
+    assert graph["code_index"]["src/controllers/auth.controller.js"]["definitions"]
+    assert graph["external_dependencies"]["express"]["used_by"] == ["src/routes/auth.routes.js"]
+    assert graph["risk_signals"]
+    assert graph["ai_context"]["summary"]
+    assert graph["human_context"]["navigation_hints"]
+
+
+def test_knowledge_graph_resolves_local_python_imports_and_skill_modules(tmp_path: Path) -> None:
+    write(
+        tmp_path / "skills" / "codex-project-memory" / "scripts" / "generate_genome.py",
+        "from genome_builder import build_genome_report\n",
+    )
+    write(
+        tmp_path / "skills" / "codex-project-memory" / "scripts" / "genome_builder.py",
+        "def build_genome_report():\n    return {}\n",
+    )
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+
+    source = "skills/codex-project-memory/scripts/generate_genome.py"
+    target = "skills/codex-project-memory/scripts/genome_builder.py"
+    assert graph["code_index"][source]["module"] == "codex-project-memory"
+    assert target in graph["code_index"][source]["imports"]
+    assert source in graph["code_index"][target]["imported_by"]
+    assert "genome_builder" not in graph["code_index"][source]["external_imports"]
+
+
+def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> None:
+    write(tmp_path / "package.json", json.dumps({"name": "sample", "dependencies": {"express": "^4.19.0"}, "scripts": {"test": "jest"}}))
+    write(
+        tmp_path / "src" / "routes" / "health.routes.js",
+        """
+        const router = require('express').Router();
+        router.get('/health', (req, res) => res.json({ ok: true }));
+        module.exports = router;
+        """,
+    )
+    write(tmp_path / ".codex" / "context" / "genome.md", "# Project Genome\n\n## Architecture Overview\n\n## API Surface\n")
+
+    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    html = Path(payload["html_path"]).read_text(encoding="utf-8")
+    graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
+
+    assert payload["status"] == "built"
+    assert "knowledge-dashboard" in html
+    assert "knowledge-data" in html
+    assert "data-view=\"files\"" in html
+    assert "function renderKnowledge" in html
+    assert "src/routes/health.routes.js" in html
+    assert graph["code_index"]
+    assert graph["ai_context"]["recommended_read_order"]
 
 
 def test_knowledge_index_redacts_sensitive_commit_subjects(tmp_path: Path) -> None:

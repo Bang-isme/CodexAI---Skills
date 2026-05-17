@@ -32,6 +32,18 @@ def test_domain_specialist_enforces_scope_fit_before_complexity() -> None:
     assert "Do not add a new dependency, service, worker, cache, queue" in skill
 
 
+def test_domain_specialist_has_tool_security_and_ticket_overlays() -> None:
+    skill = read(SKILL_MD)
+
+    assert "Tool-Aware Routing Overlay" in skill
+    assert "Tool selection matrix" in skill
+    assert "Security overlay" in skill
+    assert "Implementation ticket trigger" in skill
+    assert "tool evidence" in skill
+    assert "attacker-controlled input" in skill
+    assert "does not require full compliance" in skill
+
+
 def test_output_quality_gate_contains_anti_overengineering_guardrails() -> None:
     gates = read(OUTPUT_GATES)
 

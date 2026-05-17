@@ -107,6 +107,66 @@ Route in this exact order:
 3. Add only signal-driven references.
 4. Enforce context boundaries before implementation or review.
 
+## Tool-Aware Routing Overlay
+
+Use this overlay after domain detection and before implementation. It does not replace domain routing; it records which tools are required to make the answer project-specific and evidence-backed.
+
+### Tool selection matrix
+
+| Task Signal | Tool Action | Evidence To Record |
+| --- | --- | --- |
+| Unknown repo structure, vague file ownership, or broad feature request | Use `rg --files`, targeted `rg`, and focused file reads before selecting references | Files inspected, patterns found, and why they matter |
+| Helper script, generator, checker, installer, or quality gate involved | Run the helper with `--help` before relying on it | CLI contract, required arguments, expected output, and limitations |
+| Prototype, MVP, fullstack, multi-domain, or high-ambiguity change | Use `codex-spec-driven-development/scripts/init_spec.py` before planning and `check_spec.py` before handoff | Spec path, AC IDs, ticket IDs, and validation mapping |
+| Repeated delivery units, several acceptance criteria, multiple files, or role handoff | Add implementation tickets to the spec | `TICKET-001` style IDs, linked AC IDs, domain owner, dependencies, security notes, validation |
+| Auth, secrets, user-controlled data, upload, deployment exposure, CI/package integrity, or changed trust boundary | Apply the Security overlay and load security references proportionally | Security surface, attacker-controlled input, closest control, validation or no-surface rationale |
+
+Rules:
+
+1. Tool evidence must be concrete enough that another agent can repeat the same check; write this as explicit tool evidence in specs, plans, or final verification notes when it affects the decision.
+2. Do not run heavyweight tools just to look rigorous; pick the smallest tool that can prove the routing decision.
+3. Scripts remain black boxes unless customization or debugging requires source inspection.
+4. Tool usage does not require full compliance work unless the task, repo evidence, or user request explicitly calls for it.
+
+### Security overlay
+
+Apply security routing when the work changes a boundary, protected data path, privileged workflow, or externally reachable behavior. The overlay is proportional and does not require full compliance for every feature.
+
+Security triggers:
+
+- attacker-controlled input reaches parsing, query, file, template, network, shell, auth, authorization, or persistence logic
+- secrets, tokens, credentials, session state, API keys, or CI/deployment privileges are touched
+- auth, RBAC, OAuth, tenant isolation, admin behavior, or user identity changes
+- public API, webhook, upload, export, package install, build pipeline, container, or deployment surface changes
+- dependency, generated artifact, or tool execution path can influence runtime behavior
+
+Security output requirements:
+
+- identify assets and trust boundaries before recommending controls
+- name the closest existing control and whether it is sufficient
+- choose proportional controls; heavier controls need a stated risk, why the simpler control is insufficient, and a verification method
+- record security validation or a clear no-security-surface rationale in the spec or final evidence
+
+### Implementation ticket trigger
+
+Create or update spec tickets when any of these are true:
+
+- more than one acceptance criterion is needed
+- changes span more than one domain or role
+- likely implementation touches multiple files or phases
+- security validation, migration, deployment, or QA work must be tracked separately
+- another agent or developer needs enough context to pick up one slice without rereading the whole conversation
+
+Each ticket must include:
+
+- `TICKET-###` ID
+- title and domain/owner
+- linked `AC-###` and security criteria when applicable
+- intent and likely files or areas
+- dependencies
+- security notes
+- validation command or manual check
+
 ## Primary Domain Detection
 
 | Signal | Primary Domain |

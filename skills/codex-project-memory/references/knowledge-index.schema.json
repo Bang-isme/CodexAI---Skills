@@ -16,6 +16,11 @@
         "required": ["type", "value", "source", "confidence", "last_seen", "generated_by"],
         "confidence_values": ["low", "medium", "high"]
       }
+    },
+    "interactive_outputs": {
+      "type": "object",
+      "description": "CLI payload fields produced by build_knowledge_index.py",
+      "required": ["index_path", "markdown_path", "graph_path", "html_path"]
     }
   }
 }

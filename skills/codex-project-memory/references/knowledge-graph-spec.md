@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Build a project-wide structural graph (dependencies, module boundaries, routes, models) so AI can reason with architecture-level context instead of guessing from file names.
+Build a project-wide structural graph (dependencies, module boundaries, routes, models, code index, entrypoints, external dependencies, risk signals, and AI/human context) so AI and people can reason with architecture-level context instead of guessing from file names.
 
 ## When To Build
 
@@ -119,11 +119,12 @@ flowchart LR
 
 ## How AI Uses It
 
-1. Run `build_knowledge_graph.py` to generate `.codex/knowledge-graph.json`.
-2. Read graph before complex refactors, cross-module changes, or API-impact work.
-3. Use module boundaries and route/model maps to reduce incorrect assumptions.
-4. When modifying a module, check `depended_by` to identify downstream impact.
-5. When adding a new feature, check existing modules to avoid duplication.
+1. Run `build_knowledge_graph.py` to generate `.codex/knowledge-graph.json`, or run `build_knowledge_index.py` to generate `.codex/knowledge/knowledge-graph.json` plus `.codex/knowledge/index.html`.
+2. Read `ai_context.recommended_read_order` before complex refactors, cross-module changes, or API-impact work.
+3. Use `code_index` for file-level definitions, imports, imported-by, language, module, entrypoint, and risk tags.
+4. Use module boundaries and route/model maps to reduce incorrect assumptions.
+5. When modifying a module, check `imported_by` and `ai_context.top_dependents` to identify downstream impact.
+6. When adding a new feature, check existing modules and the interactive HTML dashboard to avoid duplication.
 
 ## Detection Rules
 

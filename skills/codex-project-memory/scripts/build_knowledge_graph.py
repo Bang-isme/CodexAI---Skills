@@ -26,6 +26,7 @@ SKIP_DIRS = {
     ".venv",
     "venv",
     ".codex",
+    ".codexai",
     ".idea",
     ".vscode",
     ".yarn",
@@ -33,6 +34,15 @@ SKIP_DIRS = {
 CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py", ".mjs", ".cjs"}
 RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".json"]
 TEST_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
+LANGUAGE_BY_EXTENSION = {
+    ".js": "JavaScript",
+    ".jsx": "React JSX",
+    ".ts": "TypeScript",
+    ".tsx": "React TSX",
+    ".py": "Python",
+    ".mjs": "JavaScript ESM",
+    ".cjs": "JavaScript CJS",
+}
 
 IMPORT_FROM_PATTERN = re.compile(r"^\s*import\s+.+?\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
 IMPORT_SIDE_PATTERN = re.compile(r"^\s*import\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
@@ -44,6 +54,19 @@ JS_IMPORT_DEFAULT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_$][\w$]*)\s+from\
 JS_IMPORT_NAMED_PATTERN = re.compile(r"^\s*import\s+\{([^}]+)\}\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
 JS_REQUIRE_ALIAS_PATTERN = re.compile(r"^\s*(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*require\(\s*['\"]([^'\"]+)['\"]\s*\)", re.MULTILINE)
 JS_REQUIRE_NAMED_PATTERN = re.compile(r"^\s*(?:const|let|var)\s+\{([^}]+)\}\s*=\s*require\(\s*['\"]([^'\"]+)['\"]\s*\)", re.MULTILINE)
+JS_EXPORT_FUNCTION_PATTERN = re.compile(r"\bexport\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)")
+JS_EXPORT_CONST_PATTERN = re.compile(r"\bexport\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)")
+JS_EXPORTS_PATTERN = re.compile(r"\bexports\.([A-Za-z_$][\w$]*)\s*=")
+JS_MODULE_EXPORTS_PATTERN = re.compile(r"\bmodule\.exports\s*=\s*([A-Za-z_$][\w$]*)")
+JS_CLASS_PATTERN = re.compile(r"\bclass\s+([A-Za-z_$][\w$]*)")
+JS_FUNCTION_PATTERN = re.compile(r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(")
+PY_DEF_PATTERN = re.compile(r"^\s*def\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+PY_ASYNC_DEF_PATTERN = re.compile(r"^\s*async\s+def\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+PY_CLASS_PATTERN = re.compile(r"^\s*class\s+([A-Za-z_]\w*)", re.MULTILINE)
+DANGEROUS_SINK_PATTERN = re.compile(
+    r"\b(eval|exec|spawn|execFile|child_process|subprocess|pickle\.loads?|yaml\.load|innerHTML|dangerouslySetInnerHTML)\b"
+)
+SECRET_FILE_HINT = re.compile(r"(\.env|secret|credential|token|private[-_]?key|id_rsa)", re.IGNORECASE)
 
 ROUTE_CALL_PATTERN = re.compile(
     r"\b(?:router|app)\.(get|post|put|delete|patch|options|head|all)\s*\(\s*['\"`]([^'\"`]+)['\"`]\s*,\s*(.+)"
@@ -164,13 +187,173 @@ def parse_import_modules(file_path: Path, content: str) -> List[str]:
     return modules
 
 
+def external_modules_for_file(file_path: Path, content: str) -> List[str]:
+    modules = parse_import_modules(file_path, content)
+    externals: Set[str] = set()
+    for module in modules:
+        value = module.strip()
+        if not value or value.startswith((".", "/", "@/", "src/", "http://", "https://", "node:")):
+            continue
+        if file_path.suffix.lower() == ".py":
+            top_level = value.split(".", 1)[0]
+            if top_level == "__future__" or top_level in getattr(sys, "stdlib_module_names", set()):
+                continue
+            externals.add(top_level)
+        elif value.startswith("@"):
+            parts = value.split("/")
+            externals.add("/".join(parts[:2]) if len(parts) >= 2 else value)
+        else:
+            externals.add(value.split("/", 1)[0])
+    return sorted(externals)
+
+
+def extract_definitions(file_path: Path, content: str) -> List[str]:
+    ext = file_path.suffix.lower()
+    names: Set[str] = set()
+    if ext in {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}:
+        for pattern in (
+            JS_EXPORT_FUNCTION_PATTERN,
+            JS_EXPORT_CONST_PATTERN,
+            JS_EXPORTS_PATTERN,
+            JS_MODULE_EXPORTS_PATTERN,
+            JS_CLASS_PATTERN,
+            JS_FUNCTION_PATTERN,
+        ):
+            names.update(pattern.findall(content))
+    elif ext == ".py":
+        names.update(PY_DEF_PATTERN.findall(content))
+        names.update(PY_ASYNC_DEF_PATTERN.findall(content))
+        names.update(PY_CLASS_PATTERN.findall(content))
+    return sorted(name for name in names if name)
+
+
+def line_count(lines: Sequence[str]) -> int:
+    return len(lines)
+
+
+def build_code_index(
+    project_root: Path,
+    files: List[Path],
+    imports_map: Dict[str, Set[str]],
+    reverse_map: Dict[str, Set[str]],
+    raw_content: Dict[str, str],
+    lines_cache: Dict[str, List[str]],
+) -> Tuple[Dict[str, Dict[str, object]], Dict[str, Dict[str, object]], List[Dict[str, object]], List[str]]:
+    code_index: Dict[str, Dict[str, object]] = {}
+    external_dependencies: Dict[str, Dict[str, object]] = {}
+    risk_signals: List[Dict[str, object]] = []
+    entrypoints: Set[str] = set()
+
+    for file_path in files:
+        rel = normalize_rel(file_path, project_root)
+        content = raw_content.get(rel, "")
+        lines = lines_cache.get(rel, [])
+        externals = external_modules_for_file(file_path, content)
+        if file_path.suffix.lower() == ".py":
+            internal_stems = {Path(item).stem for item in imports_map.get(rel, set())}
+            externals = [item for item in externals if item not in internal_stems]
+        definitions = extract_definitions(file_path, content)
+        module = module_name(rel)
+        lowered = rel.lower()
+        if "route" in lowered or "app." in content or "router." in content or "__main__" in content:
+            entrypoints.add(rel)
+        if SECRET_FILE_HINT.search(rel):
+            risk_signals.append({"type": "sensitive_file_name", "file": rel, "reason": "File path suggests secrets or credentials."})
+        if DANGEROUS_SINK_PATTERN.search(content):
+            risk_signals.append({"type": "dangerous_sink", "file": rel, "reason": "File contains a sink that needs security review when input is attacker-controlled."})
+        if "password" in content.lower() or "token" in content.lower() or "jwt" in content.lower():
+            risk_signals.append({"type": "auth_or_secret_logic", "file": rel, "reason": "File contains auth, token, password, or credential-related terms."})
+
+        code_index[rel] = {
+            "path": rel,
+            "language": LANGUAGE_BY_EXTENSION.get(file_path.suffix.lower(), file_path.suffix.lstrip(".") or "unknown"),
+            "module": module,
+            "lines": line_count(lines),
+            "definitions": definitions[:40],
+            "imports": sorted(imports_map.get(rel, set())),
+            "imported_by": sorted(reverse_map.get(rel, set())),
+            "external_imports": externals,
+            "is_test": is_test_file(rel),
+            "is_entrypoint": rel in entrypoints,
+            "risk_tags": [
+                item["type"]
+                for item in risk_signals
+                if item.get("file") == rel
+            ],
+        }
+        for package in externals:
+            info = external_dependencies.setdefault(package, {"used_by": []})
+            info["used_by"].append(rel)  # type: ignore[index]
+
+    for info in external_dependencies.values():
+        info["used_by"] = sorted(set(info["used_by"]))  # type: ignore[index]
+
+    return code_index, dict(sorted(external_dependencies.items())), risk_signals, sorted(entrypoints)
+
+
+def build_ai_context(
+    graph_stats: Dict[str, object],
+    module_boundaries: Dict[str, Dict[str, List[str]]],
+    dependency_tree: Dict[str, Dict[str, List[str]]],
+    routes: List[Dict[str, object]],
+    models: Dict[str, Dict[str, object]],
+    risk_signals: List[Dict[str, object]],
+    entrypoints: List[str],
+) -> Dict[str, object]:
+    top_dependents = sorted(
+        (
+            {"file": file_path, "imported_by_count": len(item.get("imported_by", []))}
+            for file_path, item in dependency_tree.items()
+        ),
+        key=lambda item: (-int(item["imported_by_count"]), str(item["file"])),
+    )[:10]
+    recommended_read_order = []
+    recommended_read_order.extend(entrypoints[:8])
+    recommended_read_order.extend(item["file"] for item in top_dependents if item["file"] not in recommended_read_order)
+    summary = (
+        f"{graph_stats['total_files']} code files, {graph_stats['modules']} modules, "
+        f"{graph_stats['total_edges']} internal edges, {len(routes)} routes, {len(models)} models, "
+        f"{len(risk_signals)} risk signals."
+    )
+    return {
+        "summary": summary,
+        "recommended_read_order": recommended_read_order[:15],
+        "top_dependents": top_dependents,
+        "module_contracts": module_boundaries,
+        "security_review_targets": risk_signals[:20],
+        "usage": "Read recommended_read_order first, then inspect module_contracts and depended_by before cross-module edits.",
+    }
+
+
+def build_human_context(
+    module_boundaries: Dict[str, Dict[str, List[str]]],
+    routes: List[Dict[str, object]],
+    models: Dict[str, Dict[str, object]],
+    risk_signals: List[Dict[str, object]],
+) -> Dict[str, object]:
+    return {
+        "navigation_hints": [
+            "Use Modules to understand boundaries before editing.",
+            "Use Files to search definitions, imports, and downstream dependents.",
+            "Use Routes and Models to inspect runtime-facing surfaces.",
+            "Use Risk Signals as review prompts, not automatic vulnerabilities.",
+        ],
+        "module_count": len(module_boundaries),
+        "route_count": len(routes),
+        "model_count": len(models),
+        "risk_signal_count": len(risk_signals),
+    }
+
+
 def expand_candidates(base: Path) -> List[Path]:
     candidates: List[Path] = []
     if base.suffix:
         candidates.append(base)
+        for ext in RESOLVE_EXTENSIONS:
+            candidates.append(Path(str(base) + ext))
     else:
         for ext in RESOLVE_EXTENSIONS:
-            candidates.append(base.with_suffix(ext))
+            candidates.append(Path(str(base) + ext))
         for ext in RESOLVE_EXTENSIONS:
             candidates.append(base / f"index{ext}")
     return candidates
@@ -233,6 +416,8 @@ def resolve_python_module(importer: Path, module: str, root: Path, existing: Set
     else:
         target = root / Path(value.replace(".", "/"))
         candidates.extend([target.with_suffix(".py"), target / "__init__.py"])
+        local_target = importer.parent / Path(value.replace(".", "/"))
+        candidates.extend([local_target.with_suffix(".py"), local_target / "__init__.py"])
     return choose_existing(candidates, root, existing)
 
 
@@ -279,6 +464,8 @@ def module_name(rel_file: str) -> str:
     if not parts:
         return "root"
     lowered = [part.lower() for part in parts]
+    if lowered[0] == "skills" and len(lowered) > 1:
+        return lowered[1] if not Path(parts[1]).suffix else "skills"
     for hint in MODULE_HINTS:
         if hint in lowered:
             return "middlewares" if hint == "middleware" else hint
@@ -712,6 +899,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
     files = collect_code_files(project_root, include_tests=include_tests)
     imports_map, reverse_map, raw_content, aux = build_dependency_graph(project_root, files)
     warnings: List[str] = list(aux["warnings"])
+    lines_cache: Dict[str, List[str]] = aux["lines"]  # type: ignore[assignment]
 
     module_boundaries_raw, module_cycles = build_module_boundaries(imports_map)
     routes = build_api_route_map(project_root, files, imports_map, raw_content)
@@ -720,6 +908,14 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
     edges = sum(len(values) for values in imports_map.values())
     module_boundaries = to_module_boundary_output(module_boundaries_raw)
     dependency_tree = convert_dependency_map(imports_map, reverse_map)
+    code_index, external_dependencies, risk_signals, entrypoints = build_code_index(
+        project_root,
+        files,
+        imports_map,
+        reverse_map,
+        raw_content,
+        lines_cache,
+    )
 
     graph = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -733,10 +929,28 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             "circular_dependencies": len(module_cycles),
         },
         "file_dependencies": dependency_tree,
+        "code_index": code_index,
+        "entrypoints": entrypoints,
+        "external_dependencies": external_dependencies,
         "module_boundaries": module_boundaries,
         "api_routes": routes,
         "data_models": models,
         "circular_dependencies": module_cycles,
+        "risk_signals": risk_signals,
+        "ai_context": build_ai_context(
+            {
+                "total_files": len(files),
+                "total_edges": edges,
+                "modules": len(module_boundaries),
+            },
+            module_boundaries,
+            dependency_tree,
+            routes,
+            models,
+            risk_signals,
+            entrypoints,
+        ),
+        "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
         "warnings": sorted(dict.fromkeys(warnings)),
     }
     return graph

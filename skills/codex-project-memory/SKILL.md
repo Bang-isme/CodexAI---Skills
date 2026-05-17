@@ -26,7 +26,7 @@ load_priority: on-demand
 13. Activate on `$growth-report` to generate a developer growth report.
 14. Activate on `$compact-context` or "clean up old sessions".
 15. Activate on `$codex-genome`, `$generate-genome`, or `$genome` to create layered project context docs.
-16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`.
+16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`, `.codex/knowledge/index.json`, `.codex/knowledge/knowledge-graph.json`, and an offline interactive `.codex/knowledge/index.html`.
 
 ## Decision Tree Routing
 
@@ -75,7 +75,7 @@ User intent -> Memory action?
 - `references/feedback-tracker-spec.md`: feedback logging and aggregate usage.
 - `references/skill-evolution-spec.md`: skill usage analytics and optimization.
 - `references/knowledge-graph-spec.md`: deep architecture mapping and refresh guidance.
-- `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, and config; redacts secret-like values and stores provenance/confidence.
+- `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, config, and the structural knowledge graph; redacts secret-like values, stores provenance/confidence, and writes an offline interactive HTML dashboard for AI and human review.
 - `references/knowledge-index.schema.json`: output contract for `.codex/knowledge/index.json`.
 - `references/context-compactor-spec.md`: retention policy, archive layout, and dry-run expectations.
 - `references/behavior-guide.md`: detailed per-script behaviors, defaults, and chaining guidance.

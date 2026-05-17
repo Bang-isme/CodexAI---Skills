@@ -33,7 +33,8 @@ Error JSON:
 | `generate_changelog.py` | `"generated"` | `path`, `entries` |
 | `generate_growth_report.py` | `"generated"` | `path`, `metrics` |
 | `analyze_patterns.py` | `"generated"` | `path`, `patterns` |
-| `build_knowledge_graph.py` | `"generated"` | `path`, `stats` |
+| `build_knowledge_graph.py` | `"generated"` | `path`, `stats`, `code_index`, `ai_context`, `human_context` |
+| `build_knowledge_index.py` | `"built"` | `index_path`, `markdown_path`, `graph_path`, `html_path`, `sources`, `graph_stats` |
 | `track_feedback.py` (log) | `"logged"` | `path`, `category` |
 | `track_feedback.py` (aggregate) | `"aggregated"` | `total`, `by_category` |
 | `track_skill_usage.py` (record) | `"recorded"` | `skill`, `outcome` |
@@ -101,7 +102,13 @@ Report mode:
 #### build_knowledge_graph.py
 
 ```json
-{"status": "generated", "path": "<file>", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>}, "file_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": {<object>}, "data_models": {<object>}, "circular_dependencies": [<object>], "warnings": [<string>]}
+{"status": "generated", "path": "<file>", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>}, "file_dependencies": {<object>}, "code_index": {<object>}, "entrypoints": [<string>], "external_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": [<object>], "data_models": {<object>}, "risk_signals": [<object>], "ai_context": {<object>}, "human_context": {<object>}, "circular_dependencies": [<object>], "warnings": [<string>]}
+```
+
+#### build_knowledge_index.py
+
+```json
+{"status": "built", "index_path": "<file>", "markdown_path": "<file>", "graph_path": "<file>", "html_path": "<file>", "sources": {<object>}, "graph_stats": {<object>}}
 ```
 
 #### compact_context.py

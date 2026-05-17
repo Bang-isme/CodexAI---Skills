@@ -94,6 +94,30 @@ def test_init_spec_cli_creates_and_skips_without_force(tmp_path: Path) -> None:
     assert second_payload["status"] == "skipped"
 
 
+def test_render_spec_includes_research_security_and_ticket_sections() -> None:
+    rendered = init_spec.render_spec("Tool-Aware Spec", "Improve plugin routing", ["workflow", "security"])
+
+    required_sections = [
+        "## Context Summary",
+        "## Evidence and Source Log",
+        "## Assumptions",
+        "## Constraints",
+        "## User Workflow",
+        "## Implementation Tickets",
+        "## Security Model",
+        "## Tool Research Plan",
+        "## Validation Matrix",
+        "## Risk Matrix",
+        "## Open Questions",
+    ]
+    for section in required_sections:
+        assert section in rendered
+    assert "TICKET-001" in rendered
+    assert "SEC-001" in rendered
+    assert "attacker-controlled inputs" in rendered.lower()
+    assert "tool evidence" in rendered.lower()
+
+
 def test_init_spec_cli_force_overwrites_existing_spec(tmp_path: Path) -> None:
     spec_path = tmp_path / ".codex" / "specs" / "demo" / "SPEC.md"
     write(spec_path, "old\n")
@@ -130,6 +154,10 @@ Domains: Frontend, QA
 ## Acceptance Criteria
 - [ ] AC-002: Works
 - [ ] AC-001: Also works
+
+## Implementation Tickets
+- [ ] TICKET-002: Build workflow
+- [ ] TICKET-001: Add tests
 """
     )
 
@@ -137,6 +165,7 @@ Domains: Frontend, QA
     assert metadata["status"] == "active"
     assert metadata["domains"] == ["frontend", "qa"]
     assert metadata["acceptance_criteria"] == ["AC-001", "AC-002"]
+    assert metadata["implementation_tickets"] == ["TICKET-001", "TICKET-002"]
 
 
 def test_check_spec_report_warns_for_legacy_draft_and_missing_ac(tmp_path: Path) -> None:
@@ -169,6 +198,18 @@ def test_check_spec_report_warns_for_unmapped_domain_file(tmp_path: Path) -> Non
     assert report["unmapped_files"] == ["server/routes/auth.py"]
     assert report["matched_specs"] == []
     assert "Traceability table" in report["suggested_actions"][0]
+
+
+def test_check_spec_report_includes_matched_ticket_ids(tmp_path: Path) -> None:
+    write(
+        tmp_path / ".codex" / "specs" / "backend-api" / "SPEC.md",
+        init_spec.render_spec("Backend API", "Build endpoint", ["backend"]),
+    )
+
+    report = check_spec.build_report(tmp_path, ["server/routes/auth.py"])
+
+    assert "TICKET-001" in report["matched_implementation_tickets"]
+    assert report["files"][0]["candidate_ticket_ids"] == report["matched_implementation_tickets"]
 
 
 def test_check_spec_cli_text_output(tmp_path: Path) -> None:

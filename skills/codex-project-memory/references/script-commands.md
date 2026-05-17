@@ -68,6 +68,17 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
 - macOS/Linux:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_graph.py" --project-root <path>`
+- Output:
+  `.codex/knowledge-graph.json` by default, including `code_index`, `entrypoints`, `external_dependencies`, `module_boundaries`, `api_routes`, `data_models`, `risk_signals`, `ai_context`, and `human_context`.
+
+### Knowledge Index and Interactive HTML
+
+- Windows:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path>`
+- macOS/Linux:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path>`
+- Output:
+  `.codex/knowledge/index.json`, `.codex/knowledge/INDEX.md`, `.codex/knowledge/knowledge-graph.json`, and `.codex/knowledge/index.html`.
 
 ### Project Genome Generator
 
