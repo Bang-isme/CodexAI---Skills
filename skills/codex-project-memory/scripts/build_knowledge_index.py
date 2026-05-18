@@ -286,6 +286,16 @@ def load_graph_builder():
     return module
 
 
+def load_codebase_indexer():
+    indexer_path = Path(__file__).with_name("codebase_indexer.py")
+    spec = importlib.util.spec_from_file_location("codexai_codebase_indexer", indexer_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Unable to load codebase indexer: {indexer_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def html_json(payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, ensure_ascii=False)
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
@@ -339,6 +349,9 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     <button data-view="routes">Routes</button>
     <button data-view="models">Models</button>
     <button data-view="risks">Risks</button>
+    <button data-view="chunks">Chunks</button>
+    <button data-view="symbols">Symbols</button>
+    <button data-view="references">References</button>
   </section>
   <main><section id="cards" class="cards" aria-live="polite"></section></main>
   <script id="knowledge-data" type="application/json">{html_json(payload)}</script>
@@ -350,11 +363,12 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     const data = JSON.parse(document.getElementById("knowledge-data").textContent);
     const graph = data.graph || {{}};
     const index = data.index || {{}};
+    const codebase = graph.codebase_index || {{}};
     let currentView = "overview";
     function matchesSearch(raw, query) {{ return !query || JSON.stringify(raw).toLowerCase().includes(query); }}
     function metrics() {{
       const stats = graph.stats || {{}};
-      const items = [["Files", stats.total_files || 0], ["Modules", stats.modules || 0], ["Edges", stats.total_edges || 0], ["Routes", stats.routes || 0], ["Models", stats.models || 0], ["Risk Signals", (graph.risk_signals || []).length]];
+      const items = [["Files", Object.keys(codebase.files || {{}}).length || stats.total_files || 0], ["Chunks", (codebase.chunks || []).length], ["Symbols", (codebase.symbols || []).length], ["References", (codebase.references || []).length], ["Routes", (codebase.routes || graph.api_routes || []).length], ["Models", Object.keys(graph.data_models || {{}}).length || (codebase.models || []).length], ["Risk Signals", (codebase.risk_signals || graph.risk_signals || []).length]];
       document.getElementById("metrics").innerHTML = items.map(([label, value]) => `<div class="metric"><strong>${{value}}</strong><span>${{label}}</span></div>`).join("");
     }}
     function renderKnowledge() {{
@@ -363,7 +377,8 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
       if (currentView === "overview") {{
         const ai = graph.ai_context || {{}};
         cards.push(card("AI Context", `<p>${{escapeHtml(text(ai.summary))}}</p><p class="muted">${{escapeHtml(text(ai.usage))}}</p>`));
-        cards.push(card("Recommended Read Order", (ai.recommended_read_order || []).map(tag).join("") || "<p class='muted'>No files detected.</p>"));
+        const readOrder = (codebase.read_order || []).map(item => item.path || item);
+        cards.push(card("Recommended Read Order", (readOrder.length ? readOrder : (ai.recommended_read_order || [])).map(tag).join("") || "<p class='muted'>No files detected.</p>"));
         cards.push(card("Tacit Knowledge", `<pre>${{escapeHtml(JSON.stringify(index.tacit_knowledge || {{}}, null, 2))}}</pre>`));
       }}
       if (currentView === "modules") {{
@@ -373,9 +388,12 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
         }});
       }}
       if (currentView === "files") {{
-        Object.entries(graph.code_index || {{}}).forEach(([path, item]) => {{
+        Object.entries(codebase.files || graph.code_index || {{}}).forEach(([path, item]) => {{
           if (!matchesSearch({{path, item}}, query)) return;
-          cards.push(card(path, `<p>${{tag(item.language)}} ${{tag(item.module)}} ${{item.is_entrypoint ? tag("entrypoint") : ""}}</p><p><b>Definitions</b></p>${{(item.definitions || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imports</b></p>${{(item.imports || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imported by</b></p>${{(item.imported_by || []).map(tag).join("") || "<p class='muted'>None</p>"}}`));
+          const fileChunks = (codebase.chunks || []).filter(chunk => chunk.path === path).slice(0, 5);
+          const fileSymbols = (codebase.symbols || []).filter(symbol => symbol.path === path).slice(0, 12);
+          const refs = (codebase.references || []).filter(ref => ref.source === path).slice(0, 8);
+          cards.push(card(path, `<p>${{tag(item.language)}} ${{tag(item.parser || item.module || "parser")}}</p><p class="muted">hash ${{escapeHtml(text(item.content_hash || "").slice(0, 12))}} · ${{item.size_bytes || 0}} bytes · indexed ${{escapeHtml(text(item.last_indexed_at || ""))}}</p><p><b>Symbols</b></p>${{fileSymbols.map(s => tag(`${{s.name}}#L${{s.line_start}}`)).join("") || (item.definitions || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>References</b></p>${{refs.map(r => tag(r.target)).join("") || (item.imports || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Chunks</b></p>${{fileChunks.map(c => `<p class="muted">L${{c.line_start}}-L${{c.line_end}} ${{escapeHtml(text(c.symbol || c.strategy))}}</p>`).join("") || "<p class='muted'>No chunks</p>"}}`));
         }});
       }}
       if (currentView === "routes") {{
@@ -391,9 +409,27 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
         }});
       }}
       if (currentView === "risks") {{
-        (graph.risk_signals || []).forEach(risk => {{
+        (codebase.risk_signals || graph.risk_signals || []).forEach(risk => {{
           if (!matchesSearch(risk, query)) return;
           cards.push(card(text(risk.type), `<p class="warn">${{escapeHtml(text(risk.reason))}}</p><p class="muted">${{escapeHtml(text(risk.file))}}</p>`));
+        }});
+      }}
+      if (currentView === "chunks") {{
+        (codebase.chunks || []).forEach(chunk => {{
+          if (!matchesSearch(chunk, query)) return;
+          cards.push(card(`${{chunk.path}}:L${{chunk.line_start}}-${{chunk.line_end}}`, `<p>${{tag(chunk.symbol || chunk.strategy)}} ${{tag(`confidence:${{chunk.confidence || ""}}`)}}</p><pre>${{escapeHtml(text(chunk.text_preview))}}</pre>`));
+        }});
+      }}
+      if (currentView === "symbols") {{
+        (codebase.symbols || []).forEach(symbol => {{
+          if (!matchesSearch(symbol, query)) return;
+          cards.push(card(text(symbol.name), `<p>${{tag(symbol.kind)}} ${{tag(symbol.path)}} ${{tag(`L${{symbol.line_start}}`)}}</p><p class="muted">confidence ${{escapeHtml(text(symbol.confidence))}}</p>`));
+        }});
+      }}
+      if (currentView === "references") {{
+        (codebase.references || []).forEach(ref => {{
+          if (!matchesSearch(ref, query)) return;
+          cards.push(card(`${{ref.source}} → ${{ref.target}}`, `<p>${{tag(ref.kind)}} ${{tag(`L${{ref.line || ""}}`)}}</p><p class="muted">confidence ${{escapeHtml(text(ref.confidence))}}</p>`));
         }});
       }}
       document.getElementById("cards").innerHTML = cards.join("") || card("No matches", "<p class='muted'>Try another search or view.</p>");
@@ -414,11 +450,22 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
 """
 
 
-def write_knowledge_artifacts(project_root: Path, output_dir: Path) -> dict[str, Any]:
+def write_knowledge_artifacts(project_root: Path, output_dir: Path, incremental: bool = True, rebuild: bool = False) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     index = build_index(project_root)
+    codebase_indexer = load_codebase_indexer()
+    codebase_index = codebase_indexer.build_codebase_index(
+        project_root,
+        output_path=output_dir / "codebase-index.json",
+        incremental=incremental,
+        rebuild=rebuild,
+    )
     graph_builder = load_graph_builder()
     graph = graph_builder.build_graph(project_root, include_tests=True)
+    graph["codebase_index"] = {
+        key: codebase_index.get(key)
+        for key in ("schema_version", "generated_at", "files", "chunks", "symbols", "references", "routes", "models", "configs", "risk_signals", "read_order", "confidence", "semantic")
+    }
     index_path = output_dir / "index.json"
     md_path = output_dir / "INDEX.md"
     graph_path = output_dir / "knowledge-graph.json"
@@ -432,9 +479,16 @@ def write_knowledge_artifacts(project_root: Path, output_dir: Path) -> dict[str,
         "index_path": str(index_path),
         "markdown_path": str(md_path),
         "graph_path": str(graph_path),
+        "codebase_index_path": str(output_dir / "codebase-index.json"),
         "html_path": str(html_path),
         "sources": index["sources"],
         "graph_stats": graph["stats"],
+        "codebase_stats": {
+            "files": len(codebase_index.get("files", {})),
+            "chunks": len(codebase_index.get("chunks", [])),
+            "symbols": len(codebase_index.get("symbols", [])),
+            "references": len(codebase_index.get("references", [])),
+        },
     }
 
 
@@ -485,6 +539,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output-dir", default=".codex/knowledge", help="Output directory relative to project root")
     parser.add_argument("--format", choices=("json", "text"), default="json")
+    parser.add_argument("--incremental", action="store_true", help="Reuse unchanged file metadata when building the codebase index")
+    parser.add_argument("--rebuild", action="store_true", help="Force a fresh codebase index rebuild")
+    parser.add_argument("--query", default="", help="Run local lexical search against the codebase index")
+    parser.add_argument("--top-k", type=int, default=10, help="Maximum query results to return")
     return parser.parse_args()
 
 
@@ -493,7 +551,32 @@ def main() -> int:
     try:
         project_root = validate_project_root(Path(args.project_root))
         output_dir = project_root / args.output_dir
-        payload = write_knowledge_artifacts(project_root, output_dir)
+        if args.query:
+            codebase_indexer = load_codebase_indexer()
+            index_path = output_dir / "codebase-index.json"
+            if args.rebuild or not index_path.exists():
+                codebase_index = codebase_indexer.build_codebase_index(
+                    project_root,
+                    output_path=index_path,
+                    incremental=args.incremental and not args.rebuild,
+                    rebuild=args.rebuild,
+                )
+            else:
+                codebase_index = codebase_indexer.load_existing(index_path)
+            payload = {
+                "status": "queried",
+                "query": args.query,
+                "top_k": args.top_k,
+                "codebase_index_path": str(index_path),
+                "results": codebase_indexer.query_index(codebase_index, args.query, top_k=args.top_k),
+            }
+        else:
+            payload = write_knowledge_artifacts(
+                project_root,
+                output_dir,
+                incremental=args.incremental and not args.rebuild,
+                rebuild=args.rebuild,
+            )
     except Exception as exc:
         payload = {"status": "error", "message": str(exc)}
         print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -501,7 +584,9 @@ def main() -> int:
     if args.format == "text":
         print(f"built: {payload['markdown_path']}")
         print(f"html: {payload['html_path']}")
-        print(f"graph: {payload['graph_path']}")
+        print(f"graph: {payload.get('graph_path', '')}")
+        if payload.get("codebase_index_path"):
+            print(f"codebase-index: {payload['codebase_index_path']}")
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
