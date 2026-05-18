@@ -344,6 +344,31 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     assert graph["ai_context"]["recommended_read_order"]
 
 
+def test_knowledge_index_template_replaces_metadata_before_json_payload() -> None:
+    index = {"project_root": "/tmp/sample-app", "generated_at": "2026-05-18T00:00:00+00:00"}
+    graph = {
+        "stats": {"total_files": 1},
+        "code_index": {
+            "docs/guide.md": {
+                "language": "Markdown",
+                "definitions": ["__PROJECT_NAME__", "__GENERATED_AT__"],
+            }
+        },
+        "module_boundaries": {},
+        "api_routes": [],
+        "data_models": {},
+        "risk_signals": [],
+        "ai_context": {},
+    }
+
+    html = knowledge_index.render_interactive_html(index, graph)
+
+    assert "Knowledge Graph — sample-app" in html
+    assert "Generated 2026-05-18T00:00:00+00:00" in html
+    assert '"__PROJECT_NAME__"' in html
+    assert '"__GENERATED_AT__"' in html
+
+
 def test_knowledge_index_falls_back_when_dashboard_template_placeholder_is_missing(monkeypatch) -> None:
     index = {"project_root": "/tmp/sample", "generated_at": "2026-05-18T00:00:00+00:00"}
     graph = {
