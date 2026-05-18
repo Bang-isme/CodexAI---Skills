@@ -57,12 +57,10 @@ def _redact_value(value: Any) -> tuple[Any, int]:
         output: dict[Any, Any] = {}
         total = 0
         for key, item in value.items():
-            redacted_key = key
-            if isinstance(key, str):
-                redacted_key, key_count = redact_text_with_count(key)
-                total += key_count
+            # Preserve map keys (file paths, module names, etc.). Redacting keys can
+            # collapse distinct entries such as src/token.py and src/secret.py.
             redacted_item, item_count = _redact_value(item)
-            output[redacted_key] = redacted_item
+            output[key] = redacted_item
             total += item_count
         return output, total
     return value, 0
