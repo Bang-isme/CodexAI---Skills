@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Build a compact project knowledge index from docs, commits, and config files."""
 from __future__ import annotations
 
@@ -409,7 +409,6 @@ def html_json(payload: dict[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-# Temporary patch snippet - merged into build_knowledge_index.py
 DASHBOARD_TEMPLATE_NAME = "dashboard_template.html"
 DASHBOARD_TEMPLATE_PLACEHOLDERS = frozenset({
     "__KNOWLEDGE_DATA_JSON__",

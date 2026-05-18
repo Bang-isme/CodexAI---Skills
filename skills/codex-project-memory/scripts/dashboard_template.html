@@ -728,11 +728,12 @@ b{color:var(--ink)}
 <script id="kd" type="application/json">__KNOWLEDGE_DATA_JSON__</script>
 <script>
 (function(){
-const D=JSON.parse(document.getElementById('kd').textContent),G=D.graph||{},IX=D.index||{};
+const D=JSON.parse(document.getElementById('kd').textContent),G=D.graph||{},IX=D.index||{},CBI=(D.graph||{}).codebase_index||{};
 let view='overview',sortKey='name',graphStop=null;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const esc=v=>(v==null?'':String(v)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ci=G.code_index||{};
+const ci=Object.keys(CBI.files||{}).length?(CBI.files||{}):(G.code_index||{});
+const cChunks=CBI.chunks||[],cSymbols=CBI.symbols||[],cRefs=CBI.references||[];
 
 /* ======== SVG ICON FACTORY ======== */
 const svg=(p,o={})=>`<svg width="${o.s||18}" height="${o.s||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${o.sw||2}" stroke-linecap="round" stroke-linejoin="round" class="${o.c||''}">${p}</svg>`;
@@ -920,9 +921,10 @@ function renderOverview(q){
   const panel=$('#panel-overview');if(!panel)return;
   const s=G.stats||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
   const metrics=[
-    {l:'Files',v:s.total_files||0,icon:I.file,cls:'mc-a'},
+    {l:'Files',v:Object.keys(CBI.files||{}).length||s.total_files||0,icon:I.file,cls:'mc-a'},
     {l:'Modules',v:s.modules||0,icon:I.folder,cls:'mc-a'},
-    {l:'Edges',v:s.total_edges||0,icon:I.graph,cls:'mc-a'},
+    {l:'Chunks',v:cChunks.length,icon:I.code,cls:'mc-a'},
+    {l:'Symbols',v:cSymbols.length,icon:I.graph,cls:'mc-a'},
     {l:'Routes',v:s.routes||0,icon:I.route,cls:'mc-g'},
     {l:'Models',v:s.models||0,icon:I.database,cls:'mc-g'},
     {l:'Ext Deps',v:ext,icon:I.package,cls:'mc-w'},
@@ -1023,8 +1025,10 @@ function renderFiles(q){
     html+=`<div class="card"><h3 style="cursor:pointer" onclick="openDossier('${esc(p).replace(/'/g,"\\'")}')">${fileIcon(p)({s:16})} ${esc(p.split('/').pop())}</h3>
       <p class="muted" style="margin:4px 0">${desc(p)}</p>
       <p>${tags.join(' ')} <span class="muted">${f.lines||0} lines</span></p>
-      ${details('Exports ('+(f.definitions||[]).length+')',(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>',false)}
-      ${details('Imports ('+(f.imports||[]).length+')',(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>',false)}
+      ${f.content_hash?`<p class="muted2">hash ${esc(String(f.content_hash).slice(0,12))} · ${f.size_bytes||0} bytes · parser ${esc(f.parser||'')}</p>`:''}
+      ${details('Symbols ('+(cSymbols.filter(s=>s.path===p).length||((f.definitions||[]).length))+')',(cSymbols.filter(s=>s.path===p).slice(0,25).map(s=>tag(`${s.name}#L${s.line_start}`)).join('')||(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>'),false)}
+      ${details('References ('+(cRefs.filter(r=>r.source===p).length||((f.imports||[]).length))+')',(cRefs.filter(r=>r.source===p).slice(0,25).map(r=>tag(r.target)).join('')||(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>'),false)}
+      ${details('Chunks ('+cChunks.filter(c=>c.path===p).length+')',cChunks.filter(c=>c.path===p).slice(0,6).map(c=>`<div class="row-flex"><span class="muted">L${c.line_start}-L${c.line_end}</span> ${tag(c.symbol||c.strategy)}</div>`).join('')||'<span class="muted">No chunks</span>',false)}
       ${details('Used By ('+impBy.length+')',impByHtml,(impBy.length>0&&impBy.length<=5))}</div>`;
   });
   html+=`</div>`;
@@ -1581,12 +1585,16 @@ window.openDossier=function(path){
   const name=path.split('/').pop(),purpose=desc(path);
   const imp=info.imports||[],impBy=info.imported_by||[],defs=info.definitions||[];
   const extI=info.external_imports||[],risks=info.risk_tags||[];
-  const relRoutes=(G.api_routes||[]).filter(r=>r.file===path);
+  const relRoutes=(CBI.routes||G.api_routes||[]).filter(r=>r.file===path);
+  const fileChunks=cChunks.filter(c=>c.path===path);
+  const fileSymbols=cSymbols.filter(s=>s.path===path);
+  const fileRefs=cRefs.filter(r=>r.source===path);
   let h=`<div class="dos-head panel-head panel-head--grad"><div class="dos-icon panel-icon">${fileIcon(path)({s:24})}</div><div style="flex:1;min-width:0"><h2 class="panel-title">${esc(name)}</h2><div class="dos-path panel-sub">${esc(path)}</div><div class="panel-tags">${roleBadge(path)} ${tag(info.language,'','Language')} ${tag(info.module,'','Module')} ${info.is_entrypoint?tag('ENTRYPOINT','w','Entry point'):''}</div></div><button type="button" class="dos-close panel-close" aria-label="Close dossier">\u2715</button></div>`;
   h+=`<div class="dos-section panel-section"><h3>Purpose</h3><p>${esc(purpose)}</p></div>`;
-  h+=`<div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${info.lines||0}</b> lines</div><div class="dos-stat"><b>${defs.length}</b> exports</div><div class="dos-stat"><b>${imp.length}</b> imports</div><div class="dos-stat"><b>${impBy.length}</b> dependents</div><div class="dos-stat"><b>${extI.length}</b> packages</div>${risks.length?`<div class="dos-stat danger"><b>${risks.length}</b> risks</div>`:''}</div>`;
-  h+=`<div class="dos-section"><h3>Exports (${defs.length})</h3><div class="dos-list">${defs.length?defs.map(d=>`<div class="dos-list-item">${tag(d)}</div>`).join(''):'<p class="muted">No exported definitions</p>'}</div></div>`;
-  h+=`<div class="dos-section"><h3>Imports (${imp.length})</h3><div class="dos-list">${imp.length?imp.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Self-contained</p>'}</div></div>`;
+  h+=`<div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${info.lines||0}</b> lines</div><div class="dos-stat"><b>${fileSymbols.length||defs.length}</b> symbols</div><div class="dos-stat"><b>${fileRefs.length||imp.length}</b> refs</div><div class="dos-stat"><b>${fileChunks.length}</b> chunks</div><div class="dos-stat"><b>${impBy.length}</b> dependents</div><div class="dos-stat"><b>${extI.length}</b> packages</div>${risks.length?`<div class="dos-stat danger"><b>${risks.length}</b> risks</div>`:''}</div>`;
+  h+=`<div class="dos-section"><h3>Symbols (${fileSymbols.length||defs.length})</h3><div class="dos-list">${fileSymbols.length?fileSymbols.map(s=>`<div class="dos-list-item">${tag(`${s.name}#L${s.line_start}`)} <span class="muted2">${esc(s.kind||'symbol')}</span></div>`).join(''):(defs.length?defs.map(d=>`<div class="dos-list-item">${tag(d)}</div>`).join(''):'<p class="muted">No symbols detected</p>')}</div></div>`;
+  h+=`<div class="dos-section"><h3>References (${fileRefs.length||imp.length})</h3><div class="dos-list">${fileRefs.length?fileRefs.map(r=>`<div class="dos-list-item">${tag(r.target)} <span class="muted2">${esc(r.kind||'reference')}</span></div>`).join(''):(imp.length?imp.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Self-contained</p>')}</div></div>`;
+  if(fileChunks.length)h+=`<div class="dos-section"><h3>Chunks (${fileChunks.length})</h3>${fileChunks.slice(0,8).map(c=>`<div class="insight"><b>L${c.line_start}-L${c.line_end} ${esc(c.symbol||c.strategy)}</b><p>${esc(c.text_preview||'').slice(0,240)}</p></div>`).join('')}</div>`;
   h+=`<div class="dos-section"><h3>Used By (${impBy.length})</h3><div class="dos-list">${impBy.length?impBy.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Leaf node</p>'}</div></div>`;
   if(extI.length)h+=`<div class="dos-section"><h3>External Packages (${extI.length})</h3><div class="dos-list">${extI.map(i=>`<div class="dos-list-item">${tag(i,'w')}</div>`).join('')}</div></div>`;
   if(risks.length)h+=`<div class="dos-section"><h3>Risk Signals</h3>${risks.map(r=>`<div class="insight risk">${esc(r)}</div>`).join('')}</div>`;
