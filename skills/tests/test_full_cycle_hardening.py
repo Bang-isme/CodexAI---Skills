@@ -210,6 +210,90 @@ def test_knowledge_graph_builds_code_index_and_ai_context(tmp_path: Path) -> Non
     assert graph["human_context"]["navigation_hints"]
 
 
+
+def test_knowledge_graph_language_registry_detects_polyglot_files(tmp_path: Path) -> None:
+    write(
+        tmp_path / "services" / "go" / "handler.go",
+        """
+        package handler
+        import "fmt"
+        type Server struct {}
+        func Handle() {}
+        """,
+    )
+    write(
+        tmp_path / "crates" / "api" / "lib.rs",
+        """
+        pub struct Api {}
+        pub enum ApiEvent { Started }
+        pub fn serve() {}
+        """,
+    )
+    write(
+        tmp_path / "src" / "main" / "java" / "example" / "Widget.java",
+        """
+        package example;
+        public interface Widget {}
+        public class DefaultWidget implements Widget {}
+        """,
+    )
+    write(
+        tmp_path / "src" / "Services" / "Greeter.cs",
+        """
+        namespace Sample.Services;
+        public interface IGreeter {}
+        public class Greeter : IGreeter {}
+        """,
+    )
+    write(
+        tmp_path / "frontend" / "components" / "Panel.vue",
+        """
+        <template><section /></template>
+        <script>
+        export function openPanel() {}
+        </script>
+        """,
+    )
+    write(
+        tmp_path / "frontend" / "components" / "Badge.svelte",
+        """
+        <script>
+        export let label = 'new';
+        function formatLabel() { return label; }
+        </script>
+        """,
+    )
+    write(
+        tmp_path / "config" / "app.yaml",
+        """
+        services:
+          api:
+            image: sample/api
+        routes:
+          - path: /health
+        """,
+    )
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+    index = graph["code_index"]
+
+    assert index["services/go/handler.go"]["language"] == "Go"
+    assert {"Handle", "Server"}.issubset(index["services/go/handler.go"]["definitions"])
+    assert index["crates/api/lib.rs"]["language"] == "Rust"
+    assert {"Api", "ApiEvent", "serve"}.issubset(index["crates/api/lib.rs"]["definitions"])
+    assert index["src/main/java/example/Widget.java"]["language"] == "Java"
+    assert {"Widget", "DefaultWidget"}.issubset(index["src/main/java/example/Widget.java"]["definitions"])
+    assert index["src/Services/Greeter.cs"]["language"] == "C#"
+    assert {"IGreeter", "Greeter"}.issubset(index["src/Services/Greeter.cs"]["definitions"])
+    assert index["frontend/components/Panel.vue"]["language"] == "Vue"
+    assert {"Panel", "openPanel"}.issubset(index["frontend/components/Panel.vue"]["definitions"])
+    assert index["frontend/components/Badge.svelte"]["language"] == "Svelte"
+    assert {"Badge", "formatLabel"}.issubset(index["frontend/components/Badge.svelte"]["definitions"])
+    assert index["config/app.yaml"]["language"] == "YAML"
+    assert {"config:services", "config:routes"}.issubset(index["config/app.yaml"]["definitions"])
+    assert index["config/app.yaml"]["parser"]["confidence"] == "medium"
+
+
 def test_knowledge_graph_resolves_local_python_imports_and_skill_modules(tmp_path: Path) -> None:
     write(
         tmp_path / "skills" / "codex-project-memory" / "scripts" / "generate_genome.py",

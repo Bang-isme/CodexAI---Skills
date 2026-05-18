@@ -13,7 +13,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
 SKIP_DIRS = {
@@ -31,24 +31,30 @@ SKIP_DIRS = {
     ".vscode",
     ".yarn",
 }
-CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py", ".mjs", ".cjs"}
-RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".json"]
-TEST_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
-LANGUAGE_BY_EXTENSION = {
-    ".js": "JavaScript",
-    ".jsx": "React JSX",
-    ".ts": "TypeScript",
-    ".tsx": "React TSX",
-    ".py": "Python",
-    ".mjs": "JavaScript ESM",
-    ".cjs": "JavaScript CJS",
-}
+JAVASCRIPT_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".svelte"}
+PYTHON_EXTENSIONS = {".py"}
+TEST_EXTENSIONS = JAVASCRIPT_EXTENSIONS | PYTHON_EXTENSIONS
 
 IMPORT_FROM_PATTERN = re.compile(r"^\s*import\s+.+?\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
 IMPORT_SIDE_PATTERN = re.compile(r"^\s*import\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
 REQUIRE_PATTERN = re.compile(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)")
 PY_IMPORT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)", re.MULTILINE)
 PY_FROM_IMPORT_PATTERN = re.compile(r"^\s*from\s+([A-Za-z_][\w.]*|\.+[\w.]*)\s+import\s+", re.MULTILINE)
+GO_IMPORT_SINGLE_PATTERN = re.compile(r'^\s*import\s+(?:[._A-Za-z]\w*\s+)?["`]([^"`]+)["`]', re.MULTILINE)
+GO_IMPORT_BLOCK_PATTERN = re.compile(r"^\s*import\s*\((.*?)\)", re.MULTILINE | re.DOTALL)
+RUST_USE_PATTERN = re.compile(r"^\s*(?:pub\s+)?use\s+([^;]+);", re.MULTILINE)
+JAVA_IMPORT_PATTERN = re.compile(r"^\s*import\s+(?:static\s+)?([A-Za-z_][\w.]*)(?:\.\*)?\s*;", re.MULTILINE)
+CSHARP_USING_PATTERN = re.compile(r"^\s*using\s+(?:static\s+)?([A-Za-z_][\w.]*)(?:\s*=\s*[A-Za-z_][\w.]*)?\s*;", re.MULTILINE)
+PHP_USE_PATTERN = re.compile(r"^\s*use\s+([^;]+);", re.MULTILINE)
+PHP_REQUIRE_PATTERN = re.compile(r"\b(?:require|require_once|include|include_once)\s*(?:\(?\s*)['\"]([^'\"]+)['\"]", re.MULTILINE)
+RUBY_REQUIRE_PATTERN = re.compile(r"^\s*require(?:_relative)?\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
+KOTLIN_IMPORT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)(?:\.\*)?", re.MULTILINE)
+SWIFT_IMPORT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)", re.MULTILINE)
+CSS_IMPORT_PATTERN = re.compile(r"@import\s+(?:url\()?['\"]?([^'\")\s;]+)", re.MULTILINE)
+HTML_ASSET_PATTERN = re.compile(r"(?:src|href)\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
+SQL_INCLUDE_PATTERN = re.compile(r"^\s*(?:\\i|SOURCE)\s+([^\s;]+)", re.MULTILINE | re.IGNORECASE)
+TERRAFORM_SOURCE_PATTERN = re.compile(r"\bsource\s*=\s*['\"]([^'\"]+)['\"]")
+YAML_REFERENCE_PATTERN = re.compile(r"^\s*(?:file|path|source):\s*['\"]?([^'\"\s]+)", re.MULTILINE)
 
 JS_IMPORT_DEFAULT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_$][\w$]*)\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
 JS_IMPORT_NAMED_PATTERN = re.compile(r"^\s*import\s+\{([^}]+)\}\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
@@ -63,6 +69,14 @@ JS_FUNCTION_PATTERN = re.compile(r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(")
 PY_DEF_PATTERN = re.compile(r"^\s*def\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
 PY_ASYNC_DEF_PATTERN = re.compile(r"^\s*async\s+def\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
 PY_CLASS_PATTERN = re.compile(r"^\s*class\s+([A-Za-z_]\w*)", re.MULTILINE)
+FALLBACK_DEFINITION_PATTERNS = (
+    re.compile(r"\b(?:class|interface|trait|struct|enum|type|module|namespace)\s+([A-Za-z_][\w$]*)"),
+    re.compile(r"\b(?:func|fn|function|def)\s+([A-Za-z_][\w$]*)\s*[<(]"),
+    re.compile(r"\b(?:route|resource|data|provider|module|variable|output)\s+['\"]?([A-Za-z_][\w.-]*)['\"]?\s*[{(]"),
+)
+CONFIG_BLOCK_PATTERN = re.compile(r"^\s*([A-Za-z_][\w.-]*)\s*:\s*(?:$|[|>{\[])", re.MULTILINE)
+JSON_KEY_PATTERN = re.compile(r'"([A-Za-z_][\w.-]*)"\s*:')
+
 DANGEROUS_SINK_PATTERN = re.compile(
     r"\b(eval|exec|spawn|execFile|child_process|subprocess|pickle\.loads?|yaml\.load|innerHTML|dangerouslySetInnerHTML)\b"
 )
@@ -148,7 +162,7 @@ def collect_code_files(project_root: Path, include_tests: bool) -> List[Path]:
         root_path = Path(current_root)
         for name in names:
             path = root_path / name
-            if path.suffix.lower() not in CODE_EXTENSIONS:
+            if path.suffix.lower() not in LANGUAGE_REGISTRY:
                 continue
             rel = normalize_rel(path, project_root)
             if not include_tests and is_test_file(rel):
@@ -174,57 +188,251 @@ def read_limited(path: Path, warnings: List[str], rel_file: str) -> Tuple[str, L
     return text, lines
 
 
-def parse_import_modules(file_path: Path, content: str) -> List[str]:
-    ext = file_path.suffix.lower()
+class LanguageProfile:
+    def __init__(
+        self,
+        language: str,
+        parser: str,
+        import_extractor: Callable[[Path, str], List[str]],
+        definition_extractor: Callable[[Path, str], List[str]],
+        resolver_strategy: str,
+        confidence: str,
+    ) -> None:
+        self.language = language
+        self.parser = parser
+        self.import_extractor = import_extractor
+        self.definition_extractor = definition_extractor
+        self.resolver_strategy = resolver_strategy
+        self.confidence = confidence
+
+
+def unique_sorted(values: Iterable[str]) -> List[str]:
+    return sorted(dict.fromkeys(value.strip() for value in values if value and value.strip()))
+
+
+def extract_javascript_imports(file_path: Path, content: str) -> List[str]:
     modules: List[str] = []
-    if ext in {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}:
-        modules.extend(IMPORT_FROM_PATTERN.findall(content))
-        modules.extend(IMPORT_SIDE_PATTERN.findall(content))
-        modules.extend(REQUIRE_PATTERN.findall(content))
-    elif ext == ".py":
-        modules.extend(PY_IMPORT_PATTERN.findall(content))
-        modules.extend(PY_FROM_IMPORT_PATTERN.findall(content))
-    return modules
+    modules.extend(IMPORT_FROM_PATTERN.findall(content))
+    modules.extend(IMPORT_SIDE_PATTERN.findall(content))
+    modules.extend(REQUIRE_PATTERN.findall(content))
+    return unique_sorted(modules)
 
 
-def external_modules_for_file(file_path: Path, content: str) -> List[str]:
+def extract_python_imports(file_path: Path, content: str) -> List[str]:
+    modules: List[str] = []
+    modules.extend(PY_IMPORT_PATTERN.findall(content))
+    modules.extend(PY_FROM_IMPORT_PATTERN.findall(content))
+    return unique_sorted(modules)
+
+
+def extract_go_imports(file_path: Path, content: str) -> List[str]:
+    modules = GO_IMPORT_SINGLE_PATTERN.findall(content)
+    for block in GO_IMPORT_BLOCK_PATTERN.findall(content):
+        modules.extend(re.findall(r'(?:^|\n)\s*(?:[._A-Za-z]\w*\s+)?["`]([^"`]+)["`]', block))
+    return unique_sorted(modules)
+
+
+def extract_rust_imports(file_path: Path, content: str) -> List[str]:
+    modules: List[str] = []
+    for raw in RUST_USE_PATTERN.findall(content):
+        cleaned = re.sub(r"\s+as\s+\w+", "", raw).strip()
+        first = cleaned.split("::", 1)[0].strip("{} ")
+        if first:
+            modules.append(first if first in {"crate", "self", "super"} else cleaned.split("::{", 1)[0].strip())
+    for match in re.findall(r"\bmod\s+([A-Za-z_]\w*)\s*;", content):
+        modules.append(f"self::{match}")
+    return unique_sorted(modules)
+
+
+def extract_java_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(JAVA_IMPORT_PATTERN.findall(content))
+
+
+def extract_csharp_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(CSHARP_USING_PATTERN.findall(content))
+
+
+def extract_php_imports(file_path: Path, content: str) -> List[str]:
+    modules = PHP_USE_PATTERN.findall(content)
+    modules.extend(PHP_REQUIRE_PATTERN.findall(content))
+    return unique_sorted(module.split(" as ", 1)[0].strip().replace("\\", "/") for module in modules)
+
+
+def extract_ruby_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(RUBY_REQUIRE_PATTERN.findall(content))
+
+
+def extract_kotlin_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(KOTLIN_IMPORT_PATTERN.findall(content))
+
+
+def extract_swift_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(SWIFT_IMPORT_PATTERN.findall(content))
+
+
+def extract_asset_imports(file_path: Path, content: str) -> List[str]:
+    modules = CSS_IMPORT_PATTERN.findall(content)
+    if file_path.suffix.lower() == ".html":
+        modules.extend(HTML_ASSET_PATTERN.findall(content))
+    return unique_sorted(modules)
+
+
+def extract_sql_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(SQL_INCLUDE_PATTERN.findall(content))
+
+
+def extract_terraform_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(TERRAFORM_SOURCE_PATTERN.findall(content))
+
+
+def extract_yaml_imports(file_path: Path, content: str) -> List[str]:
+    return unique_sorted(YAML_REFERENCE_PATTERN.findall(content))
+
+
+def extract_no_imports(file_path: Path, content: str) -> List[str]:
+    return []
+
+
+def extract_javascript_definitions(file_path: Path, content: str) -> List[str]:
+    names: Set[str] = set()
+    for pattern in (
+        JS_EXPORT_FUNCTION_PATTERN,
+        JS_EXPORT_CONST_PATTERN,
+        JS_EXPORTS_PATTERN,
+        JS_MODULE_EXPORTS_PATTERN,
+        JS_CLASS_PATTERN,
+        JS_FUNCTION_PATTERN,
+    ):
+        names.update(pattern.findall(content))
+    names.update(extract_fallback_definitions(file_path, content))
+    return unique_sorted(names)
+
+
+def extract_python_definitions(file_path: Path, content: str) -> List[str]:
+    names: Set[str] = set()
+    names.update(PY_DEF_PATTERN.findall(content))
+    names.update(PY_ASYNC_DEF_PATTERN.findall(content))
+    names.update(PY_CLASS_PATTERN.findall(content))
+    return unique_sorted(names)
+
+
+def extract_fallback_definitions(file_path: Path, content: str) -> List[str]:
+    names: Set[str] = set()
+    for pattern in FALLBACK_DEFINITION_PATTERNS:
+        names.update(pattern.findall(content))
+    ext = file_path.suffix.lower()
+    if ext in {".yaml", ".yml"}:
+        names.update(f"config:{name}" for name in CONFIG_BLOCK_PATTERN.findall(content))
+    elif ext == ".json":
+        names.update(f"config:{name}" for name in JSON_KEY_PATTERN.findall(content))
+    elif ext in {".vue", ".svelte"} and re.search(r"<script|<template", content, flags=re.IGNORECASE):
+        names.add(Path(file_path).stem)
+    return unique_sorted(names)
+
+
+def make_profile(
+    language: str,
+    parser: str,
+    import_extractor: Callable[[Path, str], List[str]],
+    definition_extractor: Callable[[Path, str], List[str]],
+    resolver_strategy: str,
+    confidence: str,
+) -> LanguageProfile:
+    return LanguageProfile(language, parser, import_extractor, definition_extractor, resolver_strategy, confidence)
+
+
+LANGUAGE_REGISTRY: Dict[str, LanguageProfile] = {
+    ".js": make_profile("JavaScript", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".jsx": make_profile("React JSX", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".ts": make_profile("TypeScript", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".tsx": make_profile("React TSX", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".mjs": make_profile("JavaScript ESM", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".cjs": make_profile("JavaScript CJS", "javascript", extract_javascript_imports, extract_javascript_definitions, "javascript", "high"),
+    ".py": make_profile("Python", "python", extract_python_imports, extract_python_definitions, "python", "high"),
+    ".go": make_profile("Go", "pattern", extract_go_imports, extract_fallback_definitions, "go", "medium"),
+    ".rs": make_profile("Rust", "pattern", extract_rust_imports, extract_fallback_definitions, "rust", "medium"),
+    ".java": make_profile("Java", "pattern", extract_java_imports, extract_fallback_definitions, "package", "medium"),
+    ".cs": make_profile("C#", "pattern", extract_csharp_imports, extract_fallback_definitions, "package", "medium"),
+    ".php": make_profile("PHP", "pattern", extract_php_imports, extract_fallback_definitions, "relative", "medium"),
+    ".rb": make_profile("Ruby", "pattern", extract_ruby_imports, extract_fallback_definitions, "relative", "medium"),
+    ".kt": make_profile("Kotlin", "pattern", extract_kotlin_imports, extract_fallback_definitions, "package", "medium"),
+    ".kts": make_profile("Kotlin Script", "pattern", extract_kotlin_imports, extract_fallback_definitions, "package", "medium"),
+    ".swift": make_profile("Swift", "pattern", extract_swift_imports, extract_fallback_definitions, "package", "medium"),
+    ".vue": make_profile("Vue", "javascript+component", extract_javascript_imports, extract_javascript_definitions, "javascript", "medium"),
+    ".svelte": make_profile("Svelte", "javascript+component", extract_javascript_imports, extract_javascript_definitions, "javascript", "medium"),
+    ".html": make_profile("HTML", "pattern", extract_asset_imports, extract_fallback_definitions, "relative", "low"),
+    ".css": make_profile("CSS", "pattern", extract_asset_imports, extract_fallback_definitions, "relative", "low"),
+    ".scss": make_profile("SCSS", "pattern", extract_asset_imports, extract_fallback_definitions, "relative", "low"),
+    ".sql": make_profile("SQL", "pattern", extract_sql_imports, extract_fallback_definitions, "relative", "low"),
+    ".tf": make_profile("Terraform", "pattern", extract_terraform_imports, extract_fallback_definitions, "relative", "medium"),
+    ".yaml": make_profile("YAML", "pattern", extract_yaml_imports, extract_fallback_definitions, "none", "medium"),
+    ".yml": make_profile("YAML", "pattern", extract_yaml_imports, extract_fallback_definitions, "none", "medium"),
+    ".json": make_profile("JSON", "pattern", extract_no_imports, extract_fallback_definitions, "none", "medium"),
+}
+
+
+def language_profile(file_path: Path) -> Optional[LanguageProfile]:
+    return LANGUAGE_REGISTRY.get(file_path.suffix.lower())
+
+
+def parse_import_modules(file_path: Path, content: str) -> List[str]:
+    profile = language_profile(file_path)
+    if not profile:
+        return []
+    return profile.import_extractor(file_path, content)
+
+
+def external_modules_for_file(file_path: Path, content: str, internal_imports: Optional[Set[str]] = None) -> List[str]:
+    profile = language_profile(file_path)
     modules = parse_import_modules(file_path, content)
     externals: Set[str] = set()
+    internal_stems = {Path(item).stem for item in (internal_imports or set())}
     for module in modules:
         value = module.strip()
-        if not value or value.startswith((".", "/", "@/", "src/", "http://", "https://", "node:")):
+        if not value or value.startswith((".", "/", "@/", "src/", "http://", "https://", "node:", "crate", "self", "super")):
             continue
-        if file_path.suffix.lower() == ".py":
+        ext = file_path.suffix.lower()
+        if ext == ".py":
             top_level = value.split(".", 1)[0]
-            if top_level == "__future__" or top_level in getattr(sys, "stdlib_module_names", set()):
+            if top_level == "__future__" or top_level in getattr(sys, "stdlib_module_names", set()) or top_level in internal_stems:
                 continue
             externals.add(top_level)
-        elif value.startswith("@"):
-            parts = value.split("/")
-            externals.add("/".join(parts[:2]) if len(parts) >= 2 else value)
+        elif ext in JAVASCRIPT_EXTENSIONS:
+            if value.startswith("@"):
+                parts = value.split("/")
+                externals.add("/".join(parts[:2]) if len(parts) >= 2 else value)
+            else:
+                externals.add(value.split("/", 1)[0])
+        elif ext == ".go":
+            if "." in value or "/" in value:
+                externals.add(value.split("/", 1)[0])
+        elif ext in {".java", ".kt", ".kts"}:
+            top_level = value.split(".", 1)[0]
+            if top_level not in {"java", "javax", "kotlin"}:
+                externals.add(top_level)
+        elif ext == ".cs":
+            top_level = value.split(".", 1)[0]
+            if top_level not in {"System", "Microsoft"}:
+                externals.add(top_level)
+        elif ext in {".css", ".scss", ".html", ".sql", ".tf", ".yaml", ".yml"}:
+            continue
         else:
-            externals.add(value.split("/", 1)[0])
+            externals.add(value.split("/", 1)[0].split(".", 1)[0])
     return sorted(externals)
 
 
 def extract_definitions(file_path: Path, content: str) -> List[str]:
-    ext = file_path.suffix.lower()
-    names: Set[str] = set()
-    if ext in {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}:
-        for pattern in (
-            JS_EXPORT_FUNCTION_PATTERN,
-            JS_EXPORT_CONST_PATTERN,
-            JS_EXPORTS_PATTERN,
-            JS_MODULE_EXPORTS_PATTERN,
-            JS_CLASS_PATTERN,
-            JS_FUNCTION_PATTERN,
-        ):
-            names.update(pattern.findall(content))
-    elif ext == ".py":
-        names.update(PY_DEF_PATTERN.findall(content))
-        names.update(PY_ASYNC_DEF_PATTERN.findall(content))
-        names.update(PY_CLASS_PATTERN.findall(content))
-    return sorted(name for name in names if name)
+    profile = language_profile(file_path)
+    if not profile:
+        return []
+    return profile.definition_extractor(file_path, content)
+
+
+def parser_metadata(file_path: Path) -> Dict[str, str]:
+    profile = language_profile(file_path)
+    if not profile:
+        return {"parser": "none", "confidence": "none", "resolver_strategy": "none"}
+    return {"parser": profile.parser, "confidence": profile.confidence, "resolver_strategy": profile.resolver_strategy}
 
 
 def line_count(lines: Sequence[str]) -> int:
@@ -248,10 +456,7 @@ def build_code_index(
         rel = normalize_rel(file_path, project_root)
         content = raw_content.get(rel, "")
         lines = lines_cache.get(rel, [])
-        externals = external_modules_for_file(file_path, content)
-        if file_path.suffix.lower() == ".py":
-            internal_stems = {Path(item).stem for item in imports_map.get(rel, set())}
-            externals = [item for item in externals if item not in internal_stems]
+        externals = external_modules_for_file(file_path, content, imports_map.get(rel, set()))
         definitions = extract_definitions(file_path, content)
         module = module_name(rel)
         lowered = rel.lower()
@@ -266,8 +471,9 @@ def build_code_index(
 
         code_index[rel] = {
             "path": rel,
-            "language": LANGUAGE_BY_EXTENSION.get(file_path.suffix.lower(), file_path.suffix.lstrip(".") or "unknown"),
+            "language": (language_profile(file_path).language if language_profile(file_path) else file_path.suffix.lstrip(".") or "unknown"),
             "module": module,
+            "parser": parser_metadata(file_path),
             "lines": line_count(lines),
             "definitions": definitions[:40],
             "imports": sorted(imports_map.get(rel, set())),
@@ -349,12 +555,12 @@ def expand_candidates(base: Path) -> List[Path]:
     candidates: List[Path] = []
     if base.suffix:
         candidates.append(base)
-        for ext in RESOLVE_EXTENSIONS:
+        for ext in LANGUAGE_REGISTRY:
             candidates.append(Path(str(base) + ext))
     else:
-        for ext in RESOLVE_EXTENSIONS:
+        for ext in LANGUAGE_REGISTRY:
             candidates.append(Path(str(base) + ext))
-        for ext in RESOLVE_EXTENSIONS:
+        for ext in LANGUAGE_REGISTRY:
             candidates.append(base / f"index{ext}")
     return candidates
 
@@ -421,6 +627,80 @@ def resolve_python_module(importer: Path, module: str, root: Path, existing: Set
     return choose_existing(candidates, root, existing)
 
 
+def resolve_relative_module(importer: Path, module: str, root: Path, existing: Set[Path]) -> Optional[Path]:
+    value = module.strip().strip('"\'')
+    if not value or value.startswith(("http://", "https://")):
+        return None
+    if value.startswith("."):
+        base = importer.parent / value
+    elif value.startswith("/"):
+        base = root / value.lstrip("/")
+    else:
+        base = importer.parent / value
+    return choose_existing(expand_candidates(base), root, existing)
+
+
+def resolve_go_module(importer: Path, module: str, root: Path, existing: Set[Path]) -> Optional[Path]:
+    value = module.strip()
+    if not value:
+        return None
+    candidates = [root / Path(value), importer.parent / Path(value.rsplit("/", 1)[-1])]
+    expanded: List[Path] = []
+    for candidate in candidates:
+        expanded.extend([candidate.with_suffix(".go"), candidate / "main.go", candidate / f"{candidate.name}.go"])
+    return choose_existing(expanded, root, existing)
+
+
+def resolve_rust_module(importer: Path, module: str, root: Path, existing: Set[Path]) -> Optional[Path]:
+    value = module.strip()
+    if not value:
+        return None
+    if value.startswith(("crate::", "self::")):
+        parts = value.split("::")[1:]
+        base = root / "src" if (root / "src").exists() else importer.parent
+    elif value.startswith("super::"):
+        parts = value.split("::")[1:]
+        base = importer.parent.parent
+    else:
+        parts = value.split("::")
+        base = importer.parent
+    if not parts:
+        return None
+    target = base.joinpath(*parts)
+    candidates = [target.with_suffix(".rs"), target / "mod.rs", base / f"{parts[0]}.rs"]
+    return choose_existing(candidates, root, existing)
+
+
+def resolve_package_module(importer: Path, module: str, root: Path, existing: Set[Path]) -> Optional[Path]:
+    value = module.strip().rstrip(".*")
+    if not value:
+        return None
+    path_value = Path(value.replace(".", "/"))
+    candidates = [root / path_value, importer.parent / path_value]
+    expanded: List[Path] = []
+    for candidate in candidates:
+        expanded.extend(expand_candidates(candidate))
+    return choose_existing(expanded, root, existing)
+
+
+def resolve_import_module(importer: Path, module: str, root: Path, existing: Set[Path]) -> Optional[Path]:
+    profile = language_profile(importer)
+    strategy = profile.resolver_strategy if profile else "none"
+    if strategy == "javascript":
+        return resolve_js_module(importer, module, root, existing)
+    if strategy == "python":
+        return resolve_python_module(importer, module, root, existing)
+    if strategy == "relative":
+        return resolve_relative_module(importer, module, root, existing)
+    if strategy == "go":
+        return resolve_go_module(importer, module, root, existing)
+    if strategy == "rust":
+        return resolve_rust_module(importer, module, root, existing)
+    if strategy == "package":
+        return resolve_package_module(importer, module, root, existing)
+    return None
+
+
 def build_dependency_graph(
     project_root: Path,
     files: List[Path],
@@ -440,10 +720,7 @@ def build_dependency_graph(
         if not content:
             continue
         for module in parse_import_modules(file_path, content):
-            if file_path.suffix.lower() == ".py":
-                resolved = resolve_python_module(file_path, module, project_root, existing)
-            else:
-                resolved = resolve_js_module(file_path, module, project_root, existing)
+            resolved = resolve_import_module(file_path, module, project_root, existing)
             if not resolved:
                 continue
             target_rel = normalize_rel(resolved, project_root)
