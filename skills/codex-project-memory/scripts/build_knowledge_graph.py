@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 import re
 import sys
 from collections import defaultdict
@@ -88,6 +87,18 @@ ROUTE_CALL_PATTERN = re.compile(
 )
 ROUTE_FILE_HINT = re.compile(r"route", re.IGNORECASE)
 
+
+def load_traversal():
+    traversal_path = Path(__file__).with_name("project_traversal.py")
+    spec = importlib.util.spec_from_file_location("codexai_project_traversal", traversal_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Unable to load traversal helper: {traversal_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 MODULE_HINTS = {
     "controllers",
     "services",
@@ -130,6 +141,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
+    load_traversal().add_traversal_args(parser)
     return parser.parse_args()
 
 
@@ -188,36 +200,37 @@ def is_test_file(rel_path: str) -> bool:
 
 
 def collect_code_files(project_root: Path, include_tests: bool) -> List[Path]:
-    files: List[Path] = []
-    for current_root, dirs, names in os.walk(project_root):
-        dirs[:] = [item for item in dirs if item not in SKIP_DIRS]
-        root_path = Path(current_root)
-        for name in names:
-            path = root_path / name
-            if path.suffix.lower() not in LANGUAGE_REGISTRY:
-                continue
-            rel = normalize_rel(path, project_root)
-            if not include_tests and is_test_file(rel):
-                continue
-            files.append(path)
-    return sorted(files)
+    traversal = collect_code_file_entries(project_root, include_tests=include_tests)
+    return [entry.path for entry in traversal.files]
 
 
-def read_limited(path: Path, warnings: List[str], rel_file: str) -> Tuple[str, List[str]]:
-    lines: List[str] = []
+def collect_code_file_entries(
+    project_root: Path,
+    include_tests: bool,
+    traversal_config=None,
+):
+    traversal = load_traversal()
+
+    def code_filter(rel: str, path: Path) -> bool:
+        if path.suffix.lower() not in LANGUAGE_REGISTRY:
+            return False
+        if not include_tests and is_test_file(rel):
+            return False
+        return True
+
+    return traversal.traverse_project(project_root, traversal_config, file_filter=code_filter)
+
+
+def read_limited(path: Path, warnings: List[dict[str, str]], rel_file: str) -> Tuple[str, List[str]]:
+    traversal = load_traversal()
     try:
-        with path.open("r", encoding="utf-8", errors="ignore") as handle:
-            for line_no, raw in enumerate(handle, start=1):
-                if line_no <= 500:
-                    lines.append(raw.rstrip("\n\r"))
-                if line_no > 2000:
-                    warnings.append(f"Large file truncated to first 500 lines: {rel_file}")
-                    break
-    except OSError:
-        warnings.append(f"Unable to read file: {rel_file}")
+        content, _bytes_read, large = traversal.sample_for_index(path, traversal.TraversalConfig().max_file_bytes)
+    except OSError as exc:
+        warnings.append(traversal.structured_warning("read_error", rel_file, f"Unable to read file: {exc}", "warning"))
         return "", []
-    text = "\n".join(lines)
-    return text, lines
+    if large:
+        warnings.append(traversal.structured_warning("large_file_sampled", rel_file, "sampled with header, symbol window, and tail metadata", "warning"))
+    return content, content.splitlines()
 
 
 class LanguageProfile:
@@ -747,6 +760,44 @@ def resolve_import_module(importer: Path, module: str, root: Path, existing: Set
     return None
 
 
+def build_dependency_graph_from_entries(
+    project_root: Path,
+    entries: List[object],
+) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[str, str], Dict[str, object]]:
+    files = [entry.path for entry in entries]
+    existing = {path.resolve() for path in files}
+    imports_map: Dict[str, Set[str]] = defaultdict(set)
+    reverse_map: Dict[str, Set[str]] = defaultdict(set)
+    raw_content: Dict[str, str] = {}
+    lines_cache: Dict[str, List[str]] = {}
+    warnings: List[dict[str, str]] = []
+
+    for entry in entries:
+        file_path = entry.path
+        rel = entry.rel_path
+        content = entry.content
+        lines = entry.lines
+        raw_content[rel] = content
+        lines_cache[rel] = lines
+        if not content:
+            continue
+        for module in parse_import_modules(file_path, content):
+            resolved = resolve_import_module(file_path, module, project_root, existing)
+            if not resolved:
+                continue
+            target_rel = normalize_rel(resolved, project_root)
+            if target_rel == rel:
+                continue
+            imports_map[rel].add(target_rel)
+            reverse_map[target_rel].add(rel)
+
+    for rel in [normalize_rel(path, project_root) for path in files]:
+        imports_map.setdefault(rel, set())
+        reverse_map.setdefault(rel, set())
+
+    return imports_map, reverse_map, raw_content, {"warnings": warnings, "lines": lines_cache}
+
+
 def build_dependency_graph(
     project_root: Path,
     files: List[Path],
@@ -756,7 +807,7 @@ def build_dependency_graph(
     reverse_map: Dict[str, Set[str]] = defaultdict(set)
     raw_content: Dict[str, str] = {}
     lines_cache: Dict[str, List[str]] = {}
-    warnings: List[str] = []
+    warnings: List[dict[str, str]] = []
 
     for file_path in files:
         rel = normalize_rel(file_path, project_root)
@@ -1218,10 +1269,11 @@ def to_module_boundary_output(boundaries: Dict[str, Dict[str, Set[str]]]) -> Dic
     return output
 
 
-def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
-    files = collect_code_files(project_root, include_tests=include_tests)
-    imports_map, reverse_map, raw_content, aux = build_dependency_graph(project_root, files)
-    warnings: List[str] = list(aux["warnings"])
+def build_graph(project_root: Path, include_tests: bool, traversal_config=None) -> Dict[str, object]:
+    traversal_result = collect_code_file_entries(project_root, include_tests=include_tests, traversal_config=traversal_config)
+    files = [entry.path for entry in traversal_result.files]
+    imports_map, reverse_map, raw_content, aux = build_dependency_graph_from_entries(project_root, traversal_result.files)
+    warnings: List[dict[str, str]] = list(traversal_result.warnings) + list(aux["warnings"])
     lines_cache: Dict[str, List[str]] = aux["lines"]  # type: ignore[assignment]
 
     module_boundaries_raw, module_cycles = build_module_boundaries(imports_map)
@@ -1261,7 +1313,11 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             "routes": len(routes),
             "models": len(models),
             "circular_dependencies": len(module_cycles),
+            "files_scanned": traversal_result.coverage["files_scanned"],
+            "files_skipped": traversal_result.coverage["files_skipped"],
+            "bytes_scanned": traversal_result.coverage["bytes_scanned"],
         },
+        "coverage": traversal_result.coverage,
         "file_dependencies": dependency_tree,
         "code_index": code_index,
         "entrypoints": entrypoints,
@@ -1286,7 +1342,10 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             entrypoints,
         ),
         "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
-        "warnings": sorted(dict.fromkeys(warnings)),
+        "warnings": sorted(
+            {json.dumps(item, sort_keys=True): item for item in warnings}.values(),
+            key=lambda item: (str(item.get("severity", "")), str(item.get("type", "")), str(item.get("path", ""))),
+        ),
     }
     return graph
 
@@ -1301,7 +1360,8 @@ def main() -> int:
         return 1
 
     try:
-        graph = build_graph(project_root, include_tests=args.include_tests)
+        traversal_config = load_traversal().config_from_args(args)
+        graph = build_graph(project_root, include_tests=args.include_tests, traversal_config=traversal_config)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(graph, handle, ensure_ascii=False, indent=2)

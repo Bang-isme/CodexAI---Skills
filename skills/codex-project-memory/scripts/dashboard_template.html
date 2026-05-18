@@ -919,9 +919,11 @@ function render(){
 /* ======== OVERVIEW ======== */
 function renderOverview(q){
   const panel=$('#panel-overview');if(!panel)return;
-  const s=G.stats||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
+  const s=G.stats||{},coverage=G.coverage||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
   const metrics=[
-    {l:'Files',v:Object.keys(CBI.files||{}).length||s.total_files||0,icon:I.file,cls:'mc-a'},
+    {l:'Files',v:Object.keys(CBI.files||{}).length||s.total_files||coverage.files_scanned||0,icon:I.file,cls:'mc-a'},
+    {l:'Skipped',v:coverage.files_skipped||s.files_skipped||0,icon:I.warning,cls:'mc-w'},
+    {l:'Bytes',v:coverage.bytes_scanned||s.bytes_scanned||0,icon:I.database,cls:'mc-a'},
     {l:'Modules',v:s.modules||0,icon:I.folder,cls:'mc-a'},
     {l:'Chunks',v:cChunks.length,icon:I.code,cls:'mc-a'},
     {l:'Symbols',v:cSymbols.length,icon:I.graph,cls:'mc-a'},
@@ -934,6 +936,13 @@ function renderOverview(q){
   // Project Summary
   const ai=G.ai_context||{};
   html+=`<div class="section-card"><h2>${I.info({s:18})} Project Summary</h2><p>${esc(ai.summary||'No summary available.')}</p>${ai.usage?`<p class="muted" style="margin-top:4px">${esc(ai.usage)}</p>`:''}</div>`;
+  // Traversal Coverage
+  const skipped=coverage.skipped_reasons||{};
+  html+=`<div class="section-card"><h2>${I.info({s:18})} Traversal Coverage</h2>
+    <div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${coverage.files_scanned||0}</b> files scanned</div><div class="dos-stat"><b>${coverage.files_skipped||0}</b> files skipped</div><div class="dos-stat"><b>${coverage.bytes_scanned||0}</b> bytes scanned</div><div class="dos-stat"><b>${(G.warnings||[]).length}</b> warnings</div></div>
+    <p><b>Skipped reasons</b></p><div>${Object.entries(skipped).map(([k,v])=>`<span class="tag">${esc(k)}: ${v}</span>`).join('')||'<span class="muted">None</span>'}</div>
+    ${(G.warnings||[]).length?`<p style="margin-top:8px"><b>Recent warnings</b></p>${(G.warnings||[]).slice(0,5).map(w=>`<div class="insight risk"><b>${esc(w.type||'warning')}</b>: ${esc(w.reason||'')}<div class="src">${esc(w.path||'')} · ${esc(w.severity||'warning')}</div></div>`).join('')}`:''}
+  </div>`;
   // Health at a Glance
   const health=calcHealth();
   html+=`<div class="section-card"><h2>${I.shield({s:18})} Health at a Glance</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">

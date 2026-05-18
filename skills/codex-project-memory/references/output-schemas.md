@@ -102,7 +102,7 @@ Report mode:
 #### build_knowledge_graph.py
 
 ```json
-{"status": "generated", "path": "<file>", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>}, "file_dependencies": {<object>}, "code_index": {"<relative-file>": {"path": "<relative-file>", "language": "<language>", "module": "<module>", "parser": {"parser": "<parser-family>", "confidence": "<high|medium|low|none>", "resolver_strategy": "<strategy>"}, "lines": <int>, "definitions": [<string>], "imports": [<string>], "imported_by": [<string>], "external_imports": [<string>], "is_test": <bool>, "is_entrypoint": <bool>, "risk_tags": [<string>]}}, "entrypoints": [<string>], "external_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": [<object>], "data_models": {<object>}, "risk_signals": [<object>], "ai_context": {<object>}, "human_context": {<object>}, "circular_dependencies": [<object>], "warnings": [<string>]}
+{"status": "generated", "path": "<file>", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>, "files_scanned": <int>, "files_skipped": <int>, "bytes_scanned": <int>}, "coverage": {"files_scanned": <int>, "files_skipped": <int>, "candidate_files": <int>, "bytes_scanned": <int>, "skipped_reasons": {<object>}, "warnings": <int>, "limits": {<object>}}, "file_dependencies": {<object>}, "code_index": {"<relative-file>": {"path": "<relative-file>", "language": "<language>", "module": "<module>", "parser": {"parser": "<parser-family>", "confidence": "<high|medium|low|none>", "resolver_strategy": "<strategy>"}, "lines": <int>, "definitions": [<string>], "imports": [<string>], "imported_by": [<string>], "external_imports": [<string>], "is_test": <bool>, "is_entrypoint": <bool>, "risk_tags": [<string>]}}, "entrypoints": [<string>], "external_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": [<object>], "data_models": {<object>}, "risk_signals": [<object>], "ai_context": {<object>}, "human_context": {<object>}, "circular_dependencies": [<object>], "warnings": [{"type": "<string>", "path": "<relative-path>", "reason": "<string>", "severity": "<info|warning|error>"}]}
 ```
 
 `code_index[*].parser` describes the registry entry used for the file. Dedicated JavaScript/TypeScript and Python extractors report `high` confidence; language-specific pattern extractors for Go, Rust, Java, C#, PHP, Ruby, Kotlin, Swift, Vue/Svelte, Terraform, YAML, and JSON generally report `medium`; asset-oriented HTML/CSS/SCSS/SQL extractors report `low`.
@@ -110,7 +110,7 @@ Report mode:
 #### build_knowledge_index.py
 
 ```json
-{"status": "built", "index_path": "<file>", "markdown_path": "<file>", "graph_path": "<file>", "html_path": "<file>", "sources": {<object>}, "graph_stats": {<object>}}
+{"status": "built", "index_path": "<file>", "markdown_path": "<file>", "graph_path": "<file>", "html_path": "<file>", "sources": {<object>}, "graph_stats": {<object>}, "coverage": {<object>}}
 ```
 
 #### compact_context.py
