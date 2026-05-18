@@ -232,13 +232,27 @@ def extract_go_imports(file_path: Path, content: str) -> List[str]:
     return unique_sorted(modules)
 
 
+def normalize_rust_use_path(cleaned: str) -> str:
+    value = cleaned.strip()
+    if not value:
+        return ""
+    first = value.split("::", 1)[0].strip("{} ")
+    if first in {"crate", "self", "super"}:
+        if "{" in value:
+            value = value.split("{", 1)[0].rstrip(":").strip()
+        return value
+    if "::{" in value:
+        return value.split("::{", 1)[0].strip()
+    return value.split("::", 1)[0].strip()
+
+
 def extract_rust_imports(file_path: Path, content: str) -> List[str]:
     modules: List[str] = []
     for raw in RUST_USE_PATTERN.findall(content):
         cleaned = re.sub(r"\s+as\s+\w+", "", raw).strip()
-        first = cleaned.split("::", 1)[0].strip("{} ")
-        if first:
-            modules.append(first if first in {"crate", "self", "super"} else cleaned.split("::{", 1)[0].strip())
+        normalized = normalize_rust_use_path(cleaned)
+        if normalized:
+            modules.append(normalized)
     for match in re.findall(r"\bmod\s+([A-Za-z_]\w*)\s*;", content):
         modules.append(f"self::{match}")
     return unique_sorted(modules)

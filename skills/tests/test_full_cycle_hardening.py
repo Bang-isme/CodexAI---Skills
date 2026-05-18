@@ -294,6 +294,26 @@ def test_knowledge_graph_language_registry_detects_polyglot_files(tmp_path: Path
     assert index["config/app.yaml"]["parser"]["confidence"] == "medium"
 
 
+def test_knowledge_graph_resolves_rust_crate_use_paths(tmp_path: Path) -> None:
+    write(tmp_path / "Cargo.toml", '[package]\nname = "sample"\nversion = "0.1.0"\n')
+    write(tmp_path / "src" / "lib.rs", "")
+    write(tmp_path / "src" / "models" / "user.rs", "pub struct User {}\n")
+    write(
+        tmp_path / "src" / "main.rs",
+        """
+        use crate::models::user;
+        fn main() {}
+        """,
+    )
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+    main = "src/main.rs"
+    user = "src/models/user.rs"
+
+    assert user in graph["code_index"][main]["imports"]
+    assert main in graph["code_index"][user]["imported_by"]
+
+
 def test_knowledge_graph_resolves_local_python_imports_and_skill_modules(tmp_path: Path) -> None:
     write(
         tmp_path / "skills" / "codex-project-memory" / "scripts" / "generate_genome.py",
