@@ -90,6 +90,30 @@ Build a project-wide structural graph (dependencies, module boundaries, routes, 
 }
 ```
 
+
+## Language Registry
+
+`build_knowledge_graph.py` uses a language registry instead of hard-coded extension lists. Each registry entry maps an extension to:
+
+- `language`: display name stored in `code_index[*].language`.
+- `parser`: parser family (`javascript`, `python`, `javascript+component`, or pattern fallback).
+- `import_extractor`: function that extracts import/module references.
+- `definition_extractor`: function that extracts definitions.
+- `resolver_strategy`: local dependency resolver (`javascript`, `python`, `relative`, `go`, `rust`, `package`, or `none`).
+- `confidence`: reliability of the parser result.
+
+Supported extensions include JavaScript/TypeScript/Python plus `.go`, `.rs`, `.java`, `.cs`, `.php`, `.rb`, `.kt`, `.kts`, `.swift`, `.vue`, `.svelte`, `.html`, `.css`, `.scss`, `.sql`, `.tf`, `.yaml`, `.yml`, and `.json`.
+
+### Parser Reliability
+
+| Confidence | Parser families | Expected reliability |
+|---|---|---|
+| `high` | Dedicated JavaScript/TypeScript/CommonJS/ESM and Python extractors | Preserves existing import/definition behavior and resolves common local imports. |
+| `medium` | Pattern extractors for Go, Rust, Java, C#, PHP, Ruby, Kotlin, Swift, Vue/Svelte component scripts, Terraform, YAML, and JSON | Captures common class/function/interface/type/struct/enum/route/config blocks, but can miss macro-heavy, generated, or framework-specific constructs. |
+| `low` | Asset/config-oriented pattern extractors for HTML, CSS/SCSS, SQL | Useful for navigation and obvious references; not a semantic parser. |
+
+Every `code_index` entry includes parser metadata so consumers can decide how strongly to trust the extracted symbols.
+
 ## Graph Visualization
 
 The knowledge graph can be rendered as a Mermaid diagram for documentation:
