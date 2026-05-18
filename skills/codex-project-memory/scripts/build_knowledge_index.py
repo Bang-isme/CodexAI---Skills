@@ -9,6 +9,10 @@ import importlib.util
 import json
 import re
 import subprocess
+import sys
+import time
+from http import HTTPStatus
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +31,110 @@ CONFIG_FILES = [
     "nx.json",
 ]
 IGNORED_DIRS = {".git", ".next", ".pytest_cache", "__pycache__", "build", "coverage", "dist", "node_modules", "vendor"}
+PROGRESS_PHASES = (
+    "discovery",
+    "parsing",
+    "dependency_graph",
+    "chunking",
+    "risk_scan",
+    "dashboard_write",
+    "complete",
+    "error",
+)
+DEFAULT_PROGRESS_FILE = ".codex/knowledge/index-progress.json"
+PROGRESS_FETCH_ALIAS = "/__codex_index_progress__"
+
+
+def progress_fetch_url(output_dir: Path, progress_path: Path) -> str:
+    """Return a browser-fetchable URL for the configured progress JSON file."""
+    resolved_output = output_dir.resolve()
+    resolved_progress = progress_path.resolve()
+    try:
+        return resolved_progress.relative_to(resolved_output).as_posix()
+    except ValueError:
+        return PROGRESS_FETCH_ALIAS
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+class ProgressWriter:
+    """Best-effort JSON progress writer for knowledge index builds."""
+
+    def __init__(self, progress_file: Path | None, files_total: int = 0) -> None:
+        self.progress_file = progress_file
+        self.started_at = utc_now()
+        self.warnings: list[str] = []
+        self.errors: list[str] = []
+        self.state: dict[str, Any] = {
+            "status": "running",
+            "phase": "discovery",
+            "started_at": self.started_at,
+            "updated_at": self.started_at,
+            "current_file": "",
+            "files_done": 0,
+            "files_total": files_total,
+            "warnings": self.warnings,
+            "errors": self.errors,
+        }
+
+    def update(
+        self,
+        phase: str,
+        *,
+        current_file: str = "",
+        files_done: int | None = None,
+        files_total: int | None = None,
+        warning: str | None = None,
+        error: str | None = None,
+        status: str | None = None,
+    ) -> dict[str, Any]:
+        if phase not in PROGRESS_PHASES:
+            warning = warning or f"Unknown progress phase: {phase}"
+        if warning:
+            self.warnings.append(warning)
+        if error:
+            self.errors.append(error)
+        self.state.update(
+            {
+                "phase": phase,
+                "updated_at": utc_now(),
+                "current_file": current_file,
+                "warnings": self.warnings,
+                "errors": self.errors,
+            }
+        )
+        if files_done is not None:
+            self.state["files_done"] = max(0, files_done)
+        if files_total is not None:
+            self.state["files_total"] = max(0, files_total)
+        if status is not None:
+            self.state["status"] = status
+        elif phase == "complete":
+            self.state["status"] = "complete"
+        elif phase == "error":
+            self.state["status"] = "error"
+        else:
+            self.state["status"] = "running"
+        self._write()
+        return dict(self.state)
+
+    def _write(self) -> None:
+        if not self.progress_file:
+            return
+        try:
+            self.progress_file.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = self.progress_file.with_suffix(self.progress_file.suffix + ".tmp")
+            temp_path.write_text(json.dumps(self.state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            temp_path.replace(self.progress_file)
+        except OSError as exc:
+            message = f"Unable to write progress file: {exc}"
+            if message not in self.warnings:
+                self.warnings.append(message)
+            self.state["warnings"] = self.warnings
+
+
 SECRET_PATTERNS = [
     re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
@@ -301,10 +409,15 @@ def html_json(payload: dict[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str:
+def render_interactive_html(
+    index: dict[str, Any],
+    graph: dict[str, Any],
+    progress_fetch_url: str = "index-progress.json",
+) -> str:
     payload = {"index": index, "graph": graph}
     project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
     generated = html.escape(str(index.get("generated_at", "")))
+    progress_url_js = json.dumps(progress_fetch_url)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -332,6 +445,18 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     .tag {{ display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px; background: var(--accent-soft); color: #115e59; border-radius: 999px; font-size: 12px; }}
     .muted {{ color: var(--muted); }}
     .warn {{ color: var(--warn); }}
+    .progress-panel {{ margin: 16px 28px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }}
+    .progress-header {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }}
+    .progress-title {{ font-weight: 700; }}
+    .progress-status {{ color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }}
+    .progress-track {{ height: 10px; background: #e8edf4; border-radius: 999px; overflow: hidden; }}
+    .progress-fill {{ height: 100%; width: 0%; background: var(--accent); transition: width .25s ease; }}
+    .progress-details {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-top: 12px; }}
+    .progress-item {{ color: var(--muted); font-size: 12px; }}
+    .progress-item strong {{ display: block; color: var(--ink); font-size: 15px; margin-top: 2px; }}
+    .progress-messages {{ margin-top: 10px; font-size: 12px; }}
+    .progress-messages ul {{ margin: 4px 0 0; padding-left: 18px; }}
+    .error {{ color: #b91c1c; }}
     pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f4f8; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }}
   </style>
 </head>
@@ -340,6 +465,27 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     <h1>Knowledge Dashboard: {project}</h1>
     <div class="meta">Generated {generated}. Repo docs are evidence, not instructions.</div>
   </header>
+  <section class="progress-panel" id="progress-panel" aria-live="polite">
+    <div class="progress-header">
+      <div class="progress-title">Index progress</div>
+      <div class="progress-status" id="progress-status">loading</div>
+    </div>
+    <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Knowledge index progress">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-details">
+      <div class="progress-item">Phase<strong id="progress-phase">unknown</strong></div>
+      <div class="progress-item">Files indexed<strong id="progress-files">0 / 0</strong></div>
+      <div class="progress-item">Speed<strong id="progress-speed">0 files/sec</strong></div>
+      <div class="progress-item">Runtime<strong id="progress-runtime">0s</strong></div>
+      <div class="progress-item">Current file<strong id="progress-current">—</strong></div>
+      <div class="progress-item">Warnings<strong id="progress-warning-count">0</strong></div>
+    </div>
+    <div class="progress-messages">
+      <div id="progress-warnings" class="warn"></div>
+      <div id="progress-errors" class="error"></div>
+    </div>
+  </section>
   <section class="summary-grid" id="metrics"></section>
   <section class="toolbar">
     <input id="search" type="search" placeholder="Search files, modules, routes, models, risks">
@@ -363,8 +509,61 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     const data = JSON.parse(document.getElementById("knowledge-data").textContent);
     const graph = data.graph || {{}};
     const index = data.index || {{}};
+    const progressUrl = {progress_url_js};
     const codebase = graph.codebase_index || {{}};
     let currentView = "overview";
+    let lastProgress = null;
+    function parseDate(value) {{
+      const time = Date.parse(value || "");
+      return Number.isFinite(time) ? time : Date.now();
+    }}
+    function formatDuration(seconds) {{
+      if (!Number.isFinite(seconds) || seconds < 0) return "0s";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return mins ? `${{mins}}m ${{secs}}s` : `${{secs}}s`;
+    }}
+    function updateProgress(progress) {{
+      if (!progress || typeof progress !== "object") return;
+      lastProgress = progress;
+      const done = Number(progress.files_done || 0);
+      const total = Number(progress.files_total || 0);
+      const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : (progress.status === "complete" ? 100 : 0);
+      const started = parseDate(progress.started_at);
+      const updated = parseDate(progress.updated_at);
+      const elapsed = Math.max(0, (updated - started) / 1000);
+      const speed = elapsed > 0 ? done / elapsed : 0;
+      document.getElementById("progress-status").textContent = text(progress.status || "running");
+      document.getElementById("progress-phase").textContent = text(progress.phase || "unknown");
+      document.getElementById("progress-files").textContent = `${{done}} / ${{total}}`;
+      document.getElementById("progress-speed").textContent = `${{speed.toFixed(2)}} files/sec`;
+      document.getElementById("progress-runtime").textContent = formatDuration(elapsed);
+      document.getElementById("progress-current").textContent = text(progress.current_file || "—");
+      document.getElementById("progress-warning-count").textContent = text((progress.warnings || []).length);
+      document.getElementById("progress-fill").style.width = `${{percent}}%`;
+      document.querySelector(".progress-track").setAttribute("aria-valuenow", String(percent));
+      document.getElementById("progress-warnings").innerHTML = (progress.warnings || []).length ? `<b>Warnings</b><ul>${{progress.warnings.map(item => `<li>${{escapeHtml(text(item))}}</li>`).join("")}}</ul>` : "";
+      document.getElementById("progress-errors").innerHTML = (progress.errors || []).length ? `<b>Errors</b><ul>${{progress.errors.map(item => `<li>${{escapeHtml(text(item))}}</li>`).join("")}}</ul>` : "";
+    }}
+    async function pollProgress() {{
+      try {{
+        const response = await fetch(progressUrl, {{cache:"no-store"}});
+        if (response.ok) updateProgress(await response.json());
+      }} catch (error) {{
+        // Offline file:// usage cannot fetch local JSON; the embedded dashboard still works.
+      }}
+    }}
+    function connectProgressEvents() {{
+      if (!("EventSource" in window)) return false;
+      try {{
+        const events = new EventSource("/events");
+        events.onmessage = event => updateProgress(JSON.parse(event.data));
+        events.onerror = () => pollProgress();
+        return true;
+      }} catch (error) {{
+        return false;
+      }}
+    }}
     function matchesSearch(raw, query) {{ return !query || JSON.stringify(raw).toLowerCase().includes(query); }}
     function metrics() {{
       const stats = graph.stats || {{}};
@@ -442,6 +641,9 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
         renderKnowledge();
       }});
     }});
+    updateProgress({{status:"complete", phase:"complete", started_at:index.generated_at, updated_at:index.generated_at, files_done:(graph.stats || {{}}).total_files || 0, files_total:(graph.stats || {{}}).total_files || 0, current_file:"index.html", warnings:graph.warnings || [], errors:[]}});
+    if (!connectProgressEvents()) pollProgress();
+    setInterval(pollProgress, 1000);
     metrics();
     renderKnowledge();
   </script>
@@ -450,46 +652,107 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
 """
 
 
-def write_knowledge_artifacts(project_root: Path, output_dir: Path, incremental: bool = True, rebuild: bool = False) -> dict[str, Any]:
+def write_knowledge_artifacts(
+    project_root: Path,
+    output_dir: Path,
+    progress_file: Path | None = None,
+    incremental: bool = True,
+    rebuild: bool = False,
+) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    index = build_index(project_root)
-    codebase_indexer = load_codebase_indexer()
-    codebase_index = codebase_indexer.build_codebase_index(
-        project_root,
-        output_path=output_dir / "codebase-index.json",
-        incremental=incremental,
-        rebuild=rebuild,
-    )
-    graph_builder = load_graph_builder()
-    graph = graph_builder.build_graph(project_root, include_tests=True)
-    graph["codebase_index"] = {
-        key: codebase_index.get(key)
-        for key in ("schema_version", "generated_at", "files", "chunks", "symbols", "references", "routes", "models", "configs", "risk_signals", "read_order", "confidence", "semantic")
-    }
-    index_path = output_dir / "index.json"
-    md_path = output_dir / "INDEX.md"
-    graph_path = output_dir / "knowledge-graph.json"
-    html_path = output_dir / "index.html"
-    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
-    md_path.write_text(render_markdown(index), encoding="utf-8")
-    graph_path.write_text(json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    html_path.write_text(render_interactive_html(index, graph), encoding="utf-8")
-    return {
-        "status": "built",
-        "index_path": str(index_path),
-        "markdown_path": str(md_path),
-        "graph_path": str(graph_path),
-        "codebase_index_path": str(output_dir / "codebase-index.json"),
-        "html_path": str(html_path),
-        "sources": index["sources"],
-        "graph_stats": graph["stats"],
-        "codebase_stats": {
-            "files": len(codebase_index.get("files", {})),
-            "chunks": len(codebase_index.get("chunks", [])),
-            "symbols": len(codebase_index.get("symbols", [])),
-            "references": len(codebase_index.get("references", [])),
-        },
-    }
+    progress_path = progress_file or (output_dir / "index-progress.json")
+    progress = ProgressWriter(progress_path)
+    try:
+        progress.update("discovery", current_file=str(project_root), files_done=0, files_total=0)
+        discovered_files = limited_project_files(project_root)
+        files_total = len(discovered_files)
+        progress.update("discovery", current_file="project files", files_done=0, files_total=files_total)
+
+        progress.update("parsing", current_file="project context", files_done=max(0, min(files_total, files_total // 6)) if files_total else 0, files_total=files_total)
+        index = build_index(project_root)
+        progress.update("parsing", current_file="index.json", files_done=max(1, min(files_total, files_total // 5)) if files_total else 0, files_total=files_total)
+
+        progress.update("chunking", current_file="codebase-index.json", files_done=max(1, min(files_total, files_total // 4)) if files_total else 0, files_total=files_total)
+        codebase_indexer = load_codebase_indexer()
+        codebase_index = codebase_indexer.build_codebase_index(
+            project_root,
+            output_path=output_dir / "codebase-index.json",
+            incremental=incremental,
+            rebuild=rebuild,
+        )
+
+        progress.update("dependency_graph", current_file="knowledge-graph.json", files_done=max(1, min(files_total, files_total // 2)) if files_total else 0, files_total=files_total)
+        graph_builder = load_graph_builder()
+        graph = graph_builder.build_graph(project_root, include_tests=True)
+        graph["codebase_index"] = {
+            key: codebase_index.get(key)
+            for key in (
+                "schema_version",
+                "generated_at",
+                "files",
+                "chunks",
+                "symbols",
+                "references",
+                "routes",
+                "models",
+                "configs",
+                "risk_signals",
+                "read_order",
+                "confidence",
+                "semantic",
+            )
+        }
+        graph_total = int(graph.get("stats", {}).get("total_files", files_total) or files_total)
+        files_total = max(files_total, graph_total)
+        graph_warnings = graph.get("warnings", [])
+        if isinstance(graph_warnings, list):
+            for warning in graph_warnings:
+                progress.update("dependency_graph", current_file="knowledge-graph.json", files_done=min(files_total, graph_total), files_total=files_total, warning=str(warning))
+        else:
+            progress.update("dependency_graph", current_file="knowledge-graph.json", files_done=min(files_total, graph_total), files_total=files_total)
+
+        index_path = output_dir / "index.json"
+        md_path = output_dir / "INDEX.md"
+        graph_path = output_dir / "knowledge-graph.json"
+        html_path = output_dir / "index.html"
+
+        progress.update("chunking", current_file="index.json", files_done=min(files_total, max(graph_total, files_total - 2)), files_total=files_total)
+        index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+        md_path.write_text(render_markdown(index), encoding="utf-8")
+        graph_path.write_text(json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+        progress.update("risk_scan", current_file="risk signals", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
+        risk_count = len(graph.get("risk_signals", [])) if isinstance(graph.get("risk_signals"), list) else 0
+
+        progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
+        progress_url = progress_fetch_url(output_dir, progress_path)
+        html_path.write_text(
+            render_interactive_html(index, graph, progress_fetch_url=progress_url),
+            encoding="utf-8",
+        )
+        progress.update("complete", current_file="index.html", files_done=files_total, files_total=files_total, status="complete")
+        return {
+            "status": "built",
+            "index_path": str(index_path),
+            "markdown_path": str(md_path),
+            "graph_path": str(graph_path),
+            "codebase_index_path": str(output_dir / "codebase-index.json"),
+            "html_path": str(html_path),
+            "progress_path": str(progress_path),
+            "progress_fetch_url": progress_url,
+            "sources": index["sources"],
+            "graph_stats": graph["stats"],
+            "codebase_stats": {
+                "files": len(codebase_index.get("files", {})),
+                "chunks": len(codebase_index.get("chunks", [])),
+                "symbols": len(codebase_index.get("symbols", [])),
+                "references": len(codebase_index.get("references", [])),
+            },
+            "risk_signals": risk_count,
+        }
+    except Exception as exc:
+        progress.update("error", current_file="", error=str(exc), status="error")
+        raise
 
 
 def render_markdown(index: dict[str, Any]) -> str:
@@ -534,11 +797,100 @@ def render_markdown(index: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+
+def serve_dashboard(output_dir: Path, progress_file: Path, host: str = "127.0.0.1", port: int = 8765) -> None:
+    """Serve dashboard files and stream progress JSON via /events using stdlib HTTP."""
+
+    directory = output_dir.resolve()
+    progress_path = progress_file.resolve()
+    progress_url = progress_fetch_url(directory, progress_path)
+
+    class KnowledgeDashboardHandler(SimpleHTTPRequestHandler):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, directory=str(directory), **kwargs)
+
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib signature
+            print(f"[knowledge-dashboard] {self.address_string()} - {format % args}", file=sys.stderr)
+
+        def do_GET(self) -> None:  # noqa: N802 - stdlib hook
+            request_path = self.path.split("?", 1)[0]
+            if request_path == "/events":
+                self._stream_progress_events()
+                return
+            progress_paths = {progress_url}
+            if not progress_url.startswith("/"):
+                progress_paths.add(f"/{progress_url}")
+            if request_path in progress_paths:
+                self._serve_progress_json()
+                return
+            super().do_GET()
+
+        def _serve_progress_json(self) -> None:
+            payload = self._read_progress()
+            encoded = payload.encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(encoded)
+
+        def _read_progress(self) -> str:
+            try:
+                payload = json.loads(progress_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                payload = {
+                    "status": "error",
+                    "phase": "error",
+                    "started_at": utc_now(),
+                    "updated_at": utc_now(),
+                    "current_file": "",
+                    "files_done": 0,
+                    "files_total": 0,
+                    "warnings": [],
+                    "errors": ["Progress file is not readable."],
+                }
+            return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+        def _stream_progress_events(self) -> None:
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+            last_payload = ""
+            for _ in range(3600):
+                payload = self._read_progress().strip()
+                if payload != last_payload:
+                    last_payload = payload
+                    try:
+                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError):
+                        return
+                time.sleep(1)
+
+    server = ThreadingHTTPServer((host, port), KnowledgeDashboardHandler)
+    url = f"http://{host}:{server.server_port}/index.html"
+    print(f"serving dashboard: {url}", file=sys.stderr)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build .codex/knowledge index from project context sources.")
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output-dir", default=".codex/knowledge", help="Output directory relative to project root")
     parser.add_argument("--format", choices=("json", "text"), default="json")
+    parser.add_argument("--progress-file", default=DEFAULT_PROGRESS_FILE, help="Progress JSON path relative to project root")
+    parser.add_argument("--watch", action="store_true", help="Serve the generated dashboard and stream /events progress updates")
+    parser.add_argument("--serve", action="store_true", help="Alias for --watch")
+    parser.add_argument("--host", default="127.0.0.1", help="Host for --watch/--serve")
+    parser.add_argument("--port", type=int, default=8765, help="Port for --watch/--serve")
     parser.add_argument("--incremental", action="store_true", help="Reuse unchanged file metadata when building the codebase index")
     parser.add_argument("--rebuild", action="store_true", help="Force a fresh codebase index rebuild")
     parser.add_argument("--query", default="", help="Run local lexical search against the codebase index")
@@ -571,9 +923,13 @@ def main() -> int:
                 "results": codebase_indexer.query_index(codebase_index, args.query, top_k=args.top_k),
             }
         else:
+            progress_file = Path(args.progress_file)
+            if not progress_file.is_absolute():
+                progress_file = project_root / progress_file
             payload = write_knowledge_artifacts(
                 project_root,
                 output_dir,
+                progress_file=progress_file,
                 incremental=args.incremental and not args.rebuild,
                 rebuild=args.rebuild,
             )
@@ -582,13 +938,19 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 1
     if args.format == "text":
-        print(f"built: {payload['markdown_path']}")
-        print(f"html: {payload['html_path']}")
-        print(f"graph: {payload.get('graph_path', '')}")
-        if payload.get("codebase_index_path"):
-            print(f"codebase-index: {payload['codebase_index_path']}")
+        if payload.get("status") == "built":
+            print(f"built: {payload['markdown_path']}")
+            print(f"html: {payload['html_path']}")
+            print(f"graph: {payload['graph_path']}")
+            print(f"progress: {payload['progress_path']}")
+            if payload.get("codebase_index_path"):
+                print(f"codebase-index: {payload['codebase_index_path']}")
+        else:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
+    if (args.watch or args.serve) and payload.get("progress_path"):
+        serve_dashboard(output_dir, Path(payload["progress_path"]), host=args.host, port=args.port)
     return 0
 
 
