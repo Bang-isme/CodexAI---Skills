@@ -1,10 +1,47 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Memory Knowledge Index Artifact",
   "type": "object",
-  "required": ["schema_version", "status", "generated_at", "sources", "tacit_knowledge"],
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "generated_at",
+    "project_root",
+    "stats",
+    "warnings",
+    "redaction",
+    "sources",
+    "tacit_knowledge"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0"},
-    "status": {"enum": ["built", "error"]},
+    "schema_version": {"const": "2.0"},
+    "artifact_type": {"const": "knowledge-index"},
+    "generated_at": {"type": "string", "description": "ISO-8601 timestamp for artifact generation."},
+    "project_root": {"type": "string"},
+    "stats": {
+      "type": "object",
+      "required": ["role_docs", "decisions", "commits", "configs", "tacit_insights"],
+      "properties": {
+        "role_docs": {"type": "integer", "minimum": 0},
+        "decisions": {"type": "integer", "minimum": 0},
+        "commits": {"type": "integer", "minimum": 0},
+        "configs": {"type": "integer", "minimum": 0},
+        "tacit_insights": {"type": "integer", "minimum": 0}
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "redaction": {
+      "type": "object",
+      "required": ["enabled", "strategy", "description"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "strategy": {"type": "string"},
+        "description": {"type": "string"},
+        "placeholder": {"type": "string"}
+      }
+    },
     "sources": {
       "type": "object",
       "required": ["genome", "role_docs", "decisions", "commits", "configs", "redaction", "trust"]
@@ -12,15 +49,25 @@
     "tacit_knowledge": {
       "type": "object",
       "required": ["conventions", "risk_hotspots", "verification_commands"],
-      "insight_contract": {
-        "required": ["type", "value", "source", "confidence", "last_seen", "generated_by"],
-        "confidence_values": ["low", "medium", "high"]
+      "properties": {
+        "conventions": {"type": "array", "items": {"$ref": "#/$defs/insight"}},
+        "risk_hotspots": {"type": "array", "items": {"$ref": "#/$defs/insight"}},
+        "verification_commands": {"type": "array", "items": {"$ref": "#/$defs/insight"}}
       }
-    },
-    "interactive_outputs": {
+    }
+  },
+  "$defs": {
+    "insight": {
       "type": "object",
-      "description": "CLI payload fields produced by build_knowledge_index.py",
-      "required": ["index_path", "markdown_path", "graph_path", "html_path"]
+      "required": ["type", "value", "source", "confidence", "last_seen", "generated_by"],
+      "properties": {
+        "type": {"type": "string"},
+        "value": {"type": "string"},
+        "source": {"type": "string"},
+        "confidence": {"enum": ["low", "medium", "high"]},
+        "last_seen": {"type": "string"},
+        "generated_by": {"const": "build_knowledge_index.py"}
+      }
     }
   }
 }

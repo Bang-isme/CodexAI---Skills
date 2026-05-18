@@ -11,10 +11,12 @@ import os
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+SCHEMA_VERSION = "2.0"
+GRAPH_ARTIFACT_TYPE = "knowledge-graph"
 
 SKIP_DIRS = {
     ".git",
@@ -1195,7 +1197,9 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
     )
 
     graph = {
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": GRAPH_ARTIFACT_TYPE,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "project_root": project_root.as_posix(),
         "stats": {
             "total_files": len(files),
@@ -1204,6 +1208,12 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             "routes": len(routes),
             "models": len(models),
             "circular_dependencies": len(module_cycles),
+        },
+        "warnings": sorted(dict.fromkeys(warnings)),
+        "redaction": {
+            "enabled": False,
+            "strategy": "none",
+            "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names only; source bodies are not persisted.",
         },
         "file_dependencies": dependency_tree,
         "code_index": code_index,
@@ -1228,7 +1238,6 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             entrypoints,
         ),
         "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
-        "warnings": sorted(dict.fromkeys(warnings)),
     }
     return graph
 

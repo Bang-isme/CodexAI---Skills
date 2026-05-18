@@ -77,6 +77,7 @@ User intent -> Memory action?
 - `references/knowledge-graph-spec.md`: deep architecture mapping and refresh guidance.
 - `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, config, and the structural knowledge graph; redacts secret-like values, stores provenance/confidence, and writes an offline interactive HTML dashboard for AI and human review.
 - `references/knowledge-index.schema.json`: output contract for `.codex/knowledge/index.json`.
+- `references/knowledge-graph.schema.json`: output contract for `.codex/knowledge/knowledge-graph.json` and `.codex/knowledge-graph.json`.
 - `references/context-compactor-spec.md`: retention policy, archive layout, and dry-run expectations.
 - `references/behavior-guide.md`: detailed per-script behaviors, defaults, and chaining guidance.
 - `references/script-commands.md`
