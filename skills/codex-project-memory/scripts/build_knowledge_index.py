@@ -17,6 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from redaction import REDACTION_PATTERNS_VERSION, redact_artifact, redact_text
+
 
 SCHEMA_VERSION = "1.0"
 CONFIG_FILES = [
@@ -135,17 +141,6 @@ class ProgressWriter:
             self.state["warnings"] = self.warnings
 
 
-SECRET_PATTERNS = [
-    re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s]{6,}"),
-    re.compile(r"\b[A-Fa-f0-9]{32,}\b"),
-    re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
-]
-
-
 def validate_project_root(path: Path) -> Path:
     resolved = path.expanduser().resolve()
     if not resolved.exists():
@@ -160,13 +155,6 @@ def read_text(path: Path, max_chars: int = 12000) -> str:
         return ""
     text = path.read_text(encoding="utf-8", errors="replace")
     return text[:max_chars]
-
-
-def redact_text(value: str) -> str:
-    redacted = value
-    for pattern in SECRET_PATTERNS:
-        redacted = pattern.sub("[REDACTED]", redacted)
-    return redacted
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -357,7 +345,11 @@ def infer_tacit_knowledge(project_root: Path, package: dict[str, Any], configs: 
     }
 
 
-def build_index(project_root: Path, traversal_config=None) -> dict[str, Any]:
+def build_index(
+    project_root: Path,
+    traversal_config=None,
+    redaction_enabled: bool = True,
+) -> dict[str, Any]:
     generated_at = datetime.now(timezone.utc).isoformat()
     traversal_result = traversal_for_project(project_root, traversal_config)
     genome_text = read_text(project_root / ".codex" / "context" / "genome.md")
@@ -374,7 +366,7 @@ def build_index(project_root: Path, traversal_config=None) -> dict[str, Any]:
         generated_at,
         [entry.path for entry in traversal_result.files],
     )
-    return {
+    raw_index = {
         "status": "built",
         "schema_version": SCHEMA_VERSION,
         "version": "1.0",
@@ -398,6 +390,8 @@ def build_index(project_root: Path, traversal_config=None) -> dict[str, Any]:
         "package": package,
         "tacit_knowledge": tacit,
     }
+    index, _count = redact_artifact(raw_index, "index.json", enabled=redaction_enabled)
+    return index
 
 
 def load_graph_builder():
@@ -524,6 +518,7 @@ def write_knowledge_artifacts(
     incremental: bool = True,
     rebuild: bool = False,
     traversal_config=None,
+    redaction_enabled: bool = True,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     progress_path = progress_file or (output_dir / "index-progress.json")
@@ -535,7 +530,7 @@ def write_knowledge_artifacts(
         progress.update("discovery", current_file="project files", files_done=0, files_total=files_total)
 
         progress.update("parsing", current_file="project context", files_done=max(0, min(files_total, files_total // 6)) if files_total else 0, files_total=files_total)
-        index = build_index(project_root, traversal_config=traversal_config)
+        index = build_index(project_root, traversal_config=traversal_config, redaction_enabled=redaction_enabled)
         progress.update("parsing", current_file="index.json", files_done=max(1, min(files_total, files_total // 5)) if files_total else 0, files_total=files_total)
 
         progress.update("chunking", current_file="codebase-index.json", files_done=max(1, min(files_total, files_total // 4)) if files_total else 0, files_total=files_total)
@@ -549,7 +544,12 @@ def write_knowledge_artifacts(
 
         progress.update("dependency_graph", current_file="knowledge-graph.json", files_done=max(1, min(files_total, files_total // 2)) if files_total else 0, files_total=files_total)
         graph_builder = load_graph_builder()
-        graph = graph_builder.build_graph(project_root, include_tests=True, traversal_config=traversal_config)
+        graph = graph_builder.build_graph(
+            project_root,
+            include_tests=True,
+            traversal_config=traversal_config,
+            redaction_enabled=redaction_enabled,
+        )
         graph["codebase_index"] = {
             key: codebase_index.get(key)
             for key in (
@@ -616,6 +616,14 @@ def write_knowledge_artifacts(
             },
             "risk_signals": risk_count,
             "coverage": graph.get("coverage", index.get("coverage", {})),
+            "redaction_applied": redaction_enabled,
+            "redaction_patterns_version": REDACTION_PATTERNS_VERSION,
+            "redaction_counts": {
+                "index.json": index.get("redaction_count", 0),
+                "knowledge-graph.json": graph.get("redaction_count", 0),
+                "INDEX.md": index.get("redaction_count", 0),
+                "index.html": int(index.get("redaction_count", 0) or 0) + int(graph.get("redaction_count", 0) or 0),
+            },
         }
     except Exception as exc:
         progress.update("error", current_file="", error=str(exc), status="error")
@@ -641,6 +649,9 @@ def render_markdown(index: dict[str, Any]) -> str:
         f"- Decisions: {index['sources']['decisions']}",
         f"- Recent commits: {index['sources']['commits']}",
         f"- Config files: {', '.join(index['sources']['configs']) or 'Not detected'}",
+        f"- Redaction-Applied: {str(index.get('redaction_applied', False)).lower()}",
+        f"- Redaction-Patterns-Version: {index.get('redaction_patterns_version', 'unknown')}",
+        f"- Redaction-Count: {index.get('redaction_count', 0)}",
         "",
         "## Architecture Seams",
     ]
@@ -763,6 +774,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--query", default="", help="Run local lexical search against the codebase index")
     parser.add_argument("--top-k", type=int, default=10, help="Maximum query results to return")
     load_traversal().add_traversal_args(parser)
+    parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
     return parser.parse_args()
 
 
@@ -802,6 +814,7 @@ def main() -> int:
                 incremental=args.incremental and not args.rebuild,
                 rebuild=args.rebuild,
                 traversal_config=traversal_config,
+                redaction_enabled=not args.no_redaction,
             )
     except Exception as exc:
         payload = {"status": "error", "message": str(exc)}

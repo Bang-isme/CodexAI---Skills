@@ -16,6 +16,13 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from redaction import REDACTION_PATTERNS_VERSION, redact_artifact
+
+
 SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -141,6 +148,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
+    parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
     load_traversal().add_traversal_args(parser)
     return parser.parse_args()
 
@@ -498,6 +506,27 @@ def line_count(lines: Sequence[str]) -> int:
     return len(lines)
 
 
+def build_chunk_preview(lines: Sequence[str], max_lines: int = 5) -> str:
+    preview_lines = [line.strip() for line in lines if line.strip()]
+    return "\n".join(preview_lines[:max_lines])
+
+
+def build_chunks(lines: Sequence[str], chunk_size: int = 80) -> List[Dict[str, object]]:
+    chunks: List[Dict[str, object]] = []
+    for start in range(0, len(lines), chunk_size):
+        section = lines[start : start + chunk_size]
+        if not section:
+            continue
+        chunks.append({
+            "start_line": start + 1,
+            "end_line": start + len(section),
+            "preview": build_chunk_preview(section),
+        })
+        if len(chunks) >= 5:
+            break
+    return chunks
+
+
 def build_code_index(
     project_root: Path,
     files: List[Path],
@@ -535,6 +564,8 @@ def build_code_index(
             "parser": parser_metadata(file_path),
             "lines": line_count(lines),
             "definitions": definitions[:40],
+            "preview": build_chunk_preview(lines),
+            "chunks": build_chunks(lines),
             "imports": sorted(imports_map.get(rel, set())),
             "imported_by": sorted(reverse_map.get(rel, set())),
             "external_imports": externals,
@@ -1269,7 +1300,12 @@ def to_module_boundary_output(boundaries: Dict[str, Dict[str, Set[str]]]) -> Dic
     return output
 
 
-def build_graph(project_root: Path, include_tests: bool, traversal_config=None) -> Dict[str, object]:
+def build_graph(
+    project_root: Path,
+    include_tests: bool,
+    traversal_config=None,
+    redaction_enabled: bool = True,
+) -> Dict[str, object]:
     traversal_result = collect_code_file_entries(project_root, include_tests=include_tests, traversal_config=traversal_config)
     files = [entry.path for entry in traversal_result.files]
     imports_map, reverse_map, raw_content, aux = build_dependency_graph_from_entries(project_root, traversal_result.files)
@@ -1320,6 +1356,7 @@ def build_graph(project_root: Path, include_tests: bool, traversal_config=None) 
         "coverage": traversal_result.coverage,
         "file_dependencies": dependency_tree,
         "code_index": code_index,
+        "codebase_index": code_index,
         "entrypoints": entrypoints,
         "external_dependencies": external_dependencies,
         "module_boundaries": module_boundaries,
@@ -1347,6 +1384,7 @@ def build_graph(project_root: Path, include_tests: bool, traversal_config=None) 
             key=lambda item: (str(item.get("severity", "")), str(item.get("type", "")), str(item.get("path", ""))),
         ),
     }
+    graph, _count = redact_artifact(graph, "knowledge-graph.json", enabled=redaction_enabled)
     return graph
 
 
@@ -1361,7 +1399,12 @@ def main() -> int:
 
     try:
         traversal_config = load_traversal().config_from_args(args)
-        graph = build_graph(project_root, include_tests=args.include_tests, traversal_config=traversal_config)
+        graph = build_graph(
+            project_root,
+            include_tests=args.include_tests,
+            traversal_config=traversal_config,
+            redaction_enabled=not args.no_redaction,
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(graph, handle, ensure_ascii=False, indent=2)

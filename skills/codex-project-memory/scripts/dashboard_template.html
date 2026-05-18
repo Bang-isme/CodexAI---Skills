@@ -919,7 +919,10 @@ function render(){
 /* ======== OVERVIEW ======== */
 function renderOverview(q){
   const panel=$('#panel-overview');if(!panel)return;
-  const s=G.stats||{},coverage=G.coverage||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
+  const s=G.stats||{},coverage=G.coverage||IX.coverage||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
+  const redactionOn=Boolean(IX.redaction_applied)&&Boolean(G.redaction_applied);
+  const redactionCount=(Number(IX.redaction_count)||0)+(Number(G.redaction_count)||0);
+  const redactionPattern=IX.redaction_patterns_version||G.redaction_patterns_version||'unknown';
   const metrics=[
     {l:'Files',v:Object.keys(CBI.files||{}).length||s.total_files||coverage.files_scanned||0,icon:I.file,cls:'mc-a'},
     {l:'Skipped',v:coverage.files_skipped||s.files_skipped||0,icon:I.warning,cls:'mc-w'},
@@ -930,12 +933,15 @@ function renderOverview(q){
     {l:'Routes',v:s.routes||0,icon:I.route,cls:'mc-g'},
     {l:'Models',v:s.models||0,icon:I.database,cls:'mc-g'},
     {l:'Ext Deps',v:ext,icon:I.package,cls:'mc-w'},
+    {l:'Redactions',v:redactionCount,icon:I.shield,cls:'mc-a'},
+    {l:'Redaction',v:redactionOn?'ON':'OFF',icon:I.shield,cls:redactionOn?'mc-g':'mc-r'},
     {l:'Risks',v:r,icon:I.warning,cls:'mc-r'}
   ];
   let html=`<div class="metrics-grid">${metrics.map(m=>`<div class="metric-card"><div class="mc-icon ${m.cls}">${m.icon({s:20})}</div><div><div class="mc-val">${m.v}</div><div class="mc-lbl">${m.l}</div></div></div>`).join('')}</div>`;
   // Project Summary
   const ai=G.ai_context||{};
   html+=`<div class="section-card"><h2>${I.info({s:18})} Project Summary</h2><p>${esc(ai.summary||'No summary available.')}</p>${ai.usage?`<p class="muted" style="margin-top:4px">${esc(ai.usage)}</p>`:''}</div>`;
+  html+=`<div class="section-card"><h2>${I.shield({s:18})} Redaction Status</h2><p>${redactionOn?'Redaction enabled':'<span class="warn">DISABLED - artifact may contain secrets</span>'}</p><p class="muted">Patterns: ${esc(redactionPattern)} · redactions: ${redactionCount}</p>${!redactionOn?'<p class="warn" style="margin-top:8px"><b>Redaction warning</b>: This artifact was built with redaction disabled and may contain secrets.</p>':''}</div>`;
   // Traversal Coverage
   const skipped=coverage.skipped_reasons||{};
   html+=`<div class="section-card"><h2>${I.info({s:18})} Traversal Coverage</h2>

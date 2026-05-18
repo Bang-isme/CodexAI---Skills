@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -417,9 +418,12 @@ def test_knowledge_index_redacts_sensitive_commit_subjects(tmp_path: Path) -> No
     package = {"dependencies": ["react"], "scripts": {"test": "vitest"}}
 
     tacit = knowledge_index.infer_tacit_knowledge(tmp_path, package, [], commits, "2026-04-28T00:00:00+00:00")
+    artifact, count = knowledge_index.redact_artifact({"tacit": tacit, "recent_commits": commits}, "index.json")
 
-    combined = json.dumps(tacit)
+    combined = json.dumps(artifact)
+    assert count > 0
     assert "super-secret-value" not in combined
+    assert "[REDACTED]" in artifact["recent_commits"][0]["subject"]
     assert "[REDACTED]" in knowledge_index.redact_text("token=super-secret-value")
 
 
@@ -549,3 +553,94 @@ def test_contract_schema_files_are_parseable() -> None:
     for path in schema_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["schema_version"] == "1.0"
+
+
+def test_redact_artifact_preserves_dict_keys_that_would_collide() -> None:
+    from redaction import redact_artifact
+
+    sample_key = "sk-sampleSecretKey1234567890"
+    payload = {
+        "code_index": {
+            "src/token.py": {"preview": sample_key},
+            "src/secret.py": {"preview": "plain text"},
+        }
+    }
+    redacted, _count = redact_artifact(payload, "knowledge-graph.json")
+    assert "src/token.py" in redacted["code_index"]
+    assert "src/secret.py" in redacted["code_index"]
+    assert sample_key not in redacted["code_index"]["src/token.py"]["preview"]
+    assert "[REDACTED]" in redacted["code_index"]["src/token.py"]["preview"]
+
+
+def test_knowledge_artifacts_redact_index_graph_chunks_and_dashboard_json(tmp_path: Path) -> None:
+    sample_email = "alice@example.com"
+    sample_api_key = "sk-sampleSecretKey1234567890"
+    sample_gh_token = "ghp_abcdefghijklmnopqrstuvwxyz123456"
+    write(tmp_path / "package.json", json.dumps({"name": sample_email, "dependencies": {"express": "^4.19.0", "mongoose": "^8.0.0"}}))
+    write(tmp_path / ".codex" / "context" / "genome.md", f"# Genome for {sample_email}\n")
+    write(
+        tmp_path / "src" / "routes" / "leak.routes.js",
+        f"""
+        const router = require('express').Router();
+        const token = '{sample_api_key}';
+        router.get('/leak', token);
+        module.exports = router;
+        """,
+    )
+    write(
+        tmp_path / "src" / "models" / "user.model.js",
+        f"""
+        const mongoose = require('mongoose');
+        const schema = new mongoose.Schema({{
+          token: String,
+          ownerEmail: {{ type: String, default: '{sample_email}' }}
+        }});
+        module.exports = mongoose.model('User', schema);
+        """,
+    )
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "config", "user.email", "tester@example.invalid"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-m", f"fix leak {sample_gh_token}"], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    index = json.loads(Path(payload["index_path"]).read_text(encoding="utf-8"))
+    graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
+    markdown = Path(payload["markdown_path"]).read_text(encoding="utf-8")
+    html = Path(payload["html_path"]).read_text(encoding="utf-8")
+    if '<script id="kd" type="application/json">' in html:
+        embedded = html.split('<script id="kd" type="application/json">', 1)[1].split("</script>", 1)[0]
+    else:
+        embedded = html.split('<script id="knowledge-data" type="application/json">', 1)[1].split("</script>", 1)[0]
+    all_artifacts = "\n".join([json.dumps(index), json.dumps(graph), markdown, embedded])
+
+    assert payload["redaction_applied"] is True
+    assert index["redaction_applied"] is True
+    assert graph["redaction_applied"] is True
+    assert index["redaction_patterns_version"] == knowledge_index.REDACTION_PATTERNS_VERSION
+    assert payload["redaction_counts"]["index.json"] > 0
+    assert payload["redaction_counts"]["knowledge-graph.json"] > 0
+    assert sample_email not in all_artifacts
+    assert sample_api_key not in all_artifacts
+    assert sample_gh_token not in all_artifacts
+    assert "[REDACTED]" in index["recent_commits"][0]["subject"]
+    assert graph["api_routes"][0]["handler"] == "[REDACTED]"
+    assert "[REDACTED]" in graph["data_models"]["User"]["fields"]
+    assert "[REDACTED]" in graph["code_index"]["src/routes/leak.routes.js"]["preview"]
+    assert "[REDACTED]" in graph["code_index"]["src/routes/leak.routes.js"]["chunks"][0]["preview"]
+    assert "Redaction Status" in html
+
+
+def test_knowledge_dashboard_warns_when_redaction_disabled(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "routes" / "unsafe.routes.js", "router.get('/x', token)\n")
+
+    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge", redaction_enabled=False)
+    graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
+    html = Path(payload["html_path"]).read_text(encoding="utf-8")
+
+    assert payload["redaction_applied"] is False
+    assert graph["redaction_applied"] is False
+    assert any("Redaction disabled" in warning for warning in graph["warnings"])
+    assert "DISABLED - artifact may contain secrets" in html
+    assert "Redaction warning" in html
