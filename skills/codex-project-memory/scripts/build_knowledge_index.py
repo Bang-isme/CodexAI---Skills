@@ -42,6 +42,17 @@ PROGRESS_PHASES = (
     "error",
 )
 DEFAULT_PROGRESS_FILE = ".codex/knowledge/index-progress.json"
+PROGRESS_FETCH_ALIAS = "/__codex_index_progress__"
+
+
+def progress_fetch_url(output_dir: Path, progress_path: Path) -> str:
+    """Return a browser-fetchable URL for the configured progress JSON file."""
+    resolved_output = output_dir.resolve()
+    resolved_progress = progress_path.resolve()
+    try:
+        return resolved_progress.relative_to(resolved_output).as_posix()
+    except ValueError:
+        return PROGRESS_FETCH_ALIAS
 
 
 def utc_now() -> str:
@@ -388,10 +399,15 @@ def html_json(payload: dict[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str:
+def render_interactive_html(
+    index: dict[str, Any],
+    graph: dict[str, Any],
+    progress_fetch_url: str = "index-progress.json",
+) -> str:
     payload = {"index": index, "graph": graph}
     project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
     generated = html.escape(str(index.get("generated_at", "")))
+    progress_url_js = json.dumps(progress_fetch_url)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -480,6 +496,7 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     const data = JSON.parse(document.getElementById("knowledge-data").textContent);
     const graph = data.graph || {{}};
     const index = data.index || {{}};
+    const progressUrl = {progress_url_js};
     let currentView = "overview";
     let lastProgress = null;
     function parseDate(value) {{
@@ -516,7 +533,7 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
     }}
     async function pollProgress() {{
       try {{
-        const response = await fetch("index-progress.json", {{cache:"no-store"}});
+        const response = await fetch(progressUrl, {{cache:"no-store"}});
         if (response.ok) updateProgress(await response.json());
       }} catch (error) {{
         // Offline file:// usage cannot fetch local JSON; the embedded dashboard still works.
@@ -639,7 +656,11 @@ def write_knowledge_artifacts(project_root: Path, output_dir: Path, progress_fil
         risk_count = len(graph.get("risk_signals", [])) if isinstance(graph.get("risk_signals"), list) else 0
 
         progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
-        html_path.write_text(render_interactive_html(index, graph), encoding="utf-8")
+        progress_url = progress_fetch_url(output_dir, progress_path)
+        html_path.write_text(
+            render_interactive_html(index, graph, progress_fetch_url=progress_url),
+            encoding="utf-8",
+        )
         progress.update("complete", current_file="index.html", files_done=files_total, files_total=files_total, status="complete")
         return {
             "status": "built",
@@ -648,6 +669,7 @@ def write_knowledge_artifacts(project_root: Path, output_dir: Path, progress_fil
             "graph_path": str(graph_path),
             "html_path": str(html_path),
             "progress_path": str(progress_path),
+            "progress_fetch_url": progress_url,
             "sources": index["sources"],
             "graph_stats": graph["stats"],
             "risk_signals": risk_count,
@@ -705,6 +727,7 @@ def serve_dashboard(output_dir: Path, progress_file: Path, host: str = "127.0.0.
 
     directory = output_dir.resolve()
     progress_path = progress_file.resolve()
+    progress_url = progress_fetch_url(directory, progress_path)
 
     class KnowledgeDashboardHandler(SimpleHTTPRequestHandler):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -714,10 +737,27 @@ def serve_dashboard(output_dir: Path, progress_file: Path, host: str = "127.0.0.
             print(f"[knowledge-dashboard] {self.address_string()} - {format % args}", file=sys.stderr)
 
         def do_GET(self) -> None:  # noqa: N802 - stdlib hook
-            if self.path.split("?", 1)[0] == "/events":
+            request_path = self.path.split("?", 1)[0]
+            if request_path == "/events":
                 self._stream_progress_events()
                 return
+            progress_paths = {progress_url}
+            if not progress_url.startswith("/"):
+                progress_paths.add(f"/{progress_url}")
+            if request_path in progress_paths:
+                self._serve_progress_json()
+                return
             super().do_GET()
+
+        def _serve_progress_json(self) -> None:
+            payload = self._read_progress()
+            encoded = payload.encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(encoded)
 
         def _read_progress(self) -> str:
             try:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 
@@ -39,16 +40,32 @@ def minimal_graph() -> dict:
 def test_dashboard_html_contains_realtime_progress_ui_and_handlers():
     module = load_module()
 
-    html = module.render_interactive_html(minimal_index(), minimal_graph())
+    html = module.render_interactive_html(minimal_index(), minimal_graph(), "index-progress.json")
 
     assert 'id="progress-panel"' in html
     assert 'role="progressbar"' in html
     assert 'id="progress-phase"' in html
     assert 'id="progress-speed"' in html
     assert 'id="progress-errors"' in html
-    assert 'fetch("index-progress.json", {cache:"no-store"})' in html
+    assert "fetch(progressUrl, {cache:\"no-store\"})" in html
+    assert 'const progressUrl = "index-progress.json"' in html
     assert 'new EventSource("/events")' in html
     assert 'events.onmessage' in html
+
+
+def test_progress_fetch_url_uses_alias_when_progress_is_outside_output_dir(tmp_path: Path):
+    module = load_module()
+    output_dir = tmp_path / "dist"
+    progress_path = tmp_path / ".codex" / "knowledge" / "custom-progress.json"
+
+    assert module.progress_fetch_url(output_dir, progress_path) == module.PROGRESS_FETCH_ALIAS
+
+    html = module.render_interactive_html(
+        minimal_index(),
+        minimal_graph(),
+        module.PROGRESS_FETCH_ALIAS,
+    )
+    assert f"const progressUrl = {json.dumps(module.PROGRESS_FETCH_ALIAS)}" in html
 
 
 def test_progress_writer_swallows_io_errors(tmp_path: Path):
