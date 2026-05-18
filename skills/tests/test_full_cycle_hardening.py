@@ -25,6 +25,7 @@ init_spec = load_script_module("full_cycle_init_spec", "codex-spec-driven-develo
 check_spec = load_script_module("full_cycle_check_spec", "codex-spec-driven-development/scripts/check_spec.py")
 knowledge_index = load_script_module("full_cycle_knowledge_index", "codex-project-memory/scripts/build_knowledge_index.py")
 knowledge_graph = load_script_module("full_cycle_knowledge_graph", "codex-project-memory/scripts/build_knowledge_graph.py")
+project_traversal = load_script_module("full_cycle_project_traversal", "codex-project-memory/scripts/project_traversal.py")
 sync_global = load_script_module("full_cycle_sync_global", ".system/scripts/sync_global_skills.py")
 auto_gate = load_script_module("full_cycle_auto_gate", "codex-execution-quality-gate/scripts/auto_gate.py")
 
@@ -350,6 +351,58 @@ def test_knowledge_index_redacts_sensitive_commit_subjects(tmp_path: Path) -> No
     assert "super-secret-value" not in combined
     assert "[REDACTED]" in knowledge_index.redact_text("token=super-secret-value")
 
+
+
+def test_project_traversal_respects_gitignore_and_codexignore(tmp_path: Path) -> None:
+    write(tmp_path / ".gitignore", "ignored-by-git/\n*.tmp\n")
+    write(tmp_path / ".codexignore", "ignored-by-codex/\nsecret.txt\n")
+    write(tmp_path / "src" / "keep.py", "def keep():\n    return True\n")
+    write(tmp_path / "ignored-by-git" / "skip.py", "def skip():\n    return False\n")
+    write(tmp_path / "ignored-by-codex" / "skip.py", "def skip():\n    return False\n")
+    write(tmp_path / "notes.tmp", "temporary\n")
+    write(tmp_path / "secret.txt", "secret\n")
+
+    result = project_traversal.traverse_project(tmp_path)
+    paths = [entry.rel_path for entry in result.files]
+
+    assert paths == [".codexignore", ".gitignore", "src/keep.py"]
+    assert result.coverage["skipped_reasons"]["ignore pattern"] == 4
+
+
+def test_project_traversal_skips_binary_files(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "print('ok')\n")
+    binary = tmp_path / "src" / "image.png"
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    binary.write_bytes(b"\x89PNG\x00binary")
+
+    result = project_traversal.traverse_project(tmp_path)
+
+    assert [entry.rel_path for entry in result.files] == ["src/app.py"]
+    assert any(warning["type"] == "binary_skipped" and warning["path"] == "src/image.png" for warning in result.warnings)
+
+
+def test_knowledge_graph_warns_and_samples_large_files(tmp_path: Path) -> None:
+    large_body = "def header():\n    return 'head'\n" + ("# filler\n" * 2000) + "\ndef tail_symbol():\n    return 'tail'\n"
+    write(tmp_path / "src" / "large.py", large_body)
+    config = project_traversal.TraversalConfig(max_file_bytes=512)
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False, traversal_config=config)
+
+    assert any(warning["type"] == "large_file_sampled" and warning["path"] == "src/large.py" for warning in graph["warnings"])
+    assert graph["coverage"]["bytes_scanned"] <= 512
+    assert "header" in graph["code_index"]["src/large.py"]["definitions"]
+
+
+def test_project_traversal_does_not_follow_symlinks_outside_root(tmp_path: Path) -> None:
+    outside = tmp_path.parent / f"{tmp_path.name}-outside"
+    write(outside / "escape.py", "def escaped():\n    return True\n")
+    write(tmp_path / "inside.py", "def inside():\n    return True\n")
+    (tmp_path / "outside-link").symlink_to(outside, target_is_directory=True)
+
+    result = project_traversal.traverse_project(tmp_path, project_traversal.TraversalConfig(follow_symlinks=False))
+
+    assert [entry.rel_path for entry in result.files] == ["inside.py"]
+    assert any(warning["type"] == "symlink_skipped" and warning["path"] == "outside-link" for warning in result.warnings)
 
 def test_sync_global_dry_run_includes_dot_dirs_and_preserves_system(tmp_path: Path) -> None:
     source = tmp_path / "source"
