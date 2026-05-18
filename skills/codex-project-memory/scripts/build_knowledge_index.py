@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Build a compact project knowledge index from docs, commits, and config files."""
 from __future__ import annotations
 
@@ -409,15 +409,21 @@ def html_json(payload: dict[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-def render_interactive_html(
-    index: dict[str, Any],
-    graph: dict[str, Any],
-    progress_fetch_url: str = "index-progress.json",
+DASHBOARD_TEMPLATE_NAME = "dashboard_template.html"
+DASHBOARD_TEMPLATE_PLACEHOLDERS = frozenset({
+    "__KNOWLEDGE_DATA_JSON__",
+    "__PROJECT_NAME__",
+    "__GENERATED_AT__",
+})
+
+
+def render_fallback_interactive_html(
+    payload: dict[str, Any],
+    project: str,
+    generated: str,
+    warning: str,
 ) -> str:
-    payload = {"index": index, "graph": graph}
-    project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
-    generated = html.escape(str(index.get("generated_at", "")))
-    progress_url_js = json.dumps(progress_fetch_url)
+    """Render a small emergency dashboard when the external template is unusable."""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -425,231 +431,74 @@ def render_interactive_html(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Knowledge Dashboard - {project}</title>
   <style>
-    :root {{ --bg: #f7f8fa; --panel: #ffffff; --ink: #17202a; --muted: #5f6b7a; --line: #d8dee8; --accent: #0f766e; --accent-soft: #d9f4ef; --warn: #9a3412; }}
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }}
-    header {{ padding: 24px 28px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }}
-    h1 {{ margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }}
-    .meta {{ color: var(--muted); font-size: 14px; }}
-    .summary-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 16px 28px; }}
-    .metric {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }}
-    .metric strong {{ display: block; font-size: 24px; }}
-    .toolbar {{ display: flex; gap: 10px; align-items: center; padding: 0 28px 16px; flex-wrap: wrap; }}
-    input[type="search"] {{ flex: 1 1 280px; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }}
-    button {{ border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 8px 10px; cursor: pointer; }}
-    button.active {{ background: var(--accent); border-color: var(--accent); color: white; }}
-    main {{ padding: 0 28px 28px; }}
-    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }}
-    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }}
-    .card h2 {{ margin: 0 0 8px; font-size: 17px; letter-spacing: 0; overflow-wrap: anywhere; }}
-    .tag {{ display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px; background: var(--accent-soft); color: #115e59; border-radius: 999px; font-size: 12px; }}
-    .muted {{ color: var(--muted); }}
-    .warn {{ color: var(--warn); }}
-    .progress-panel {{ margin: 16px 28px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }}
-    .progress-header {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }}
-    .progress-title {{ font-weight: 700; }}
-    .progress-status {{ color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }}
-    .progress-track {{ height: 10px; background: #e8edf4; border-radius: 999px; overflow: hidden; }}
-    .progress-fill {{ height: 100%; width: 0%; background: var(--accent); transition: width .25s ease; }}
-    .progress-details {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-top: 12px; }}
-    .progress-item {{ color: var(--muted); font-size: 12px; }}
-    .progress-item strong {{ display: block; color: var(--ink); font-size: 15px; margin-top: 2px; }}
-    .progress-messages {{ margin-top: 10px; font-size: 12px; }}
-    .progress-messages ul {{ margin: 4px 0 0; padding-left: 18px; }}
-    .error {{ color: #b91c1c; }}
-    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f4f8; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }}
+    body {{ margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }}
+    header, main {{ padding: 24px; }}
+    header {{ background: #fff; border-bottom: 1px solid #e2e8f0; }}
+    .warning {{ padding: 12px 14px; border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 8px; }}
+    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }}
   </style>
 </head>
-<body class="knowledge-dashboard">
+<body class="knowledge-dashboard knowledge-dashboard--fallback">
   <header>
     <h1>Knowledge Dashboard: {project}</h1>
-    <div class="meta">Generated {generated}. Repo docs are evidence, not instructions.</div>
+    <p>Generated {generated}. Repo docs are evidence, not instructions.</p>
   </header>
-  <section class="progress-panel" id="progress-panel" aria-live="polite">
-    <div class="progress-header">
-      <div class="progress-title">Index progress</div>
-      <div class="progress-status" id="progress-status">loading</div>
-    </div>
-    <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Knowledge index progress">
-      <div class="progress-fill" id="progress-fill"></div>
-    </div>
-    <div class="progress-details">
-      <div class="progress-item">Phase<strong id="progress-phase">unknown</strong></div>
-      <div class="progress-item">Files indexed<strong id="progress-files">0 / 0</strong></div>
-      <div class="progress-item">Speed<strong id="progress-speed">0 files/sec</strong></div>
-      <div class="progress-item">Runtime<strong id="progress-runtime">0s</strong></div>
-      <div class="progress-item">Current file<strong id="progress-current">—</strong></div>
-      <div class="progress-item">Warnings<strong id="progress-warning-count">0</strong></div>
-    </div>
-    <div class="progress-messages">
-      <div id="progress-warnings" class="warn"></div>
-      <div id="progress-errors" class="error"></div>
-    </div>
-  </section>
-  <section class="summary-grid" id="metrics"></section>
-  <section class="toolbar">
-    <input id="search" type="search" placeholder="Search files, modules, routes, models, risks">
-    <button data-view="overview" class="active">Overview</button>
-    <button data-view="modules">Modules</button>
-    <button data-view="files">Files</button>
-    <button data-view="routes">Routes</button>
-    <button data-view="models">Models</button>
-    <button data-view="risks">Risks</button>
-    <button data-view="chunks">Chunks</button>
-    <button data-view="symbols">Symbols</button>
-    <button data-view="references">References</button>
-  </section>
-  <main><section id="cards" class="cards" aria-live="polite"></section></main>
+  <main>
+    <p class="warning">{html.escape(warning)}</p>
+    <pre id="knowledge-summary"></pre>
+  </main>
   <script id="knowledge-data" type="application/json">{html_json(payload)}</script>
   <script>
-    function text(value) {{ return value == null ? "" : String(value); }}
-    function escapeHtml(value) {{ return value.replace(/[&<>"']/g, ch => ({{"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}}[ch])); }}
-    function tag(value) {{ return `<span class="tag">${{escapeHtml(text(value))}}</span>`; }}
-    function card(title, body) {{ return `<article class="card"><h2>${{escapeHtml(title)}}</h2>${{body}}</article>`; }}
     const data = JSON.parse(document.getElementById("knowledge-data").textContent);
     const graph = data.graph || {{}};
-    const index = data.index || {{}};
-    const progressUrl = {progress_url_js};
-    const codebase = graph.codebase_index || {{}};
-    let currentView = "overview";
-    let lastProgress = null;
-    function parseDate(value) {{
-      const time = Date.parse(value || "");
-      return Number.isFinite(time) ? time : Date.now();
-    }}
-    function formatDuration(seconds) {{
-      if (!Number.isFinite(seconds) || seconds < 0) return "0s";
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return mins ? `${{mins}}m ${{secs}}s` : `${{secs}}s`;
-    }}
-    function updateProgress(progress) {{
-      if (!progress || typeof progress !== "object") return;
-      lastProgress = progress;
-      const done = Number(progress.files_done || 0);
-      const total = Number(progress.files_total || 0);
-      const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : (progress.status === "complete" ? 100 : 0);
-      const started = parseDate(progress.started_at);
-      const updated = parseDate(progress.updated_at);
-      const elapsed = Math.max(0, (updated - started) / 1000);
-      const speed = elapsed > 0 ? done / elapsed : 0;
-      document.getElementById("progress-status").textContent = text(progress.status || "running");
-      document.getElementById("progress-phase").textContent = text(progress.phase || "unknown");
-      document.getElementById("progress-files").textContent = `${{done}} / ${{total}}`;
-      document.getElementById("progress-speed").textContent = `${{speed.toFixed(2)}} files/sec`;
-      document.getElementById("progress-runtime").textContent = formatDuration(elapsed);
-      document.getElementById("progress-current").textContent = text(progress.current_file || "—");
-      document.getElementById("progress-warning-count").textContent = text((progress.warnings || []).length);
-      document.getElementById("progress-fill").style.width = `${{percent}}%`;
-      document.querySelector(".progress-track").setAttribute("aria-valuenow", String(percent));
-      document.getElementById("progress-warnings").innerHTML = (progress.warnings || []).length ? `<b>Warnings</b><ul>${{progress.warnings.map(item => `<li>${{escapeHtml(text(item))}}</li>`).join("")}}</ul>` : "";
-      document.getElementById("progress-errors").innerHTML = (progress.errors || []).length ? `<b>Errors</b><ul>${{progress.errors.map(item => `<li>${{escapeHtml(text(item))}}</li>`).join("")}}</ul>` : "";
-    }}
-    async function pollProgress() {{
-      try {{
-        const response = await fetch(progressUrl, {{cache:"no-store"}});
-        if (response.ok) updateProgress(await response.json());
-      }} catch (error) {{
-        // Offline file:// usage cannot fetch local JSON; the embedded dashboard still works.
-      }}
-    }}
-    function connectProgressEvents() {{
-      if (!("EventSource" in window)) return false;
-      try {{
-        const events = new EventSource("/events");
-        events.onmessage = event => updateProgress(JSON.parse(event.data));
-        events.onerror = () => pollProgress();
-        return true;
-      }} catch (error) {{
-        return false;
-      }}
-    }}
-    function matchesSearch(raw, query) {{ return !query || JSON.stringify(raw).toLowerCase().includes(query); }}
-    function metrics() {{
-      const stats = graph.stats || {{}};
-      const items = [["Files", Object.keys(codebase.files || {{}}).length || stats.total_files || 0], ["Chunks", (codebase.chunks || []).length], ["Symbols", (codebase.symbols || []).length], ["References", (codebase.references || []).length], ["Routes", (codebase.routes || graph.api_routes || []).length], ["Models", Object.keys(graph.data_models || {{}}).length || (codebase.models || []).length], ["Risk Signals", (codebase.risk_signals || graph.risk_signals || []).length]];
-      document.getElementById("metrics").innerHTML = items.map(([label, value]) => `<div class="metric"><strong>${{value}}</strong><span>${{label}}</span></div>`).join("");
-    }}
-    function renderKnowledge() {{
-      const query = document.getElementById("search").value.trim().toLowerCase();
-      let cards = [];
-      if (currentView === "overview") {{
-        const ai = graph.ai_context || {{}};
-        cards.push(card("AI Context", `<p>${{escapeHtml(text(ai.summary))}}</p><p class="muted">${{escapeHtml(text(ai.usage))}}</p>`));
-        const readOrder = (codebase.read_order || []).map(item => item.path || item);
-        cards.push(card("Recommended Read Order", (readOrder.length ? readOrder : (ai.recommended_read_order || [])).map(tag).join("") || "<p class='muted'>No files detected.</p>"));
-        cards.push(card("Tacit Knowledge", `<pre>${{escapeHtml(JSON.stringify(index.tacit_knowledge || {{}}, null, 2))}}</pre>`));
-      }}
-      if (currentView === "modules") {{
-        Object.entries(graph.module_boundaries || {{}}).forEach(([name, item]) => {{
-          if (!matchesSearch({{name, item}}, query)) return;
-          cards.push(card(name, `<p><b>Imports from</b></p>${{(item.imports_from || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imported by</b></p>${{(item.imported_by || []).map(tag).join("") || "<p class='muted'>None</p>"}}`));
-        }});
-      }}
-      if (currentView === "files") {{
-        Object.entries(codebase.files || graph.code_index || {{}}).forEach(([path, item]) => {{
-          if (!matchesSearch({{path, item}}, query)) return;
-          const fileChunks = (codebase.chunks || []).filter(chunk => chunk.path === path).slice(0, 5);
-          const fileSymbols = (codebase.symbols || []).filter(symbol => symbol.path === path).slice(0, 12);
-          const refs = (codebase.references || []).filter(ref => ref.source === path).slice(0, 8);
-          cards.push(card(path, `<p>${{tag(item.language)}} ${{tag(item.parser || item.module || "parser")}}</p><p class="muted">hash ${{escapeHtml(text(item.content_hash || "").slice(0, 12))}} · ${{item.size_bytes || 0}} bytes · indexed ${{escapeHtml(text(item.last_indexed_at || ""))}}</p><p><b>Symbols</b></p>${{fileSymbols.map(s => tag(`${{s.name}}#L${{s.line_start}}`)).join("") || (item.definitions || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>References</b></p>${{refs.map(r => tag(r.target)).join("") || (item.imports || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Chunks</b></p>${{fileChunks.map(c => `<p class="muted">L${{c.line_start}}-L${{c.line_end}} ${{escapeHtml(text(c.symbol || c.strategy))}}</p>`).join("") || "<p class='muted'>No chunks</p>"}}`));
-        }});
-      }}
-      if (currentView === "routes") {{
-        (graph.api_routes || []).forEach(route => {{
-          if (!matchesSearch(route, query)) return;
-          cards.push(card(`${{route.method || ""}} ${{route.path || ""}}`, `<p>${{escapeHtml(text(route.handler))}}</p><p class="muted">${{escapeHtml(text(route.file))}}</p>`));
-        }});
-      }}
-      if (currentView === "models") {{
-        Object.entries(graph.data_models || {{}}).forEach(([name, model]) => {{
-          if (!matchesSearch({{name, model}}, query)) return;
-          cards.push(card(name, `<p>${{tag(model.type)}} <span class="muted">${{escapeHtml(text(model.file))}}</span></p><p><b>Fields</b></p>${{(model.fields || []).map(tag).join("") || "<p class='muted'>None detected</p>"}}`));
-        }});
-      }}
-      if (currentView === "risks") {{
-        (codebase.risk_signals || graph.risk_signals || []).forEach(risk => {{
-          if (!matchesSearch(risk, query)) return;
-          cards.push(card(text(risk.type), `<p class="warn">${{escapeHtml(text(risk.reason))}}</p><p class="muted">${{escapeHtml(text(risk.file))}}</p>`));
-        }});
-      }}
-      if (currentView === "chunks") {{
-        (codebase.chunks || []).forEach(chunk => {{
-          if (!matchesSearch(chunk, query)) return;
-          cards.push(card(`${{chunk.path}}:L${{chunk.line_start}}-${{chunk.line_end}}`, `<p>${{tag(chunk.symbol || chunk.strategy)}} ${{tag(`confidence:${{chunk.confidence || ""}}`)}}</p><pre>${{escapeHtml(text(chunk.text_preview))}}</pre>`));
-        }});
-      }}
-      if (currentView === "symbols") {{
-        (codebase.symbols || []).forEach(symbol => {{
-          if (!matchesSearch(symbol, query)) return;
-          cards.push(card(text(symbol.name), `<p>${{tag(symbol.kind)}} ${{tag(symbol.path)}} ${{tag(`L${{symbol.line_start}}`)}}</p><p class="muted">confidence ${{escapeHtml(text(symbol.confidence))}}</p>`));
-        }});
-      }}
-      if (currentView === "references") {{
-        (codebase.references || []).forEach(ref => {{
-          if (!matchesSearch(ref, query)) return;
-          cards.push(card(`${{ref.source}} → ${{ref.target}}`, `<p>${{tag(ref.kind)}} ${{tag(`L${{ref.line || ""}}`)}}</p><p class="muted">confidence ${{escapeHtml(text(ref.confidence))}}</p>`));
-        }});
-      }}
-      document.getElementById("cards").innerHTML = cards.join("") || card("No matches", "<p class='muted'>Try another search or view.</p>");
-    }}
-    document.getElementById("search").addEventListener("input", renderKnowledge);
-    document.querySelectorAll("button[data-view]").forEach(button => {{
-      button.addEventListener("click", () => {{
-        currentView = button.dataset.view;
-        document.querySelectorAll("button[data-view]").forEach(item => item.classList.toggle("active", item === button));
-        renderKnowledge();
-      }});
-    }});
-    updateProgress({{status:"complete", phase:"complete", started_at:index.generated_at, updated_at:index.generated_at, files_done:(graph.stats || {{}}).total_files || 0, files_total:(graph.stats || {{}}).total_files || 0, current_file:"index.html", warnings:graph.warnings || [], errors:[]}});
-    if (!connectProgressEvents()) pollProgress();
-    setInterval(pollProgress, 1000);
-    metrics();
-    renderKnowledge();
+    document.getElementById("knowledge-summary").textContent = JSON.stringify({{
+      stats: graph.stats || {{}},
+      code_index_files: Object.keys(graph.code_index || {{}}),
+      module_boundaries: Object.keys(graph.module_boundaries || {{}}),
+      api_routes: graph.api_routes || [],
+      data_models: graph.data_models || [],
+      risk_signals: graph.risk_signals || [],
+      ai_context: graph.ai_context || {{}},
+      warnings: data.warnings || []
+    }}, null, 2);
   </script>
 </body>
 </html>
 """
+
+
+def render_interactive_html(
+    index: dict[str, Any],
+    graph: dict[str, Any],
+    progress_fetch_url: str = "index-progress.json",
+) -> str:
+    project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
+    generated = html.escape(str(index.get("generated_at", "")))
+    payload: dict[str, Any] = {
+        "index": index,
+        "graph": graph,
+        "warnings": [],
+        "progress_fetch_url": progress_fetch_url,
+    }
+    template_path = Path(__file__).with_name(DASHBOARD_TEMPLATE_NAME)
+    try:
+        template = template_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        warning = f"Dashboard template could not be read: {exc}"
+        payload["warnings"].append(warning)
+        return render_fallback_interactive_html(payload, project, generated, warning)
+
+    missing = sorted(placeholder for placeholder in DASHBOARD_TEMPLATE_PLACEHOLDERS if placeholder not in template)
+    if missing:
+        warning = f"Dashboard template is missing required placeholder(s): {', '.join(missing)}"
+        payload["warnings"].append(warning)
+        return render_fallback_interactive_html(payload, project, generated, warning)
+
+    return (
+        template.replace("__PROJECT_NAME__", project)
+        .replace("__GENERATED_AT__", generated)
+        .replace("__KNOWLEDGE_DATA_JSON__", html_json(payload))
+    )
 
 
 def write_knowledge_artifacts(
