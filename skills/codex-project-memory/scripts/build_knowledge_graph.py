@@ -16,6 +16,13 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from redaction import REDACTION_PATTERNS_VERSION, redact_artifact
+
+
 SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -129,6 +136,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
+    parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
     return parser.parse_args()
 
 
@@ -439,6 +447,27 @@ def line_count(lines: Sequence[str]) -> int:
     return len(lines)
 
 
+def build_chunk_preview(lines: Sequence[str], max_lines: int = 5) -> str:
+    preview_lines = [line.strip() for line in lines if line.strip()]
+    return "\n".join(preview_lines[:max_lines])
+
+
+def build_chunks(lines: Sequence[str], chunk_size: int = 80) -> List[Dict[str, object]]:
+    chunks: List[Dict[str, object]] = []
+    for start in range(0, len(lines), chunk_size):
+        section = lines[start : start + chunk_size]
+        if not section:
+            continue
+        chunks.append({
+            "start_line": start + 1,
+            "end_line": start + len(section),
+            "preview": build_chunk_preview(section),
+        })
+        if len(chunks) >= 5:
+            break
+    return chunks
+
+
 def build_code_index(
     project_root: Path,
     files: List[Path],
@@ -476,6 +505,8 @@ def build_code_index(
             "parser": parser_metadata(file_path),
             "lines": line_count(lines),
             "definitions": definitions[:40],
+            "preview": build_chunk_preview(lines),
+            "chunks": build_chunks(lines),
             "imports": sorted(imports_map.get(rel, set())),
             "imported_by": sorted(reverse_map.get(rel, set())),
             "external_imports": externals,
@@ -1172,7 +1203,7 @@ def to_module_boundary_output(boundaries: Dict[str, Dict[str, Set[str]]]) -> Dic
     return output
 
 
-def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
+def build_graph(project_root: Path, include_tests: bool, redaction_enabled: bool = True) -> Dict[str, object]:
     files = collect_code_files(project_root, include_tests=include_tests)
     imports_map, reverse_map, raw_content, aux = build_dependency_graph(project_root, files)
     warnings: List[str] = list(aux["warnings"])
@@ -1207,6 +1238,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
         },
         "file_dependencies": dependency_tree,
         "code_index": code_index,
+        "codebase_index": code_index,
         "entrypoints": entrypoints,
         "external_dependencies": external_dependencies,
         "module_boundaries": module_boundaries,
@@ -1230,6 +1262,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
         "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
         "warnings": sorted(dict.fromkeys(warnings)),
     }
+    graph, _count = redact_artifact(graph, "knowledge-graph.json", enabled=redaction_enabled)
     return graph
 
 
@@ -1243,7 +1276,7 @@ def main() -> int:
         return 1
 
     try:
-        graph = build_graph(project_root, include_tests=args.include_tests)
+        graph = build_graph(project_root, include_tests=args.include_tests, redaction_enabled=not args.no_redaction)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(graph, handle, ensure_ascii=False, indent=2)
