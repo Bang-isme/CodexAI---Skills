@@ -272,6 +272,7 @@ Required contracts:
 | Runtime hook output | `codex-runtime-hook/references/runtime-hook-output.schema.json` |
 | Spec markdown | `codex-spec-driven-development/references/spec.schema.json` |
 | Knowledge index | `codex-project-memory/references/knowledge-index.schema.json` |
+| Knowledge graph | `codex-project-memory/references/knowledge-graph.schema.json` |
 
 Safety defaults:
 

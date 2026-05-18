@@ -162,8 +162,10 @@ def test_knowledge_index_builds_from_docs_and_config(tmp_path: Path) -> None:
 
     index = knowledge_index.build_index(tmp_path)
 
-    assert index["schema_version"] == "1.0"
-    assert index["status"] == "built"
+    assert index["schema_version"] == "2.0"
+    assert index["artifact_type"] == "knowledge-index"
+    assert "status" not in index
+    assert {"generated_at", "project_root", "stats", "warnings", "redaction"}.issubset(index)
     assert index["sources"]["genome"] == "present"
     assert index["sources"]["role_docs"]["docs_count"] == 1
     assert "Project Genome" in index["architecture_seams"]
@@ -202,6 +204,11 @@ def test_knowledge_graph_builds_code_index_and_ai_context(tmp_path: Path) -> Non
 
     graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
 
+    assert graph["schema_version"] == "2.0"
+    assert graph["artifact_type"] == "knowledge-graph"
+    assert {"generated_at", "project_root", "stats", "warnings", "redaction"}.issubset(graph)
+    assert "status" not in graph
+    assert "path" not in graph
     assert graph["stats"]["total_files"] == 3
     assert graph["code_index"]["src/controllers/auth.controller.js"]["module"] == "controllers"
     assert "src/models/user.model.js" in graph["code_index"]["src/controllers/auth.controller.js"]["imports"]
@@ -352,7 +359,17 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     html = Path(payload["html_path"]).read_text(encoding="utf-8")
     graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
 
+    index_artifact = json.loads(Path(payload["index_path"]).read_text(encoding="utf-8"))
+
     assert payload["status"] == "built"
+    assert payload["schema_version"] == "2.0"
+    assert {"index_path", "markdown_path", "graph_path", "html_path"}.issubset(payload)
+    assert index_artifact["artifact_type"] == "knowledge-index"
+    assert graph["artifact_type"] == "knowledge-graph"
+    assert "status" not in index_artifact
+    assert "path" not in index_artifact
+    assert "status" not in graph
+    assert "path" not in graph
     assert "knowledge-dashboard" in html
     assert "data-template=\"codex-project-memory-dashboard\"" in html
     assert "<script id=\"kd\" type=\"application/json\">" in html
@@ -364,6 +381,45 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     assert graph["stats"]["total_files"] >= 1
     assert graph["api_routes"]
     assert graph["ai_context"]["recommended_read_order"]
+
+
+def test_knowledge_artifact_schema_files_require_common_metadata() -> None:
+    references = Path(__file__).resolve().parents[1] / "codex-project-memory" / "references"
+    for name, artifact_type in (
+        ("knowledge-index.schema.json", "knowledge-index"),
+        ("knowledge-graph.schema.json", "knowledge-graph"),
+    ):
+        schema = json.loads((references / name).read_text(encoding="utf-8"))
+        required = set(schema["required"])
+        assert {
+            "schema_version",
+            "artifact_type",
+            "generated_at",
+            "project_root",
+            "stats",
+            "warnings",
+            "redaction",
+        }.issubset(required)
+        assert schema["properties"]["schema_version"]["const"] == "2.0"
+        assert schema["properties"]["artifact_type"]["const"] == artifact_type
+
+
+def test_knowledge_artifact_required_fields_without_external_validator(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "main.py", "def run():\n    return True\n")
+
+    index = knowledge_index.build_index(tmp_path)
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+
+    for artifact, artifact_type in ((index, "knowledge-index"), (graph, "knowledge-graph")):
+        assert artifact["schema_version"] == "2.0"
+        assert artifact["artifact_type"] == artifact_type
+        assert isinstance(artifact["generated_at"], str) and artifact["generated_at"]
+        assert artifact["project_root"] == tmp_path.as_posix()
+        assert isinstance(artifact["stats"], dict)
+        assert isinstance(artifact["warnings"], list)
+        assert isinstance(artifact["redaction"], dict)
+        assert "status" not in artifact
+        assert "path" not in artifact
 
 
 def test_knowledge_index_template_replaces_metadata_before_json_payload() -> None:
@@ -463,7 +519,7 @@ def test_knowledge_graph_warns_and_samples_large_files(tmp_path: Path) -> None:
 
     graph = knowledge_graph.build_graph(tmp_path, include_tests=False, traversal_config=config)
 
-    assert any(warning["type"] == "large_file_sampled" and warning["path"] == "src/large.py" for warning in graph["warnings"])
+    assert any("large_file_sampled" in warning and "src/large.py" in warning for warning in graph["warnings"])
     assert graph["coverage"]["bytes_scanned"] <= 512
     assert "header" in graph["code_index"]["src/large.py"]["definitions"]
 
@@ -548,11 +604,12 @@ def test_contract_schema_files_are_parseable() -> None:
         SKILLS_ROOT / "codex-runtime-hook" / "references" / "runtime-hook-output.schema.json",
         SKILLS_ROOT / "codex-spec-driven-development" / "references" / "spec.schema.json",
         SKILLS_ROOT / "codex-project-memory" / "references" / "knowledge-index.schema.json",
+        SKILLS_ROOT / "codex-project-memory" / "references" / "knowledge-graph.schema.json",
     ]
 
     for path in schema_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        assert payload["schema_version"] == "1.0"
+        assert payload["schema_version"] in {"1.0", "2.0"}
 
 
 def test_redact_artifact_preserves_dict_keys_that_would_collide() -> None:

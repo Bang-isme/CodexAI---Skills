@@ -1,0 +1,86 @@
+{
+  "schema_version": "2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Memory Knowledge Graph Artifact",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "generated_at",
+    "project_root",
+    "stats",
+    "warnings",
+    "redaction",
+    "file_dependencies",
+    "code_index",
+    "entrypoints",
+    "external_dependencies",
+    "module_boundaries",
+    "api_routes",
+    "data_models",
+    "risk_signals",
+    "ai_context",
+    "human_context",
+    "circular_dependencies"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "artifact_type": {"const": "knowledge-graph"},
+    "generated_at": {"type": "string", "description": "ISO-8601 timestamp for artifact generation."},
+    "project_root": {"type": "string"},
+    "stats": {
+      "type": "object",
+      "required": ["total_files", "total_edges", "modules", "routes", "models", "circular_dependencies"],
+      "properties": {
+        "total_files": {"type": "integer", "minimum": 0},
+        "total_edges": {"type": "integer", "minimum": 0},
+        "modules": {"type": "integer", "minimum": 0},
+        "routes": {"type": "integer", "minimum": 0},
+        "models": {"type": "integer", "minimum": 0},
+        "circular_dependencies": {"type": "integer", "minimum": 0}
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "redaction": {
+      "type": "object",
+      "required": ["enabled", "strategy", "description"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "strategy": {"type": "string"},
+        "description": {"type": "string"}
+      }
+    },
+    "file_dependencies": {"type": "object"},
+    "code_index": {"type": "object", "additionalProperties": {"$ref": "#/$defs/code_file"}},
+    "entrypoints": {"type": "array", "items": {"type": "string"}},
+    "external_dependencies": {"type": "object"},
+    "module_boundaries": {"type": "object"},
+    "api_routes": {"type": "array"},
+    "data_models": {"type": "object"},
+    "risk_signals": {"type": "array"},
+    "ai_context": {"type": "object"},
+    "human_context": {"type": "object"},
+    "circular_dependencies": {"type": "array"}
+  },
+  "$defs": {
+    "code_file": {
+      "type": "object",
+      "required": ["path", "language", "module", "parser", "lines", "definitions", "imports", "imported_by", "external_imports", "is_test", "is_entrypoint", "risk_tags"],
+      "properties": {
+        "path": {"type": "string"},
+        "language": {"type": "string"},
+        "module": {"type": "string"},
+        "parser": {"type": "object"},
+        "lines": {"type": "integer", "minimum": 0},
+        "definitions": {"type": "array", "items": {"type": "string"}},
+        "imports": {"type": "array", "items": {"type": "string"}},
+        "imported_by": {"type": "array", "items": {"type": "string"}},
+        "external_imports": {"type": "array", "items": {"type": "string"}},
+        "is_test": {"type": "boolean"},
+        "is_entrypoint": {"type": "boolean"},
+        "risk_tags": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

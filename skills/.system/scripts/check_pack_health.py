@@ -35,6 +35,8 @@ REQUIRED_PLUGIN_ROOT_PATHS = [
     ".agents/plugins/marketplace.json",
     "hooks/hooks.json",
 ]
+SCHEMA_VERSION_PATTERN = re.compile(r"^\d+\.\d+$")
+
 MOJIBAKE_PATTERNS = [
     "\u00e2\u20ac\u201d",
     "\u00e2\u2020\u2019",
@@ -245,6 +247,7 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         "codex-runtime-hook/references/runtime-hook-output.schema.json",
         "codex-spec-driven-development/references/spec.schema.json",
         "codex-project-memory/references/knowledge-index.schema.json",
+        "codex-project-memory/references/knowledge-graph.schema.json",
     ]
     schema_failures: list[str] = []
     for rel in schema_paths:
@@ -257,13 +260,14 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         except Exception as exc:
             schema_failures.append(f"{rel}: invalid JSON ({exc})")
             continue
-        if str(payload.get("schema_version", "")) != "1.0":
-            schema_failures.append(f"{rel}: missing schema_version 1.0")
+        schema_version = payload.get("schema_version")
+        if not isinstance(schema_version, str) or not SCHEMA_VERSION_PATTERN.fullmatch(schema_version):
+            schema_failures.append(f"{rel}: invalid schema_version (expected MAJOR.MINOR string)")
     add(
         checks,
         "contract_schemas",
         "pass" if not schema_failures else "fail",
-        "contract schemas parse and declare schema_version 1.0" if not schema_failures else "; ".join(schema_failures),
+        "contract schemas parse and declare schema_version" if not schema_failures else "; ".join(schema_failures),
         failures=schema_failures,
     )
 
@@ -377,6 +381,7 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-runtime-hook/scripts/install_codex_hooks.py",
         "codex-runtime-hook/scripts/validate_codex_hooks.py",
         "codex-project-memory/references/knowledge-index.schema.json",
+        "codex-project-memory/references/knowledge-graph.schema.json",
         "codex-logical-decision-layer/SKILL.md",
         "codex-spec-driven-development/SKILL.md",
         "codex-spec-driven-development/references/spec.schema.json",

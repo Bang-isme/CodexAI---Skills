@@ -11,10 +11,12 @@ import json
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+SCHEMA_VERSION = "2.0"
+GRAPH_ARTIFACT_TYPE = "knowledge-graph"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -151,6 +153,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
     load_traversal().add_traversal_args(parser)
     return parser.parse_args()
+
+
+def normalize_warning_messages(warnings: List[Any]) -> List[str]:
+    messages: List[str] = []
+    for item in warnings:
+        if isinstance(item, str):
+            messages.append(item)
+        elif isinstance(item, dict):
+            parts = [str(item[key]) for key in ("severity", "type", "path", "reason") if item.get(key)]
+            messages.append(": ".join(parts) if parts else json.dumps(item, sort_keys=True))
+        else:
+            messages.append(str(item))
+    return sorted(dict.fromkeys(messages))
 
 
 def emit(payload: Dict[str, object]) -> None:
@@ -1340,7 +1355,9 @@ def build_graph(
     )
 
     graph = {
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": GRAPH_ARTIFACT_TYPE,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "project_root": project_root.as_posix(),
         "stats": {
             "total_files": len(files),
@@ -1352,6 +1369,12 @@ def build_graph(
             "files_scanned": traversal_result.coverage["files_scanned"],
             "files_skipped": traversal_result.coverage["files_skipped"],
             "bytes_scanned": traversal_result.coverage["bytes_scanned"],
+        },
+        "warnings": normalize_warning_messages(warnings),
+        "redaction": {
+            "enabled": False,
+            "strategy": "none",
+            "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names only; source bodies are not persisted.",
         },
         "coverage": traversal_result.coverage,
         "file_dependencies": dependency_tree,
@@ -1379,10 +1402,6 @@ def build_graph(
             entrypoints,
         ),
         "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
-        "warnings": sorted(
-            {json.dumps(item, sort_keys=True): item for item in warnings}.values(),
-            key=lambda item: (str(item.get("severity", "")), str(item.get("type", "")), str(item.get("path", ""))),
-        ),
     }
     graph, _count = redact_artifact(graph, "knowledge-graph.json", enabled=redaction_enabled)
     return graph

@@ -70,6 +70,7 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
         "codex-runtime-hook/references/runtime-hook-output.schema.json",
         "codex-spec-driven-development/references/spec.schema.json",
         "codex-project-memory/references/knowledge-index.schema.json",
+        "codex-project-memory/references/knowledge-graph.schema.json",
     ]:
         write(skills_root / schema, json.dumps({"schema_version": "1.0"}))
     aliases = "\n".join(pack_health.REQUIRED_ALIASES)
