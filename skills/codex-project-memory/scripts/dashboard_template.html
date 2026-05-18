@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Knowledge Graph — %%PROJECT%%</title>
+<title>Knowledge Graph — __PROJECT_NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -133,7 +133,8 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
   font-size:12.5px;color:var(--ink);outline:none;
 }
 .tb-search input::placeholder{color:var(--ink3)}
-.tb-actions{display:flex;gap:5px;margin-left:auto}
+.tb-generated{margin-left:auto;color:var(--ink3);font-size:11.5px;white-space:nowrap}
+.tb-actions{display:flex;gap:5px}
 .tb-actions button{
   display:flex;align-items:center;gap:5px;
   background:var(--bg2);border:1px solid var(--line);color:var(--ink2);
@@ -662,12 +663,12 @@ b{color:var(--ink)}
 }
 </style>
 </head>
-<body>
+<body class="knowledge-dashboard" data-template="codex-project-memory-dashboard">
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
   <div class="sb-brand">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-    <span class="sb-brand-text">%%PROJECT%%</span>
+    <span class="sb-brand-text">__PROJECT_NAME__</span>
   </div>
   <ul class="sb-nav" id="sb-nav">
     <li><a data-tab="overview" class="active"><span class="sb-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="sb-label">Overview</span></a></li>
@@ -694,6 +695,7 @@ b{color:var(--ink)}
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.7" y2="16.7"/></svg>
     <input id="search" type="search" placeholder="Search across all views…">
   </div>
+  <div class="tb-generated" title="Generated at">Generated __GENERATED_AT__</div>
   <div class="tb-actions" id="tb-actions">
     <button id="btn-export" type="button" aria-label="Export graph as PNG"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
     <button id="btn-copy" type="button" aria-label="Copy all file paths"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button>
@@ -723,14 +725,15 @@ b{color:var(--ink)}
 <div class="toast-container" id="toast-container"></div>
 
 <!-- DATA -->
-<script id="kd" type="application/json">%%DATA%%</script>
+<script id="kd" type="application/json">__KNOWLEDGE_DATA_JSON__</script>
 <script>
 (function(){
-const D=JSON.parse(document.getElementById('kd').textContent),G=D.graph||{},IX=D.index||{};
+const D=JSON.parse(document.getElementById('kd').textContent),G=D.graph||{},IX=D.index||{},CBI=(D.graph||{}).codebase_index||{};
 let view='overview',sortKey='name',graphStop=null;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const esc=v=>(v==null?'':String(v)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ci=G.code_index||{};
+const ci=Object.keys(CBI.files||{}).length?(CBI.files||{}):(G.code_index||{});
+const cChunks=CBI.chunks||[],cSymbols=CBI.symbols||[],cRefs=CBI.references||[];
 
 /* ======== SVG ICON FACTORY ======== */
 const svg=(p,o={})=>`<svg width="${o.s||18}" height="${o.s||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${o.sw||2}" stroke-linecap="round" stroke-linejoin="round" class="${o.c||''}">${p}</svg>`;
@@ -918,12 +921,15 @@ function renderOverview(q){
   const panel=$('#panel-overview');if(!panel)return;
   const s=G.stats||{},coverage=G.coverage||{},ext=Object.keys(G.external_dependencies||{}).length,r=(G.risk_signals||[]).length;
   const metrics=[
-    {l:'Files',v:s.total_files||coverage.files_scanned||0,icon:I.file,cls:'mc-a'},
+    {l:'Files',v:Object.keys(CBI.files||{}).length||s.total_files||coverage.files_scanned||0,icon:I.file,cls:'mc-a'},
     {l:'Skipped',v:coverage.files_skipped||s.files_skipped||0,icon:I.warning,cls:'mc-w'},
     {l:'Bytes',v:coverage.bytes_scanned||s.bytes_scanned||0,icon:I.database,cls:'mc-a'},
     {l:'Modules',v:s.modules||0,icon:I.folder,cls:'mc-a'},
-    {l:'Edges',v:s.total_edges||0,icon:I.graph,cls:'mc-a'},
-    {l:'Warnings',v:(G.warnings||[]).length,icon:I.warning,cls:'mc-r'},
+    {l:'Chunks',v:cChunks.length,icon:I.code,cls:'mc-a'},
+    {l:'Symbols',v:cSymbols.length,icon:I.graph,cls:'mc-a'},
+    {l:'Routes',v:s.routes||0,icon:I.route,cls:'mc-g'},
+    {l:'Models',v:s.models||0,icon:I.database,cls:'mc-g'},
+    {l:'Ext Deps',v:ext,icon:I.package,cls:'mc-w'},
     {l:'Risks',v:r,icon:I.warning,cls:'mc-r'}
   ];
   let html=`<div class="metrics-grid">${metrics.map(m=>`<div class="metric-card"><div class="mc-icon ${m.cls}">${m.icon({s:20})}</div><div><div class="mc-val">${m.v}</div><div class="mc-lbl">${m.l}</div></div></div>`).join('')}</div>`;
@@ -1028,8 +1034,10 @@ function renderFiles(q){
     html+=`<div class="card"><h3 style="cursor:pointer" onclick="openDossier('${esc(p).replace(/'/g,"\\'")}')">${fileIcon(p)({s:16})} ${esc(p.split('/').pop())}</h3>
       <p class="muted" style="margin:4px 0">${desc(p)}</p>
       <p>${tags.join(' ')} <span class="muted">${f.lines||0} lines</span></p>
-      ${details('Exports ('+(f.definitions||[]).length+')',(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>',false)}
-      ${details('Imports ('+(f.imports||[]).length+')',(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>',false)}
+      ${f.content_hash?`<p class="muted2">hash ${esc(String(f.content_hash).slice(0,12))} · ${f.size_bytes||0} bytes · parser ${esc(f.parser||'')}</p>`:''}
+      ${details('Symbols ('+(cSymbols.filter(s=>s.path===p).length||((f.definitions||[]).length))+')',(cSymbols.filter(s=>s.path===p).slice(0,25).map(s=>tag(`${s.name}#L${s.line_start}`)).join('')||(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>'),false)}
+      ${details('References ('+(cRefs.filter(r=>r.source===p).length||((f.imports||[]).length))+')',(cRefs.filter(r=>r.source===p).slice(0,25).map(r=>tag(r.target)).join('')||(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>'),false)}
+      ${details('Chunks ('+cChunks.filter(c=>c.path===p).length+')',cChunks.filter(c=>c.path===p).slice(0,6).map(c=>`<div class="row-flex"><span class="muted">L${c.line_start}-L${c.line_end}</span> ${tag(c.symbol||c.strategy)}</div>`).join('')||'<span class="muted">No chunks</span>',false)}
       ${details('Used By ('+impBy.length+')',impByHtml,(impBy.length>0&&impBy.length<=5))}</div>`;
   });
   html+=`</div>`;
@@ -1586,12 +1594,16 @@ window.openDossier=function(path){
   const name=path.split('/').pop(),purpose=desc(path);
   const imp=info.imports||[],impBy=info.imported_by||[],defs=info.definitions||[];
   const extI=info.external_imports||[],risks=info.risk_tags||[];
-  const relRoutes=(G.api_routes||[]).filter(r=>r.file===path);
+  const relRoutes=(CBI.routes||G.api_routes||[]).filter(r=>r.file===path);
+  const fileChunks=cChunks.filter(c=>c.path===path);
+  const fileSymbols=cSymbols.filter(s=>s.path===path);
+  const fileRefs=cRefs.filter(r=>r.source===path);
   let h=`<div class="dos-head panel-head panel-head--grad"><div class="dos-icon panel-icon">${fileIcon(path)({s:24})}</div><div style="flex:1;min-width:0"><h2 class="panel-title">${esc(name)}</h2><div class="dos-path panel-sub">${esc(path)}</div><div class="panel-tags">${roleBadge(path)} ${tag(info.language,'','Language')} ${tag(info.module,'','Module')} ${info.is_entrypoint?tag('ENTRYPOINT','w','Entry point'):''}</div></div><button type="button" class="dos-close panel-close" aria-label="Close dossier">\u2715</button></div>`;
   h+=`<div class="dos-section panel-section"><h3>Purpose</h3><p>${esc(purpose)}</p></div>`;
-  h+=`<div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${info.lines||0}</b> lines</div><div class="dos-stat"><b>${defs.length}</b> exports</div><div class="dos-stat"><b>${imp.length}</b> imports</div><div class="dos-stat"><b>${impBy.length}</b> dependents</div><div class="dos-stat"><b>${extI.length}</b> packages</div>${risks.length?`<div class="dos-stat danger"><b>${risks.length}</b> risks</div>`:''}</div>`;
-  h+=`<div class="dos-section"><h3>Exports (${defs.length})</h3><div class="dos-list">${defs.length?defs.map(d=>`<div class="dos-list-item">${tag(d)}</div>`).join(''):'<p class="muted">No exported definitions</p>'}</div></div>`;
-  h+=`<div class="dos-section"><h3>Imports (${imp.length})</h3><div class="dos-list">${imp.length?imp.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Self-contained</p>'}</div></div>`;
+  h+=`<div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${info.lines||0}</b> lines</div><div class="dos-stat"><b>${fileSymbols.length||defs.length}</b> symbols</div><div class="dos-stat"><b>${fileRefs.length||imp.length}</b> refs</div><div class="dos-stat"><b>${fileChunks.length}</b> chunks</div><div class="dos-stat"><b>${impBy.length}</b> dependents</div><div class="dos-stat"><b>${extI.length}</b> packages</div>${risks.length?`<div class="dos-stat danger"><b>${risks.length}</b> risks</div>`:''}</div>`;
+  h+=`<div class="dos-section"><h3>Symbols (${fileSymbols.length||defs.length})</h3><div class="dos-list">${fileSymbols.length?fileSymbols.map(s=>`<div class="dos-list-item">${tag(`${s.name}#L${s.line_start}`)} <span class="muted2">${esc(s.kind||'symbol')}</span></div>`).join(''):(defs.length?defs.map(d=>`<div class="dos-list-item">${tag(d)}</div>`).join(''):'<p class="muted">No symbols detected</p>')}</div></div>`;
+  h+=`<div class="dos-section"><h3>References (${fileRefs.length||imp.length})</h3><div class="dos-list">${fileRefs.length?fileRefs.map(r=>`<div class="dos-list-item">${tag(r.target)} <span class="muted2">${esc(r.kind||'reference')}</span></div>`).join(''):(imp.length?imp.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Self-contained</p>')}</div></div>`;
+  if(fileChunks.length)h+=`<div class="dos-section"><h3>Chunks (${fileChunks.length})</h3>${fileChunks.slice(0,8).map(c=>`<div class="insight"><b>L${c.line_start}-L${c.line_end} ${esc(c.symbol||c.strategy)}</b><p>${esc(c.text_preview||'').slice(0,240)}</p></div>`).join('')}</div>`;
   h+=`<div class="dos-section"><h3>Used By (${impBy.length})</h3><div class="dos-list">${impBy.length?impBy.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Leaf node</p>'}</div></div>`;
   if(extI.length)h+=`<div class="dos-section"><h3>External Packages (${extI.length})</h3><div class="dos-list">${extI.map(i=>`<div class="dos-list-item">${tag(i,'w')}</div>`).join('')}</div></div>`;
   if(risks.length)h+=`<div class="dos-section"><h3>Risk Signals</h3>${risks.map(r=>`<div class="insight risk">${esc(r)}</div>`).join('')}</div>`;
