@@ -6,17 +6,24 @@ Build a project knowledge graph with dependencies, module boundaries, routes, an
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
-import os
 import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 SCHEMA_VERSION = "2.0"
 GRAPH_ARTIFACT_TYPE = "knowledge-graph"
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from redaction import REDACTION_PATTERNS_VERSION, redact_artifact
+
 
 SKIP_DIRS = {
     ".git",
@@ -89,6 +96,18 @@ ROUTE_CALL_PATTERN = re.compile(
 )
 ROUTE_FILE_HINT = re.compile(r"route", re.IGNORECASE)
 
+
+def load_traversal():
+    traversal_path = Path(__file__).with_name("project_traversal.py")
+    spec = importlib.util.spec_from_file_location("codexai_project_traversal", traversal_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Unable to load traversal helper: {traversal_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 MODULE_HINTS = {
     "controllers",
     "services",
@@ -131,11 +150,57 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
+    parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
+    load_traversal().add_traversal_args(parser)
     return parser.parse_args()
+
+
+def normalize_warning_messages(warnings: List[Any]) -> List[str]:
+    messages: List[str] = []
+    for item in warnings:
+        if isinstance(item, str):
+            messages.append(item)
+        elif isinstance(item, dict):
+            parts = [str(item[key]) for key in ("severity", "type", "path", "reason") if item.get(key)]
+            messages.append(": ".join(parts) if parts else json.dumps(item, sort_keys=True))
+        else:
+            messages.append(str(item))
+    return sorted(dict.fromkeys(messages))
 
 
 def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def load_codebase_indexer():
+    indexer_path = Path(__file__).with_name("codebase_indexer.py")
+    spec = importlib.util.spec_from_file_location("codexai_codebase_indexer", indexer_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Unable to load codebase indexer: {indexer_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def compact_codebase_index(index: Dict[str, object]) -> Dict[str, object]:
+    return {
+        key: index.get(key)
+        for key in (
+            "schema_version",
+            "generated_at",
+            "files",
+            "chunks",
+            "symbols",
+            "references",
+            "routes",
+            "models",
+            "configs",
+            "risk_signals",
+            "read_order",
+            "confidence",
+            "semantic",
+        )
+    }
 
 
 def normalize_rel(path: Path, root: Path) -> str:
@@ -158,36 +223,37 @@ def is_test_file(rel_path: str) -> bool:
 
 
 def collect_code_files(project_root: Path, include_tests: bool) -> List[Path]:
-    files: List[Path] = []
-    for current_root, dirs, names in os.walk(project_root):
-        dirs[:] = [item for item in dirs if item not in SKIP_DIRS]
-        root_path = Path(current_root)
-        for name in names:
-            path = root_path / name
-            if path.suffix.lower() not in LANGUAGE_REGISTRY:
-                continue
-            rel = normalize_rel(path, project_root)
-            if not include_tests and is_test_file(rel):
-                continue
-            files.append(path)
-    return sorted(files)
+    traversal = collect_code_file_entries(project_root, include_tests=include_tests)
+    return [entry.path for entry in traversal.files]
 
 
-def read_limited(path: Path, warnings: List[str], rel_file: str) -> Tuple[str, List[str]]:
-    lines: List[str] = []
+def collect_code_file_entries(
+    project_root: Path,
+    include_tests: bool,
+    traversal_config=None,
+):
+    traversal = load_traversal()
+
+    def code_filter(rel: str, path: Path) -> bool:
+        if path.suffix.lower() not in LANGUAGE_REGISTRY:
+            return False
+        if not include_tests and is_test_file(rel):
+            return False
+        return True
+
+    return traversal.traverse_project(project_root, traversal_config, file_filter=code_filter)
+
+
+def read_limited(path: Path, warnings: List[dict[str, str]], rel_file: str) -> Tuple[str, List[str]]:
+    traversal = load_traversal()
     try:
-        with path.open("r", encoding="utf-8", errors="ignore") as handle:
-            for line_no, raw in enumerate(handle, start=1):
-                if line_no <= 500:
-                    lines.append(raw.rstrip("\n\r"))
-                if line_no > 2000:
-                    warnings.append(f"Large file truncated to first 500 lines: {rel_file}")
-                    break
-    except OSError:
-        warnings.append(f"Unable to read file: {rel_file}")
+        content, _bytes_read, large = traversal.sample_for_index(path, traversal.TraversalConfig().max_file_bytes)
+    except OSError as exc:
+        warnings.append(traversal.structured_warning("read_error", rel_file, f"Unable to read file: {exc}", "warning"))
         return "", []
-    text = "\n".join(lines)
-    return text, lines
+    if large:
+        warnings.append(traversal.structured_warning("large_file_sampled", rel_file, "sampled with header, symbol window, and tail metadata", "warning"))
+    return content, content.splitlines()
 
 
 class LanguageProfile:
@@ -234,13 +300,27 @@ def extract_go_imports(file_path: Path, content: str) -> List[str]:
     return unique_sorted(modules)
 
 
+def normalize_rust_use_path(cleaned: str) -> str:
+    value = cleaned.strip()
+    if not value:
+        return ""
+    first = value.split("::", 1)[0].strip("{} ")
+    if first in {"crate", "self", "super"}:
+        if "{" in value:
+            value = value.split("{", 1)[0].rstrip(":").strip()
+        return value
+    if "::{" in value:
+        return value.split("::{", 1)[0].strip()
+    return value.split("::", 1)[0].strip()
+
+
 def extract_rust_imports(file_path: Path, content: str) -> List[str]:
     modules: List[str] = []
     for raw in RUST_USE_PATTERN.findall(content):
         cleaned = re.sub(r"\s+as\s+\w+", "", raw).strip()
-        first = cleaned.split("::", 1)[0].strip("{} ")
-        if first:
-            modules.append(first if first in {"crate", "self", "super"} else cleaned.split("::{", 1)[0].strip())
+        normalized = normalize_rust_use_path(cleaned)
+        if normalized:
+            modules.append(normalized)
     for match in re.findall(r"\bmod\s+([A-Za-z_]\w*)\s*;", content):
         modules.append(f"self::{match}")
     return unique_sorted(modules)
@@ -441,6 +521,27 @@ def line_count(lines: Sequence[str]) -> int:
     return len(lines)
 
 
+def build_chunk_preview(lines: Sequence[str], max_lines: int = 5) -> str:
+    preview_lines = [line.strip() for line in lines if line.strip()]
+    return "\n".join(preview_lines[:max_lines])
+
+
+def build_chunks(lines: Sequence[str], chunk_size: int = 80) -> List[Dict[str, object]]:
+    chunks: List[Dict[str, object]] = []
+    for start in range(0, len(lines), chunk_size):
+        section = lines[start : start + chunk_size]
+        if not section:
+            continue
+        chunks.append({
+            "start_line": start + 1,
+            "end_line": start + len(section),
+            "preview": build_chunk_preview(section),
+        })
+        if len(chunks) >= 5:
+            break
+    return chunks
+
+
 def build_code_index(
     project_root: Path,
     files: List[Path],
@@ -478,6 +579,8 @@ def build_code_index(
             "parser": parser_metadata(file_path),
             "lines": line_count(lines),
             "definitions": definitions[:40],
+            "preview": build_chunk_preview(lines),
+            "chunks": build_chunks(lines),
             "imports": sorted(imports_map.get(rel, set())),
             "imported_by": sorted(reverse_map.get(rel, set())),
             "external_imports": externals,
@@ -703,6 +806,44 @@ def resolve_import_module(importer: Path, module: str, root: Path, existing: Set
     return None
 
 
+def build_dependency_graph_from_entries(
+    project_root: Path,
+    entries: List[object],
+) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[str, str], Dict[str, object]]:
+    files = [entry.path for entry in entries]
+    existing = {path.resolve() for path in files}
+    imports_map: Dict[str, Set[str]] = defaultdict(set)
+    reverse_map: Dict[str, Set[str]] = defaultdict(set)
+    raw_content: Dict[str, str] = {}
+    lines_cache: Dict[str, List[str]] = {}
+    warnings: List[dict[str, str]] = []
+
+    for entry in entries:
+        file_path = entry.path
+        rel = entry.rel_path
+        content = entry.content
+        lines = entry.lines
+        raw_content[rel] = content
+        lines_cache[rel] = lines
+        if not content:
+            continue
+        for module in parse_import_modules(file_path, content):
+            resolved = resolve_import_module(file_path, module, project_root, existing)
+            if not resolved:
+                continue
+            target_rel = normalize_rel(resolved, project_root)
+            if target_rel == rel:
+                continue
+            imports_map[rel].add(target_rel)
+            reverse_map[target_rel].add(rel)
+
+    for rel in [normalize_rel(path, project_root) for path in files]:
+        imports_map.setdefault(rel, set())
+        reverse_map.setdefault(rel, set())
+
+    return imports_map, reverse_map, raw_content, {"warnings": warnings, "lines": lines_cache}
+
+
 def build_dependency_graph(
     project_root: Path,
     files: List[Path],
@@ -712,7 +853,7 @@ def build_dependency_graph(
     reverse_map: Dict[str, Set[str]] = defaultdict(set)
     raw_content: Dict[str, str] = {}
     lines_cache: Dict[str, List[str]] = {}
-    warnings: List[str] = []
+    warnings: List[dict[str, str]] = []
 
     for file_path in files:
         rel = normalize_rel(file_path, project_root)
@@ -1174,15 +1315,32 @@ def to_module_boundary_output(boundaries: Dict[str, Dict[str, Set[str]]]) -> Dic
     return output
 
 
-def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
-    files = collect_code_files(project_root, include_tests=include_tests)
-    imports_map, reverse_map, raw_content, aux = build_dependency_graph(project_root, files)
-    warnings: List[str] = list(aux["warnings"])
+def build_graph(
+    project_root: Path,
+    include_tests: bool,
+    traversal_config=None,
+    redaction_enabled: bool = True,
+) -> Dict[str, object]:
+    traversal_result = collect_code_file_entries(project_root, include_tests=include_tests, traversal_config=traversal_config)
+    files = [entry.path for entry in traversal_result.files]
+    imports_map, reverse_map, raw_content, aux = build_dependency_graph_from_entries(project_root, traversal_result.files)
+    warnings: List[dict[str, str]] = list(traversal_result.warnings) + list(aux["warnings"])
     lines_cache: Dict[str, List[str]] = aux["lines"]  # type: ignore[assignment]
 
     module_boundaries_raw, module_cycles = build_module_boundaries(imports_map)
     routes = build_api_route_map(project_root, files, imports_map, raw_content)
     models = build_data_model_map(project_root, files, raw_content)
+    codebase_index: Dict[str, object] = {}
+    try:
+        indexer = load_codebase_indexer()
+        codebase_index = indexer.build_codebase_index(
+            project_root,
+            output_path=project_root / ".codex" / "knowledge" / "codebase-index.json",
+            incremental=True,
+            rebuild=False,
+        )
+    except Exception as exc:
+        warnings.append(f"Codebase index unavailable: {exc}")
 
     edges = sum(len(values) for values in imports_map.values())
     module_boundaries = to_module_boundary_output(module_boundaries_raw)
@@ -1208,15 +1366,20 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
             "routes": len(routes),
             "models": len(models),
             "circular_dependencies": len(module_cycles),
+            "files_scanned": traversal_result.coverage["files_scanned"],
+            "files_skipped": traversal_result.coverage["files_skipped"],
+            "bytes_scanned": traversal_result.coverage["bytes_scanned"],
         },
-        "warnings": sorted(dict.fromkeys(warnings)),
+        "warnings": normalize_warning_messages(warnings),
         "redaction": {
             "enabled": False,
             "strategy": "none",
             "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names only; source bodies are not persisted.",
         },
+        "coverage": traversal_result.coverage,
         "file_dependencies": dependency_tree,
         "code_index": code_index,
+        "codebase_index": code_index,
         "entrypoints": entrypoints,
         "external_dependencies": external_dependencies,
         "module_boundaries": module_boundaries,
@@ -1224,6 +1387,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
         "data_models": models,
         "circular_dependencies": module_cycles,
         "risk_signals": risk_signals,
+        "codebase_index": compact_codebase_index(codebase_index) if codebase_index else {},
         "ai_context": build_ai_context(
             {
                 "total_files": len(files),
@@ -1239,6 +1403,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
         ),
         "human_context": build_human_context(module_boundaries, routes, models, risk_signals),
     }
+    graph, _count = redact_artifact(graph, "knowledge-graph.json", enabled=redaction_enabled)
     return graph
 
 
@@ -1252,7 +1417,13 @@ def main() -> int:
         return 1
 
     try:
-        graph = build_graph(project_root, include_tests=args.include_tests)
+        traversal_config = load_traversal().config_from_args(args)
+        graph = build_graph(
+            project_root,
+            include_tests=args.include_tests,
+            traversal_config=traversal_config,
+            redaction_enabled=not args.no_redaction,
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(graph, handle, ensure_ascii=False, indent=2)

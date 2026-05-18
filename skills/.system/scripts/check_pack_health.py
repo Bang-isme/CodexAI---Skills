@@ -35,6 +35,8 @@ REQUIRED_PLUGIN_ROOT_PATHS = [
     ".agents/plugins/marketplace.json",
     "hooks/hooks.json",
 ]
+SCHEMA_VERSION_PATTERN = re.compile(r"^\d+\.\d+$")
+
 MOJIBAKE_PATTERNS = [
     "\u00e2\u20ac\u201d",
     "\u00e2\u2020\u2019",
@@ -258,8 +260,9 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         except Exception as exc:
             schema_failures.append(f"{rel}: invalid JSON ({exc})")
             continue
-        if not str(payload.get("schema_version", "")):
-            schema_failures.append(f"{rel}: missing schema_version")
+        schema_version = payload.get("schema_version")
+        if not isinstance(schema_version, str) or not SCHEMA_VERSION_PATTERN.fullmatch(schema_version):
+            schema_failures.append(f"{rel}: invalid schema_version (expected MAJOR.MINOR string)")
     add(
         checks,
         "contract_schemas",
