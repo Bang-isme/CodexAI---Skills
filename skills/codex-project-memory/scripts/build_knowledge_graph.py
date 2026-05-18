@@ -6,6 +6,7 @@ Build a project knowledge graph with dependencies, module boundaries, routes, an
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -120,6 +121,37 @@ def parse_args() -> argparse.Namespace:
 
 def emit(payload: Dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def load_codebase_indexer():
+    indexer_path = Path(__file__).with_name("codebase_indexer.py")
+    spec = importlib.util.spec_from_file_location("codexai_codebase_indexer", indexer_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"Unable to load codebase indexer: {indexer_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def compact_codebase_index(index: Dict[str, object]) -> Dict[str, object]:
+    return {
+        key: index.get(key)
+        for key in (
+            "schema_version",
+            "generated_at",
+            "files",
+            "chunks",
+            "symbols",
+            "references",
+            "routes",
+            "models",
+            "configs",
+            "risk_signals",
+            "read_order",
+            "confidence",
+            "semantic",
+        )
+    }
 
 
 def normalize_rel(path: Path, root: Path) -> str:
@@ -904,6 +936,17 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
     module_boundaries_raw, module_cycles = build_module_boundaries(imports_map)
     routes = build_api_route_map(project_root, files, imports_map, raw_content)
     models = build_data_model_map(project_root, files, raw_content)
+    codebase_index: Dict[str, object] = {}
+    try:
+        indexer = load_codebase_indexer()
+        codebase_index = indexer.build_codebase_index(
+            project_root,
+            output_path=project_root / ".codex" / "knowledge" / "codebase-index.json",
+            incremental=True,
+            rebuild=False,
+        )
+    except Exception as exc:
+        warnings.append(f"Codebase index unavailable: {exc}")
 
     edges = sum(len(values) for values in imports_map.values())
     module_boundaries = to_module_boundary_output(module_boundaries_raw)
@@ -937,6 +980,7 @@ def build_graph(project_root: Path, include_tests: bool) -> Dict[str, object]:
         "data_models": models,
         "circular_dependencies": module_cycles,
         "risk_signals": risk_signals,
+        "codebase_index": compact_codebase_index(codebase_index) if codebase_index else {},
         "ai_context": build_ai_context(
             {
                 "total_files": len(files),
