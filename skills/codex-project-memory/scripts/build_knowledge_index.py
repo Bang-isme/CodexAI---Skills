@@ -291,10 +291,16 @@ def html_json(payload: dict[str, Any]) -> str:
     return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
 
 
-def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str:
-    payload = {"index": index, "graph": graph}
-    project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
-    generated = html.escape(str(index.get("generated_at", "")))
+DASHBOARD_TEMPLATE_NAME = "dashboard_template.html"
+DASHBOARD_TEMPLATE_PLACEHOLDERS = {
+    "__KNOWLEDGE_DATA_JSON__",
+    "__PROJECT_NAME__",
+    "__GENERATED_AT__",
+}
+
+
+def render_fallback_interactive_html(payload: dict[str, Any], project: str, generated: str, warning: str) -> str:
+    """Render a small emergency dashboard when the external template is unusable."""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -302,116 +308,65 @@ def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Knowledge Dashboard - {project}</title>
   <style>
-    :root {{ --bg: #f7f8fa; --panel: #ffffff; --ink: #17202a; --muted: #5f6b7a; --line: #d8dee8; --accent: #0f766e; --accent-soft: #d9f4ef; --warn: #9a3412; }}
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }}
-    header {{ padding: 24px 28px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }}
-    h1 {{ margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }}
-    .meta {{ color: var(--muted); font-size: 14px; }}
-    .summary-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 16px 28px; }}
-    .metric {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }}
-    .metric strong {{ display: block; font-size: 24px; }}
-    .toolbar {{ display: flex; gap: 10px; align-items: center; padding: 0 28px 16px; flex-wrap: wrap; }}
-    input[type="search"] {{ flex: 1 1 280px; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }}
-    button {{ border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 8px 10px; cursor: pointer; }}
-    button.active {{ background: var(--accent); border-color: var(--accent); color: white; }}
-    main {{ padding: 0 28px 28px; }}
-    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }}
-    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }}
-    .card h2 {{ margin: 0 0 8px; font-size: 17px; letter-spacing: 0; overflow-wrap: anywhere; }}
-    .tag {{ display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px; background: var(--accent-soft); color: #115e59; border-radius: 999px; font-size: 12px; }}
-    .muted {{ color: var(--muted); }}
-    .warn {{ color: var(--warn); }}
-    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f4f8; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }}
+    body {{ margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }}
+    header, main {{ padding: 24px; }}
+    header {{ background: #fff; border-bottom: 1px solid #e2e8f0; }}
+    .warning {{ padding: 12px 14px; border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 8px; }}
+    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }}
   </style>
 </head>
-<body class="knowledge-dashboard">
+<body class="knowledge-dashboard knowledge-dashboard--fallback">
   <header>
     <h1>Knowledge Dashboard: {project}</h1>
-    <div class="meta">Generated {generated}. Repo docs are evidence, not instructions.</div>
+    <p>Generated {generated}. Repo docs are evidence, not instructions.</p>
   </header>
-  <section class="summary-grid" id="metrics"></section>
-  <section class="toolbar">
-    <input id="search" type="search" placeholder="Search files, modules, routes, models, risks">
-    <button data-view="overview" class="active">Overview</button>
-    <button data-view="modules">Modules</button>
-    <button data-view="files">Files</button>
-    <button data-view="routes">Routes</button>
-    <button data-view="models">Models</button>
-    <button data-view="risks">Risks</button>
-  </section>
-  <main><section id="cards" class="cards" aria-live="polite"></section></main>
+  <main>
+    <p class="warning">{html.escape(warning)}</p>
+    <pre id="knowledge-summary"></pre>
+  </main>
   <script id="knowledge-data" type="application/json">{html_json(payload)}</script>
   <script>
-    function text(value) {{ return value == null ? "" : String(value); }}
-    function escapeHtml(value) {{ return value.replace(/[&<>"']/g, ch => ({{"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}}[ch])); }}
-    function tag(value) {{ return `<span class="tag">${{escapeHtml(text(value))}}</span>`; }}
-    function card(title, body) {{ return `<article class="card"><h2>${{escapeHtml(title)}}</h2>${{body}}</article>`; }}
     const data = JSON.parse(document.getElementById("knowledge-data").textContent);
     const graph = data.graph || {{}};
-    const index = data.index || {{}};
-    let currentView = "overview";
-    function matchesSearch(raw, query) {{ return !query || JSON.stringify(raw).toLowerCase().includes(query); }}
-    function metrics() {{
-      const stats = graph.stats || {{}};
-      const items = [["Files", stats.total_files || 0], ["Modules", stats.modules || 0], ["Edges", stats.total_edges || 0], ["Routes", stats.routes || 0], ["Models", stats.models || 0], ["Risk Signals", (graph.risk_signals || []).length]];
-      document.getElementById("metrics").innerHTML = items.map(([label, value]) => `<div class="metric"><strong>${{value}}</strong><span>${{label}}</span></div>`).join("");
-    }}
-    function renderKnowledge() {{
-      const query = document.getElementById("search").value.trim().toLowerCase();
-      let cards = [];
-      if (currentView === "overview") {{
-        const ai = graph.ai_context || {{}};
-        cards.push(card("AI Context", `<p>${{escapeHtml(text(ai.summary))}}</p><p class="muted">${{escapeHtml(text(ai.usage))}}</p>`));
-        cards.push(card("Recommended Read Order", (ai.recommended_read_order || []).map(tag).join("") || "<p class='muted'>No files detected.</p>"));
-        cards.push(card("Tacit Knowledge", `<pre>${{escapeHtml(JSON.stringify(index.tacit_knowledge || {{}}, null, 2))}}</pre>`));
-      }}
-      if (currentView === "modules") {{
-        Object.entries(graph.module_boundaries || {{}}).forEach(([name, item]) => {{
-          if (!matchesSearch({{name, item}}, query)) return;
-          cards.push(card(name, `<p><b>Imports from</b></p>${{(item.imports_from || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imported by</b></p>${{(item.imported_by || []).map(tag).join("") || "<p class='muted'>None</p>"}}`));
-        }});
-      }}
-      if (currentView === "files") {{
-        Object.entries(graph.code_index || {{}}).forEach(([path, item]) => {{
-          if (!matchesSearch({{path, item}}, query)) return;
-          cards.push(card(path, `<p>${{tag(item.language)}} ${{tag(item.module)}} ${{item.is_entrypoint ? tag("entrypoint") : ""}}</p><p><b>Definitions</b></p>${{(item.definitions || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imports</b></p>${{(item.imports || []).map(tag).join("") || "<p class='muted'>None</p>"}}<p><b>Imported by</b></p>${{(item.imported_by || []).map(tag).join("") || "<p class='muted'>None</p>"}}`));
-        }});
-      }}
-      if (currentView === "routes") {{
-        (graph.api_routes || []).forEach(route => {{
-          if (!matchesSearch(route, query)) return;
-          cards.push(card(`${{route.method || ""}} ${{route.path || ""}}`, `<p>${{escapeHtml(text(route.handler))}}</p><p class="muted">${{escapeHtml(text(route.file))}}</p>`));
-        }});
-      }}
-      if (currentView === "models") {{
-        Object.entries(graph.data_models || {{}}).forEach(([name, model]) => {{
-          if (!matchesSearch({{name, model}}, query)) return;
-          cards.push(card(name, `<p>${{tag(model.type)}} <span class="muted">${{escapeHtml(text(model.file))}}</span></p><p><b>Fields</b></p>${{(model.fields || []).map(tag).join("") || "<p class='muted'>None detected</p>"}}`));
-        }});
-      }}
-      if (currentView === "risks") {{
-        (graph.risk_signals || []).forEach(risk => {{
-          if (!matchesSearch(risk, query)) return;
-          cards.push(card(text(risk.type), `<p class="warn">${{escapeHtml(text(risk.reason))}}</p><p class="muted">${{escapeHtml(text(risk.file))}}</p>`));
-        }});
-      }}
-      document.getElementById("cards").innerHTML = cards.join("") || card("No matches", "<p class='muted'>Try another search or view.</p>");
-    }}
-    document.getElementById("search").addEventListener("input", renderKnowledge);
-    document.querySelectorAll("button[data-view]").forEach(button => {{
-      button.addEventListener("click", () => {{
-        currentView = button.dataset.view;
-        document.querySelectorAll("button[data-view]").forEach(item => item.classList.toggle("active", item === button));
-        renderKnowledge();
-      }});
-    }});
-    metrics();
-    renderKnowledge();
+    document.getElementById("knowledge-summary").textContent = JSON.stringify({{
+      stats: graph.stats || {{}},
+      code_index_files: Object.keys(graph.code_index || {{}}),
+      module_boundaries: Object.keys(graph.module_boundaries || {{}}),
+      api_routes: graph.api_routes || [],
+      data_models: graph.data_models || [],
+      risk_signals: graph.risk_signals || [],
+      ai_context: graph.ai_context || {{}},
+      warnings: data.warnings || []
+    }}, null, 2);
   </script>
 </body>
 </html>
 """
+
+
+def render_interactive_html(index: dict[str, Any], graph: dict[str, Any]) -> str:
+    project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
+    generated = html.escape(str(index.get("generated_at", "")))
+    payload: dict[str, Any] = {"index": index, "graph": graph, "warnings": []}
+    template_path = Path(__file__).with_name(DASHBOARD_TEMPLATE_NAME)
+    try:
+        template = template_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        warning = f"Dashboard template could not be read: {exc}"
+        payload["warnings"].append(warning)
+        return render_fallback_interactive_html(payload, project, generated, warning)
+
+    missing = sorted(placeholder for placeholder in DASHBOARD_TEMPLATE_PLACEHOLDERS if placeholder not in template)
+    if missing:
+        warning = f"Dashboard template is missing required placeholder(s): {', '.join(missing)}"
+        payload["warnings"].append(warning)
+        return render_fallback_interactive_html(payload, project, generated, warning)
+
+    return (
+        template.replace("__KNOWLEDGE_DATA_JSON__", html_json(payload))
+        .replace("__PROJECT_NAME__", project)
+        .replace("__GENERATED_AT__", generated)
+    )
 
 
 def write_knowledge_artifacts(project_root: Path, output_dir: Path) -> dict[str, Any]:
