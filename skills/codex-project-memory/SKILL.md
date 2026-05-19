@@ -27,6 +27,7 @@ load_priority: on-demand
 14. Activate on `$compact-context` or "clean up old sessions".
 15. Activate on `$codex-genome`, `$generate-genome`, or `$genome` to create layered project context docs.
 16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`, `.codex/knowledge/index.json`, `.codex/knowledge/knowledge-graph.json`, and an offline interactive `.codex/knowledge/index.html`.
+17. Activate on "memory status", "validate project memory", or before CLI/tool-harness handoff to run `scripts/memory_status.py` against generated artifacts.
 
 ## Decision Tree Routing
 
@@ -82,3 +83,7 @@ User intent -> Memory action?
 - `references/behavior-guide.md`: detailed per-script behaviors, defaults, and chaining guidance.
 - `references/script-commands.md`
 - `references/output-schemas.md`
+- `references/project-memory-tools.json`: machine-readable tool manifest for CLI/MCP-style harness generation.
+- `references/project-memory-tools.schema.json`: schema for the tool manifest.
+- `references/ci-readiness.md`: release gate commands, strict mode, and Windows symlink deselection.
+- `references/artifact-lifecycle-policy.md`: hybrid commit policy for schemas vs generated `.codex/` artifacts.

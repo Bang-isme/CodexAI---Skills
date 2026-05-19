@@ -198,6 +198,7 @@ def aggregate_feedback(project_root: Path) -> Dict[str, object]:
     feedback_dir = project_root / ".codex" / "feedback"
     if not feedback_dir.exists() or not feedback_dir.is_dir():
         return {
+            "status": "aggregated",
             "total_feedback": 0,
             "by_category": {category: 0 for category in CATEGORIES},
             "by_severity": {severity: 0 for severity in SEVERITIES},
@@ -250,6 +251,7 @@ def aggregate_feedback(project_root: Path) -> Dict[str, object]:
         )
 
     return {
+        "status": "aggregated",
         "total_feedback": total,
         "by_category": {category: int(by_category[category]) for category in CATEGORIES},
         "by_severity": {severity: int(by_severity[severity]) for severity in SEVERITIES},

@@ -65,6 +65,7 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-project-memory", "scripts/generate_genome.py"),
     ("codex-project-memory", "scripts/generate_handoff.py"),
     ("codex-project-memory", "scripts/generate_session_summary.py"),
+    ("codex-project-memory", "scripts/memory_status.py"),
     ("codex-project-memory", "scripts/track_feedback.py"),
     ("codex-project-memory", "scripts/track_skill_usage.py"),
     ("codex-reasoning-rigor", "scripts/build_reasoning_brief.py"),

@@ -1,11 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-dashboard-chrome="2">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Knowledge Graph — __PROJECT_NAME__</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+mily=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#eef1f6;--bg2:#fff;--bg3:#e4e8ef;
@@ -16,6 +14,8 @@
   --success-bg:rgba(4,120,87,.09);--warn-bg:rgba(180,83,9,.09);--danger-bg:rgba(220,38,38,.09);
   --grad:linear-gradient(135deg,#4338ca 0%,#6366f1 55%,#818cf8 100%);
   --surface-glow:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(99,102,241,.06),transparent 70%);
+  --overlay:rgba(15,23,42,.36);
+  --flow-svc:#6d28d9;--flow-mdl:#be185d;--flow-mw:#4338ca;
   --sidebar-w:212px;--topbar-h:50px;
   --radius:8px;--radius-lg:12px;--radius-pill:999px;
   --shadow:0 1px 2px rgba(15,23,42,.04),0 4px 12px rgba(15,23,42,.06);
@@ -31,8 +31,10 @@
   --ink:#edf0f7;--ink2:#9aa3b8;--ink3:#5c667d;
   --line:#232b42;
   --accent:#9aa8ff;--accent2:#b4befe;--accent-bg:rgba(154,168,255,.09);--accent-bg2:rgba(154,168,255,.15);
-  --grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a78bfa 100%);
-  --surface-glow:radial-gradient(ellipse 70% 45% at 60% -10%,rgba(99,102,241,.14),transparent 65%);
+  --grad:linear-gradient(135deg,#4338ca 0%,#6366f1 55%,#818cf8 100%);
+  --surface-glow:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(99,102,241,.1),transparent 70%);
+  --overlay:rgba(0,0,0,.58);
+  --flow-svc:#a78bfa;--flow-mdl:#f472b6;--flow-mw:#818cf8;
   --success:#34d399;--warn:#fbbf24;--danger:#f87171;
   --success-bg:rgba(52,211,153,.1);--warn-bg:rgba(251,191,36,.1);--danger-bg:rgba(248,113,113,.1);
   --shadow:0 1px 2px rgba(0,0,0,.35),0 4px 16px rgba(0,0,0,.25);
@@ -222,7 +224,7 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
   background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius-lg);
   padding:14px 16px;animation:fadeIn .28s var(--ease) both;
   transition:transform var(--trans),box-shadow var(--trans),border-color var(--trans);
-  box-shadow:0 1px 2px rgba(15,23,42,.03);
+  box-shadow:var(--shadow);
 }
 .card:hover{
   transform:translateY(-2px);box-shadow:var(--shadow-md);
@@ -249,7 +251,7 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
 .tag.method{font-weight:700;font-size:9.5px;padding:2px 7px;letter-spacing:.03em}
 .tag.get{background:var(--success-bg);color:var(--success)}.tag.post{background:var(--accent-bg);color:var(--accent)}
 .tag.put{background:var(--warn-bg);color:var(--warn)}.tag.delete{background:var(--danger-bg);color:var(--danger)}
-.tag.patch{background:rgba(168,85,247,.12);color:#a855f7}
+.tag.patch{background:color-mix(in srgb,var(--flow-svc) 12%,transparent);color:var(--flow-svc)}
 /* === BADGES === */
 .badge{
   display:inline-flex;align-items:center;gap:3px;padding:3px 8px;
@@ -399,9 +401,11 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
 [data-theme="dark"] .graph-sidebar{box-shadow:-6px 0 32px rgba(0,0,0,.35)}
 .graph-sidebar.open{transform:translateX(0)}
 .gs-inner{flex:1;overflow-y:auto;font-size:12px;scroll-behavior:smooth}
-.gs-head-bar{
-  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
-  padding:12px 14px;border-bottom:1px solid var(--line);background:var(--bg3);flex-shrink:0;
+.gs-head-bar,.dos-head.panel-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:16px var(--space-5);border-bottom:1px solid var(--line);
+  background:var(--bg2);flex-shrink:0;
+  box-shadow:inset 4px 0 0 var(--accent);
 }
 .gs-head-bar .gs-head{font-size:14px;font-weight:700;margin:0;color:var(--ink);letter-spacing:-.01em}
 .gs-sub{font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.45}
@@ -437,7 +441,7 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
 .minimap:hover{opacity:1;box-shadow:var(--shadow-md)}
 .minimap canvas{width:100%;height:100%;display:block}
 /* Settings panel */
-.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+.settings-overlay{position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(3px);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
 .settings-overlay.open{opacity:1;pointer-events:auto}
 .settings-panel{
   position:fixed;top:50%;right:14px;transform:translateY(-50%) scale(.96);
@@ -465,40 +469,32 @@ body:has(.sidebar.collapsed){grid-template-columns:56px 1fr}
   transition:background var(--trans),color var(--trans),border-color var(--trans);
 }
 .panel-close:hover{background:var(--accent-bg);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
-.panel-head--grad .panel-close{
-  border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;
-}
-.panel-head--grad .panel-close:hover{background:rgba(255,255,255,.22);color:#fff;border-color:rgba(255,255,255,.35)}
 .panel-section{margin-bottom:0;padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--line)}
 .panel-section h3,.panel-section h4{
   font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;
   letter-spacing:.5px;margin-bottom:var(--space-2);
 }
-.panel-head{
-  padding:var(--space-4) var(--space-5);flex-shrink:0;
-  display:flex;align-items:flex-start;gap:var(--space-3);
-  border-bottom:1px solid var(--line);background:var(--bg3);
-  position:relative;
+.panel-head .panel-icon,.dos-head .dos-icon{
+  flex-shrink:0;width:40px;height:40px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent-bg);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line));
 }
-.panel-head--grad{
-  background:var(--grad);color:#f8fafc;border-bottom:none;
-}
-.panel-head--grad::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.1));
-  pointer-events:none;
-}
-.panel-head--grad>*{position:relative;z-index:1}
-.panel-head--grad .panel-title{font-size:16px;font-weight:700;letter-spacing:-.02em;color:#fff}
-.panel-head--grad .panel-sub{font-size:11px;opacity:.75;font-family:'JetBrains Mono',ui-monospace,monospace;word-break:break-all}
-.panel-head .panel-icon{flex-shrink:0;color:var(--accent)}
-.panel-head--grad .panel-icon{color:rgba(255,255,255,.95)}
+.panel-tags .tag.w{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 25%,var(--line))}
+.panel-title{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--ink);line-height:1.25}
+.panel-sub{font-size:11px;color:var(--ink2);font-family:'JetBrains Mono',ui-monospace,monospace;word-break:break-all;line-height:1.4}
 .panel-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.panel-stat-row{display:flex;flex-wrap:wrap;gap:6px;padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--line);background:var(--bg)}
+.panel-tags .tag{
+  background:var(--bg2);color:var(--ink2);border:1px solid var(--line);
+}
+.panel-tags .tag:hover{background:var(--accent-bg);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.panel-stat-row,.dos-stats{
+  display:flex;flex-wrap:wrap;gap:6px;padding:var(--space-3) var(--space-5);
+  border-bottom:1px solid var(--line);background:var(--bg);
+}
 /* === DOSSIER SIDE PANEL === */
 .dossier-overlay{
   position:fixed;top:0;right:0;bottom:0;left:var(--sidebar-w);
-  background:rgba(8,12,20,.45);backdrop-filter:blur(2px);
+  background:var(--overlay);backdrop-filter:blur(3px);
   z-index:90;opacity:0;pointer-events:none;transition:opacity .2s var(--ease);
 }
 body:has(.sidebar.collapsed) .dossier-overlay{left:56px}
@@ -514,25 +510,26 @@ body:has(.dossier-overlay.open) .sidebar{z-index:110}
 [data-theme="dark"] .dossier-panel{box-shadow:-8px 0 48px rgba(0,0,0,.45)}
 .dossier-panel.open{transform:translateX(0)}
 .dos-inner{flex:1;overflow-y:auto;scroll-behavior:smooth}
-.dos-head.panel-head--grad{padding:18px 20px}
-.dos-head .dos-icon,.dos-head .panel-icon{flex-shrink:0;margin-top:1px}
-.dos-head h2,.dos-head .panel-title{font-size:17px;font-weight:700;margin-bottom:2px;letter-spacing:-.02em}
-.dos-head .dos-path,.dos-head .panel-sub{font-size:11px;opacity:.7;font-family:'JetBrains Mono',ui-monospace,monospace;word-break:break-all}
-.dos-head.panel-head--grad{display:flex;align-items:flex-start;gap:12px}
-.dos-head.panel-head--grad .panel-close{margin-left:auto;flex-shrink:0}
+.dos-head h2,.dos-head .panel-title{font-size:17px;margin-bottom:2px}
+.dos-head .panel-close{margin-left:auto;flex-shrink:0}
 .dos-section,.dos-section.panel-section{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--line)}
 .dos-section h3,.panel-section h3{font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.dos-stat.danger{border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
-.dos-stat.danger b{color:var(--danger)}
-.dos-stats{display:flex;flex-wrap:wrap;gap:5px;padding:8px 18px;border-bottom:1px solid var(--line)}
 .dos-stat{
-  display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
-  background:var(--bg3);border:1px solid var(--line);border-radius:var(--radius-pill);
+  display:inline-flex;align-items:baseline;gap:6px;padding:6px 11px;
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
   font-size:11px;color:var(--ink2);
   transition:border-color var(--trans),background var(--trans);
 }
-.dos-stat:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
-.dos-stat b{color:var(--accent);font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.dos-stat:hover{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));background:var(--bg2)}
+.dos-stat b{color:var(--ink);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.dos-stat.danger{background:var(--danger-bg);border-color:color-mix(in srgb,var(--danger) 28%,var(--line))}
+.dos-stat.danger b{color:var(--danger)}
+.risk-row{display:flex;flex-wrap:wrap;gap:6px}
+.dos-list .tag{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10.5px;
+}
+.dos-list .tag:hover{background:var(--accent-bg);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
 .dos-list{max-height:160px;overflow-y:auto}
 .dos-list-item{
   padding:4px 0;border-bottom:1px solid var(--line);font-size:12px;
@@ -593,8 +590,8 @@ details>div{padding:4px 0 3px}
   letter-spacing:.01em;
 }
 .flow-node.rt{border-color:var(--success);color:var(--success)}.flow-node.ctrl{border-color:var(--accent);color:var(--accent)}
-.flow-node.svc{border-color:#8b5cf6;color:#8b5cf6}.flow-node.repo{border-color:var(--warn);color:var(--warn)}
-.flow-node.mdl{border-color:#ec4899;color:#ec4899}.flow-node.mw{border-color:#6366f1;color:#6366f1}
+.flow-node.svc{border-color:var(--flow-svc);color:var(--flow-svc)}.flow-node.repo{border-color:var(--warn);color:var(--warn)}
+.flow-node.mdl{border-color:var(--flow-mdl);color:var(--flow-mdl)}.flow-node.mw{border-color:var(--flow-mw);color:var(--flow-mw)}
 .flow-node.unk{border-color:var(--ink3);color:var(--ink3)}
 /* === INSIGHT === */
 .insight{
@@ -602,7 +599,7 @@ details>div{padding:4px 0 3px}
   background:var(--accent-bg);border-radius:0 var(--radius) var(--radius) 0;
   font-size:11.5px;line-height:1.45;
 }
-.insight.risk{border-color:var(--warn);background:var(--warn-bg)}
+.insight.risk{border-color:var(--danger);background:var(--danger-bg);color:var(--ink)}
 .insight .src{color:var(--ink3);font-size:9.5px;margin-top:4px;opacity:.9}
 /* === SORT BAR === */
 .sort-bar{
@@ -732,8 +729,40 @@ const D=JSON.parse(document.getElementById('kd').textContent),G=D.graph||{},IX=D
 let view='overview',sortKey='name',graphStop=null;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const esc=v=>(v==null?'':String(v)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ci=Object.keys(CBI.files||{}).length?(CBI.files||{}):(G.code_index||{});
+const graphFiles=G.code_index||{},codebaseFiles=CBI.files||{};
+const ci={};
+Array.from(new Set([...Object.keys(codebaseFiles),...Object.keys(graphFiles)])).sort().forEach(path=>{
+  ci[path]=Object.assign({path},codebaseFiles[path]||{},graphFiles[path]||{});
+  ci[path].path=path;
+});
 const cChunks=CBI.chunks||[],cSymbols=CBI.symbols||[],cRefs=CBI.references||[];
+function groupBy(items,key){
+  const out={};
+  (items||[]).forEach(item=>{const value=item&&item[key];if(value==null)return;(out[value]=out[value]||[]).push(item)});
+  return out;
+}
+const chunksByPath=groupBy(cChunks,'path'),symbolsByPath=groupBy(cSymbols,'path'),refsBySource=groupBy(cRefs,'source');
+const moduleFiles={};
+Object.entries(ci).forEach(([path,file])=>{const mod=file.module||'root';(moduleFiles[mod]=moduleFiles[mod]||[]).push([path,file])});
+Object.values(moduleFiles).forEach(items=>items.sort((a,b)=>a[0].localeCompare(b[0])));
+function filesForModule(name){return moduleFiles[name]||[]}
+function routeKey(route){return [route.method||'',route.path||'',route.file||'',route.handler||''].map(v=>String(v).toLowerCase()).join('|')}
+function normalizeRoute(route){
+  return Object.assign({method:'',path:'',handler:'',file:'',models:[]},route||{});
+}
+function mergeRoutes(){
+  const seen=new Set(),out=[];
+  [...(G.api_routes||[]),...(CBI.routes||[])].map(normalizeRoute).forEach(route=>{
+    const key=routeKey(route);if(seen.has(key))return;seen.add(key);out.push(route);
+  });
+  return out;
+}
+const routes=mergeRoutes();
+function limitedList(items,limit,render,label,empty){
+  const total=(items||[]).length,shown=(items||[]).slice(0,limit);
+  if(!total)return empty||'<span class="muted">None</span>';
+  return shown.map(render).join('')+(total>limit?`<div class="muted2">Showing ${shown.length} of ${total} ${label}; full data remains in codebase-index.json.</div>`:'');
+}
 
 /* ======== SVG ICON FACTORY ======== */
 const svg=(p,o={})=>`<svg width="${o.s||18}" height="${o.s||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${o.sw||2}" stroke-linecap="round" stroke-linejoin="round" class="${o.c||''}">${p}</svg>`;
@@ -798,7 +827,7 @@ function desc(path){
   return `Module: ${n}`;
 }
 function modDesc(name){
-  const n=name.toLowerCase(),fc=Object.values(ci).filter(f=>f.module===name).length;
+  const n=name.toLowerCase(),fc=filesForModule(name).length;
   if(n==='routes')return `API Layer — ${fc} route files defining all HTTP endpoints`;
   if(n==='controllers')return `Business Logic — ${fc} controllers handling request processing`;
   if(n==='services')return `Service Layer — ${fc} services containing domain business rules`;
@@ -883,8 +912,33 @@ $('#btn-copy').onclick=()=>{
   navigator.clipboard.writeText(paths||'No files indexed').then(()=>toast(`Copied ${Object.keys(ci).length} file paths`,I.copy)).catch(()=>toast('Clipboard access denied',I.warning));
 };
 
-/* ======== MATCH HELPER ======== */
-const match=(o,q)=>!q||JSON.stringify(o).toLowerCase().includes(q);
+/* ======== PRECOMPUTED SEARCH INDEXES ======== */
+const toSearchText=value=>{
+  if(value==null)return '';
+  if(Array.isArray(value))return value.map(toSearchText).join(' ');
+  if(typeof value==='object')return Object.values(value).map(toSearchText).join(' ');
+  return String(value);
+};
+const makeSearchKey=(...parts)=>parts.map(toSearchText).join(' ').toLowerCase();
+const fileSearchKeys={},moduleSearchKeys={},routeSearchKeys=new Map(),depSearchKeys={},modelSearchKeys={},riskSearchKeys=new Map(),activitySearchKeys=new Map();
+Object.entries(ci).forEach(([p,f])=>{fileSearchKeys[p]=makeSearchKey(p,f.path,f.module,f.language,f.definitions,f.imports,f.imported_by,f.external_imports,f.risk_tags)});
+Object.entries(G.module_boundaries||{}).forEach(([n,m])=>{moduleSearchKeys[n]=makeSearchKey(n,m.imports_from,m.imported_by,filesForModule(n).map(([p])=>p))});
+routes.forEach(r=>routeSearchKeys.set(r,makeSearchKey(r.method,r.path,r.handler,r.file,r.models)));
+Object.entries(G.external_dependencies||{}).forEach(([n,d])=>{depSearchKeys[n]=makeSearchKey(n,d.used_by)});
+Object.entries(G.data_models||{}).forEach(([n,m])=>{modelSearchKeys[n]=makeSearchKey(n,m.file,m.type,m.fields,m.relationships)});
+(G.risk_signals||[]).forEach(r=>riskSearchKeys.set(r,makeSearchKey(r.type,r.reason,r.file,r.path)));
+function includesQ(key,q){return !q||String(key||'').includes(q)}
+function fileMatches(path,q){return includesQ(fileSearchKeys[path]||path,q)}
+function moduleMatches(name,q){return includesQ(moduleSearchKeys[name]||name,q)}
+function routeMatches(route,q){return includesQ(routeSearchKeys.get(route)||makeSearchKey(route.method,route.path,route.handler,route.file),q)}
+function depMatches(name,q){return includesQ(depSearchKeys[name]||name,q)}
+function modelMatches(name,q){return includesQ(modelSearchKeys[name]||name,q)}
+function riskMatches(risk,q){return includesQ(riskSearchKeys.get(risk)||makeSearchKey(risk.type,risk.reason,risk.file,risk.path),q)}
+function activityMatches(item,q){
+  if(!activitySearchKeys.has(item))activitySearchKeys.set(item,makeSearchKey(item.type,item.date,item.title,item.detail,item.meta));
+  return includesQ(activitySearchKeys.get(item),q);
+}
+const match=(o,q)=>includesQ(makeSearchKey(o),q);
 
 /* ======== SORT BAR ======== */
 function sortBar(keys){
@@ -930,7 +984,7 @@ function renderOverview(q){
     {l:'Modules',v:s.modules||0,icon:I.folder,cls:'mc-a'},
     {l:'Chunks',v:cChunks.length,icon:I.code,cls:'mc-a'},
     {l:'Symbols',v:cSymbols.length,icon:I.graph,cls:'mc-a'},
-    {l:'Routes',v:s.routes||0,icon:I.route,cls:'mc-g'},
+    {l:'Routes',v:routes.length||s.routes||0,icon:I.route,cls:'mc-g'},
     {l:'Models',v:s.models||0,icon:I.database,cls:'mc-g'},
     {l:'Ext Deps',v:ext,icon:I.package,cls:'mc-w'},
     {l:'Redactions',v:redactionCount,icon:I.shield,cls:'mc-a'},
@@ -945,7 +999,7 @@ function renderOverview(q){
   // Traversal Coverage
   const skipped=coverage.skipped_reasons||{};
   html+=`<div class="section-card"><h2>${I.info({s:18})} Traversal Coverage</h2>
-    <div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${coverage.files_scanned||0}</b> files scanned</div><div class="dos-stat"><b>${coverage.files_skipped||0}</b> files skipped</div><div class="dos-stat"><b>${coverage.bytes_scanned||0}</b> bytes scanned</div><div class="dos-stat"><b>${(G.warnings||[]).length}</b> warnings</div></div>
+    <div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${coverage.files_scanned||0}</b> files scanned</div><div class="dos-stat"><b>${coverage.files_skipped||0}</b> files skipped</div><div class="dos-stat"><b>${coverage.bytes_scanned||0}</b> bytes scanned</div><div class="dos-stat"><b>${(G.warnings||[]).length}</b> warnings</div>${CBI.stats?`<div class="dos-stat"><b>${CBI.stats.files_discovered||0}</b> indexed files</div>`:''}</div>
     <p><b>Skipped reasons</b></p><div>${Object.entries(skipped).map(([k,v])=>`<span class="tag">${esc(k)}: ${v}</span>`).join('')||'<span class="muted">None</span>'}</div>
     ${(G.warnings||[]).length?`<p style="margin-top:8px"><b>Recent warnings</b></p>${(G.warnings||[]).slice(0,5).map(w=>`<div class="insight risk"><b>${esc(w.type||'warning')}</b>: ${esc(w.reason||'')}<div class="src">${esc(w.path||'')} · ${esc(w.severity||'warning')}</div></div>`).join('')}`:''}
   </div>`;
@@ -1003,13 +1057,13 @@ function renderModules(q){
   const panel=$('#panel-modules');if(!panel)return;
   const area='<div class="sort-area"></div>';
   let html='';
-  const entries=Object.entries(G.module_boundaries||{}).filter(([n,m])=>match({n,m},q));
+  const entries=Object.entries(G.module_boundaries||{}).filter(([n])=>moduleMatches(n,q));
   entries.sort((a,b)=>a[0].localeCompare(b[0]));
   html+=`<div class="cards-grid">`;
   entries.forEach(([n,m])=>{
     const imp=m.imports_from||[],by=m.imported_by||[];
-    const files=Object.entries(ci).filter(([p,f])=>f.module===n);
-    const fileListHtml=files.map(([p,f])=>`<div class="row-flex">${roleBadge(p)} <span>${esc(p.split('/').pop())}</span> <span class="muted2">${f.lines||0}L · ${(f.definitions||[]).length} defs</span></div>`).join('');
+    const files=filesForModule(n);
+    const fileListHtml=limitedList(files,40,([p,f])=>`<div class="row-flex">${roleBadge(p)} <span>${esc(p.split('/').pop())}</span> <span class="muted2">${f.lines||0}L · ${(f.definitions||[]).length} defs</span></div>`,'files','<span class="muted">No files mapped to this module.</span>');
     const impHtml=imp.length?imp.map(v=>`<div class="row-flex">${tag(v)} <span class="muted2">— ${edgeLabel(n,v)}</span></div>`).join(''):'<span class="muted">Self-contained</span>';
     const byHtml=by.length?by.map(v=>`<div class="row-flex">${tag(v)} <span class="muted2">— ${edgeLabel(v,n)}</span></div>`).join(''):'<span class="muted">No dependents</span>';
     html+=`<div class="card"><h3>${I.folder({s:16})} ${esc(n)}</h3><p class="muted">${esc(modDesc(n))}</p>
@@ -1026,7 +1080,7 @@ function renderFiles(q){
   const panel=$('#panel-files');if(!panel)return;
   const area='<div class="sort-area"></div>';
   sortBar(['name','lines','imports']);
-  let entries=Object.entries(ci).filter(([p,f])=>match({p,f},q));
+  let entries=Object.entries(ci).filter(([p])=>fileMatches(p,q));
   if(sortKey==='lines')entries.sort((a,b)=>(b[1].lines||0)-(a[1].lines||0));
   else if(sortKey==='imports')entries.sort((a,b)=>(b[1].imported_by||[]).length-(a[1].imported_by||[]).length);
   else entries.sort((a,b)=>a[0].localeCompare(b[0]));
@@ -1036,14 +1090,15 @@ function renderFiles(q){
     if(f.is_entrypoint)tags.push(tag('entrypoint','w','Application entry point'));
     if(f.risk_tags)f.risk_tags.forEach(r=>tags.push(tag(r,'d','Risk signal')));
     const impBy=f.imported_by||[];
+    const fileSymbols=symbolsByPath[p]||[],fileRefs=refsBySource[p]||[],fileChunks=chunksByPath[p]||[];
     const impByHtml=impBy.length?impBy.map(i=>`<div class="row-flex">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<span class="muted">Leaf node — no dependents</span>';
     html+=`<div class="card"><h3 style="cursor:pointer" onclick="openDossier('${esc(p).replace(/'/g,"\\'")}')">${fileIcon(p)({s:16})} ${esc(p.split('/').pop())}</h3>
       <p class="muted" style="margin:4px 0">${desc(p)}</p>
       <p>${tags.join(' ')} <span class="muted">${f.lines||0} lines</span></p>
       ${f.content_hash?`<p class="muted2">hash ${esc(String(f.content_hash).slice(0,12))} · ${f.size_bytes||0} bytes · parser ${esc(f.parser||'')}</p>`:''}
-      ${details('Symbols ('+(cSymbols.filter(s=>s.path===p).length||((f.definitions||[]).length))+')',(cSymbols.filter(s=>s.path===p).slice(0,25).map(s=>tag(`${s.name}#L${s.line_start}`)).join('')||(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>'),false)}
-      ${details('References ('+(cRefs.filter(r=>r.source===p).length||((f.imports||[]).length))+')',(cRefs.filter(r=>r.source===p).slice(0,25).map(r=>tag(r.target)).join('')||(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>'),false)}
-      ${details('Chunks ('+cChunks.filter(c=>c.path===p).length+')',cChunks.filter(c=>c.path===p).slice(0,6).map(c=>`<div class="row-flex"><span class="muted">L${c.line_start}-L${c.line_end}</span> ${tag(c.symbol||c.strategy)}</div>`).join('')||'<span class="muted">No chunks</span>',false)}
+      ${details('Symbols ('+(fileSymbols.length||((f.definitions||[]).length))+')',fileSymbols.length?limitedList(fileSymbols,25,s=>tag(`${s.name}#L${s.line_start}`),'symbols'):(f.definitions||[]).slice(0,25).map(d=>tag(d)).join('')||'<span class="muted">None</span>',false)}
+      ${details('References ('+(fileRefs.length||((f.imports||[]).length))+')',fileRefs.length?limitedList(fileRefs,25,r=>tag(r.target),'references'):(f.imports||[]).map(i=>tag(i)).join('')||'<span class="muted">Self-contained</span>',false)}
+      ${details('Chunks ('+fileChunks.length+')',limitedList(fileChunks,6,c=>`<div class="row-flex"><span class="muted">L${c.line_start}-L${c.line_end}</span> ${tag(c.symbol||c.strategy)}</div>`,'chunks','<span class="muted">No chunks</span>'),false)}
       ${details('Used By ('+impBy.length+')',impByHtml,(impBy.length>0&&impBy.length<=5))}</div>`;
   });
   html+=`</div>`;
@@ -1053,8 +1108,9 @@ function renderFiles(q){
 /* ======== ROUTES ======== */
 function renderRoutes(q){
   const panel=$('#panel-routes');if(!panel)return;
+  const items=routes.filter(r=>routeMatches(r,q));
   let html=`<div class="cards-grid">`;
-  (G.api_routes||[]).filter(r=>match(r,q)).forEach(r=>{
+  items.forEach(r=>{
     const mc=(r.method||'').toLowerCase();
     const purposeMap={GET:'Retrieves',POST:'Creates',PUT:'Updates',DELETE:'Removes',PATCH:'Partially updates'};
     html+=`<div class="card"><h3>${tag(r.method,'method '+mc)} <code>${esc(r.path)}</code></h3>
@@ -1063,13 +1119,16 @@ function renderRoutes(q){
       ${r.models?details('Uses Models ('+r.models.length+')',r.models.map(m=>`<div>${tag(m)} <span class="muted">— database entity</span></div>`).join(''),true):''}</div>`;
   });
   html+=`</div>`;
-  panel.innerHTML=html+(G.api_routes||[]).length?'':`<div class="empty-state">${I.route({s:32})}<b>No routes detected</b><p>No API routes found in this project.</p></div>`;
+  const empty=routes.length
+    ? `<div class="empty-state">${I.search({s:32})}<b>No matching routes</b><p>Try another search term.</p></div>`
+    : `<div class="empty-state">${I.route({s:32})}<b>No routes detected</b><p>No API routes found in this project.</p></div>`;
+  panel.innerHTML=html+(items.length?'':empty);
 }
 
 /* ======== FLOWS ======== */
 function renderFlows(q){
   const panel=$('#panel-flows');if(!panel)return;
-  const routes=G.api_routes||[],mods=G.data_models||{};
+  const mods=G.data_models||{};
   function role(path){
     const l=path.toLowerCase();
     if(l.includes('/routes/')||l.includes('.routes.'))return['Route','rt'];
@@ -1097,7 +1156,7 @@ function renderFlows(q){
     for(const dep of deps){chain.push(...traceChain(dep,depth+1,visited))}
     return chain;
   }
-  const grouped={};routes.filter(r=>match(r,q)).forEach(r=>{const key=r.file||'unknown';(grouped[key]=grouped[key]||[]).push(r)});
+  const grouped={};routes.filter(r=>routeMatches(r,q)).forEach(r=>{const key=r.file||'unknown';(grouped[key]=grouped[key]||[]).push(r)});
   let html=`<div class="cards-grid">`;
   Object.entries(grouped).forEach(([file,rts])=>{
     const chain=traceChain(file,0,new Set());
@@ -1122,7 +1181,7 @@ function renderFlows(q){
 function renderModels(q){
   const panel=$('#panel-models');if(!panel)return;
   let html=`<div class="cards-grid">`;
-  Object.entries(G.data_models||{}).filter(([n,m])=>match({n,m},q)).forEach(([n,m])=>{
+  Object.entries(G.data_models||{}).filter(([n])=>modelMatches(n,q)).forEach(([n,m])=>{
     const rels=(m.relationships||[]).map(r=>`<div class="row-flex">${esc(r.type)} → ${tag(r.target)}${r.field?' ('+esc(r.field)+')':''}</div>`).join('');
     html+=`<div class="card"><h3>${I.database({s:16})} ${esc(n)}</h3>
       <p>${tag(m.type)} <span class="muted">${esc(m.file)}</span></p>
@@ -1137,7 +1196,7 @@ function renderModels(q){
 /* ======== DEPENDENCIES ======== */
 function renderDeps(q){
   const panel=$('#panel-deps');if(!panel)return;
-  let entries=Object.entries(G.external_dependencies||{}).filter(([n,d])=>match({n,d},q));
+  let entries=Object.entries(G.external_dependencies||{}).filter(([n])=>depMatches(n,q));
   if(sortKey==='usage')entries.sort((a,b)=>(b[1].used_by||[]).length-(a[1].used_by||[]).length);
   else entries.sort((a,b)=>a[0].localeCompare(b[0]));
   let html=`<div class="sort-area"></div><div class="cards-grid">`;
@@ -1155,7 +1214,7 @@ function renderDeps(q){
 /* ======== RISKS ======== */
 function renderRisks(q){
   const panel=$('#panel-risks');if(!panel)return;
-  const risks=(G.risk_signals||[]).filter(r=>match(r,q));
+  const risks=(G.risk_signals||[]).filter(r=>riskMatches(r,q));
   const groups={};risks.forEach(r=>{const t=r.type||'unknown';(groups[t]=groups[t]||[]).push(r)});
   let html=`<div class="cards-grid">`;
   Object.entries(groups).forEach(([type,items])=>{
@@ -1177,7 +1236,7 @@ function renderActivity(q){
   decisions.forEach(d=>{items.push({type:'decision',date:d.date||'',title:d.title||d.path||'',detail:d.path||'',meta:'Decision'})});
   items.sort((a,b)=>b.date.localeCompare(a.date));
   // Group by date
-  const groups={};items.filter(i=>match(i,q)).forEach(i=>{
+  const groups={};items.filter(i=>activityMatches(i,q)).forEach(i=>{
     const d=i.date?i.date.substring(0,10):'Unknown';
     (groups[d]=groups[d]||[]).push(i);
   });
@@ -1277,30 +1336,60 @@ function renderGraph(q){
     panel.innerHTML=`<div id="graph-box"><div class="graph-wrap"><canvas id="graph-canvas"></canvas><div class="graph-search"><input id="graph-filter" type="search" placeholder="Filter nodes…"></div><div id="minimap" class="minimap"><canvas id="minimap-cv"></canvas></div><div id="graph-sidebar" class="graph-sidebar"><div class="gs-inner" id="gs-inner"></div></div><div id="graph-tooltip" class="graph-tooltip"></div><div class="graph-legend"><div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Module</div><div class="legend-item"><div class="legend-dot" style="background:var(--ink3)"></div>File</div><div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div>Risk</div></div></div><div class="graph-toolbar"><button id="g-zin">+ Z</button><button id="g-zout">- Z</button><button id="g-reset">\u27F2</button><div class="sep-v"></div><button id="g-arrange">\u26F6 Layout</button><button id="g-collapse">\u2B06 Collapse</button><div class="sep-v"></div><button id="g-settings">\u2699</button><div class="sep-v"></div><button id="g-export">\uD83D\uDCF8</button><div class="spacer"></div><span id="g-zoom-lbl">100%</span></div><div class="graph-stats-bar" id="graph-stats"></div></div>`;
     graphStop=initGraph();
   }else{
-    // Re-resize if coming back
-    const cv=$('#graph-canvas'),wrap=cv?cv.parentElement:null;
-    if(cv&&wrap){cv.width=wrap.clientWidth;cv.height=wrap.clientHeight}
+    if(graphStop.resize)graphStop.resize();
   }
 }
 
 function initGraph(){
   const cv=$('#graph-canvas');if(!cv)return null;
   const ctx=cv.getContext('2d');
-  const dark=document.documentElement.dataset.theme==='dark';
   const wrap=cv.parentElement;
-  let W=cv.width=wrap.clientWidth,H=cv.height=wrap.clientHeight;
-  if(H<200)H=400; // minimum
-  const resizeW=()=>{W=cv.width=wrap.clientWidth;H=cv.height=wrap.clientHeight;if(H<200)H=400};
+  let W=0,H=0,resizePending=false,graphFilterQ='';
+  function theme(){
+    const dark=document.documentElement.dataset.theme==='dark';
+    return {
+      dark,
+      ink:dark?'#e2e8f0':'#0f172a',
+      muted:dark?'#94a3b8':'#64748b',
+      edgeDim:dark?'rgba(148,163,184,.03)':'rgba(100,116,139,.03)',
+      edgeChild:dark?'rgba(148,163,184,.2)':'rgba(100,116,139,.15)',
+      edgeMain:dark?'rgba(129,140,248,.35)':'rgba(79,70,229,.25)',
+      edgeHover:dark?'rgba(129,140,248,.8)':'rgba(79,70,229,.7)',
+      labelBg:dark?'rgba(15,17,42,.85)':'rgba(255,255,255,.9)',
+      fileLabel:dark?'#cbd5e1':'#475569',
+      fileShadow:dark?'rgba(0,0,0,.8)':'rgba(255,255,255,.8)',
+      filterMask:dark?'rgba(15,23,42,.58)':'rgba(248,249,250,.62)'
+    };
+  }
+  const resizeW=()=>{
+    const nextW=wrap.clientWidth||800,nextH=Math.max(wrap.clientHeight||400,400);
+    W=nextW;H=nextH;
+    if(cv.width!==nextW)cv.width=nextW;
+    if(cv.height!==nextH)cv.height=nextH;
+  };
+  resizeW();
   const mods=G.module_boundaries||{},names=Object.keys(mods);
-  if(!names.length)return null;
+  let resizeObserver=null;
+  const scheduleResize=()=>{
+    if(resizePending)return;
+    resizePending=true;
+    requestAnimationFrame(()=>{resizePending=false;resizeW();paint()});
+  };
+  if(typeof ResizeObserver!=='undefined'){resizeObserver=new ResizeObserver(scheduleResize);resizeObserver.observe(wrap)}
+  else window.addEventListener('resize',scheduleResize);
+  if(!names.length){
+    const gb=document.getElementById('graph-box');
+    if(gb)gb.innerHTML=`<div class="empty-state">${I.graph({s:32})}<b>No module graph available</b><p>Run build_knowledge_graph.py first to generate module boundaries.</p></div>`;
+    return{stop(){if(resizeObserver)resizeObserver.disconnect();else window.removeEventListener('resize',scheduleResize)},repaint(){},resize(){}}
+  }
   const cols=['#818cf8','#8b5cf6','#f59e0b','#ef4444','#10b981','#ec4899','#3b82f6','#f97316','#14b8a6','#a855f7'];
-  const ink=dark?'#e2e8f0':'#0f172a',muted=dark?'#94a3b8':'#64748b';
   let allNodes=[],allEdges=[],expanded=new Set(),selected=null;
   const modNodes={};
   names.forEach((n,i)=>{
     const spread=Math.max(250,names.length*38);
     const nd={id:n,type:'mod',x:W/2+Math.cos(i*2*Math.PI/names.length)*spread,y:H/2+Math.sin(i*2*Math.PI/names.length)*(spread*.75),vx:0,vy:0,c:cols[i%cols.length],r:0};
-    nd.r=Math.max(22,Math.min(38,12+Object.values(ci).filter(f=>f.module===n).length*1.2));
+    nd.fileCount=filesForModule(n).length;
+    nd.r=Math.max(22,Math.min(38,12+nd.fileCount*1.2));
     modNodes[n]=nd;allNodes.push(nd);
   });
   function buildEdges(){
@@ -1316,9 +1405,10 @@ function initGraph(){
     if(expanded.has(modName))return;
     expanded.add(modName);
     const parent=modNodes[modName];
-    const files=Object.entries(ci).filter(([,f])=>f.module===modName);
+    const files=filesForModule(modName);
     files.sort((a,b)=>((b[1].lines||0)+(b[1].definitions||[]).length*10)-((a[1].lines||0)+(a[1].definitions||[]).length*10));
-    const maxShow=Math.min(files.length,20);
+    const totalFiles=files.length,maxShow=Math.min(totalFiles,20);
+    parent.expandedShown=maxShow;parent.expandedTotal=totalFiles;
     const shown=files.slice(0,maxShow);
     shown.forEach(([p,f],i)=>{
       const a=i*2*Math.PI/Math.max(shown.length,1);
@@ -1333,6 +1423,7 @@ function initGraph(){
     expanded.delete(modName);
     allNodes=allNodes.filter(n=>n.parent!==modName);
     allEdges=allEdges.filter(e=>!(e.child&&(e.s.parent===modName||e.t.parent===modName)));
+    const parent=modNodes[modName];if(parent){delete parent.expandedShown;delete parent.expandedTotal}
     if(selected&&selected.parent===modName){selected=null;closeSidebar()}
   }
   function collapseAll(){expanded.clear();allNodes=allNodes.filter(n=>n.type==='mod');buildEdges();selected=null;closeSidebar();simFrames=0;simActive=true}
@@ -1341,38 +1432,51 @@ function initGraph(){
   let simParams={repMod:9000,repFile:1800,repSibling:2800,linkDist:210,childDist:85,gravity:.002,damp:.76,maxV:24};
   const toW=(sx,sy)=>({x:(sx-W/2)/cam.z+W/2-cam.x,y:(sy-H/2)/cam.z+H/2-cam.y});
   const updateZL=()=>{const el=$('#g-zoom-lbl');if(el)el.textContent=Math.round(cam.z*100)+'%'};
+  const graphNodeMatches=nd=>!graphFilterQ||(nd.type==='mod'?moduleMatches(nd.id,graphFilterQ):fileMatches(nd.id,graphFilterQ));
+  function updateFilterStats(){
+    const el=document.getElementById('gs-filter-count');if(!el)return;
+    if(!graphFilterQ){el.textContent='';return}
+    const count=allNodes.filter(graphNodeMatches).length;
+    el.innerHTML=`Filter: <b>${count}</b> match${count===1?'':'es'}`;
+  }
   function paint(){
-    resizeW();
+    const t=theme();
     ctx.clearRect(0,0,W,H);
     ctx.save();ctx.translate(W/2,H/2);ctx.scale(cam.z,cam.z);ctx.translate(-W/2+cam.x,-H/2+cam.y);
     allEdges.forEach(e=>{
       const isHover=hoverNode&&(e.s===hoverNode||e.t===hoverNode),isSel=selected&&(e.s===selected||e.t===selected);
-      const active=!hoverNode&&!selected||isHover||isSel;
-      if(!active){ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);ctx.strokeStyle=dark?'rgba(148,163,184,.03)':'rgba(100,116,139,.03)';ctx.lineWidth=1/cam.z;ctx.stroke();return}
+      const filterHit=!graphFilterQ||graphNodeMatches(e.s)||graphNodeMatches(e.t);
+      const active=filterHit&&(!hoverNode&&!selected||isHover||isSel);
+      if(!active){ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);ctx.strokeStyle=t.edgeDim;ctx.lineWidth=1/cam.z;ctx.stroke();return}
       ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);ctx.lineTo(e.t.x,e.t.y);
-      ctx.strokeStyle=e.child?(dark?'rgba(148,163,184,.2)':'rgba(100,116,139,.15)'):(dark?(isHover?'rgba(129,140,248,.8)':'rgba(129,140,248,.35)'):(isHover?'rgba(79,70,229,.7)':'rgba(79,70,229,.25)'));
+      ctx.strokeStyle=e.child?t.edgeChild:(isHover?t.edgeHover:t.edgeMain);
       ctx.lineWidth=(e.child?.7:2)/cam.z+(isHover?1.5:0);ctx.stroke();
       if(!e.child&&e.lbl){
         const mx=(e.s.x+e.t.x)/2,my=(e.s.y+e.t.y)/2;
         ctx.font='500 9px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
         const tw=ctx.measureText(e.lbl).width+6;
-        ctx.fillStyle=dark?'rgba(15,17,42,.85)':'rgba(255,255,255,.9)';ctx.fillRect(mx-tw/2,my-6,tw,12);
-        ctx.fillStyle=muted;ctx.fillText(e.lbl,mx,my);
+        ctx.fillStyle=t.labelBg;ctx.fillRect(mx-tw/2,my-6,tw,12);
+        ctx.fillStyle=t.muted;ctx.fillText(e.lbl,mx,my);
       }
     });
     const sorted=[...allNodes].sort((a,b)=>(a.type==='file'?0:1)-(b.type==='file'?0:1));
     sorted.forEach(nd=>{
       const isSel=nd===selected,isHov=nd===hoverNode;
+      const filterHit=graphNodeMatches(nd);
+      const dimmed=graphFilterQ&&!filterHit;
+      ctx.save();ctx.globalAlpha=dimmed ? .2 : 1;
       if(nd.type==='file'){
+        if(graphFilterQ&&filterHit){ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r+6,0,Math.PI*2);ctx.fillStyle=nd.c+'55';ctx.fill()}
         if(isSel||isHov){ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r+4,0,Math.PI*2);ctx.fillStyle=nd.c+'33';ctx.fill()}
         ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,Math.PI*2);ctx.fillStyle=nd.c+'44';ctx.fill();
         ctx.strokeStyle=(isSel||isHov)?'#fff':nd.c+'88';ctx.lineWidth=(isSel||isHov)?2:1;ctx.stroke();
         const fn=nd.id.split('/').pop();
         ctx.font='500 8px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillStyle=dark?'#cbd5e1':'#475569';ctx.shadowColor=dark?'rgba(0,0,0,.8)':'rgba(255,255,255,.8)';ctx.shadowBlur=3;
+        ctx.fillStyle=t.fileLabel;ctx.shadowColor=t.fileShadow;ctx.shadowBlur=3;
         ctx.fillText(fn.length>16?fn.slice(0,14)+'\u2026':fn,nd.x,nd.y+nd.r+9);ctx.shadowBlur=0;
       }else{
         const r=nd.r;const isExp=expanded.has(nd.id);
+        if(graphFilterQ&&filterHit){ctx.beginPath();ctx.arc(nd.x,nd.y,r+8,0,Math.PI*2);ctx.fillStyle=nd.c+'55';ctx.fill()}
         ctx.beginPath();ctx.arc(nd.x+2,nd.y+3,r,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.2)';ctx.fill();
         const grad=ctx.createRadialGradient(nd.x-r*.3,nd.y-r*.3,r*.1,nd.x,nd.y,r);
         grad.addColorStop(0,nd.c+'cc');grad.addColorStop(1,nd.c+'44');
@@ -1382,10 +1486,13 @@ function initGraph(){
         ctx.fillStyle='#fff';ctx.font='700 12px Inter,system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=4;
         ctx.fillText(nd.id.length>12?nd.id.slice(0,10)+'\u2026':nd.id,nd.x,nd.y-3);
-        const fc=Object.values(ci).filter(f=>f.module===nd.id).length;
+        const fc=nd.fileCount||filesForModule(nd.id).length;
         ctx.font='500 9px Inter,system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
-        ctx.fillText(fc+' files',nd.x,nd.y+10);ctx.shadowBlur=0;
+        ctx.fillText(fc+' files',nd.x,nd.y+10);
+        if(isExp&&nd.expandedTotal>nd.expandedShown){ctx.font='italic 8px Inter,system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,.72)';ctx.shadowBlur=2;ctx.fillText('showing '+nd.expandedShown+' of '+nd.expandedTotal,nd.x,nd.y+20)}
+        ctx.shadowBlur=0;
       }
+      ctx.restore();
     });
     ctx.restore();
     paintMinimap();
@@ -1437,7 +1544,7 @@ function initGraph(){
     const closeBtn='<button type="button" class="panel-close" aria-label="Close panel" onclick="window.graphCloseSidebar()">\u2715</button>';
     let head='',body='';
     if(nd.type==='mod'){
-      const m=mods[nd.id]||{},files=Object.entries(ci).filter(([,f])=>f.module===nd.id);
+      const m=mods[nd.id]||{},files=filesForModule(nd.id);
       const imp=m.imports_from||[],by=m.imported_by||[];
       head=`<div class="gs-head-bar"><div><div class="gs-head">${esc(nd.id)}</div><div class="gs-sub">${esc(modDesc(nd.id))}</div></div>${closeBtn}</div>`;
       body+=`<div class="panel-stat-row"><span class="dos-stat"><b>${files.length}</b> files</span><span class="dos-stat"><b>${imp.length}</b> imports</span><span class="dos-stat"><b>${by.length}</b> used by</span></div>`;
@@ -1452,7 +1559,7 @@ function initGraph(){
       head=`<div class="gs-head-bar"><div><div class="gs-head">${esc(fn)}</div><div class="gs-sub">${esc(desc(nd.id))}</div></div>${closeBtn}</div>`;
       body+=`<div class="panel-stat-row"><span class="dos-stat"><b>${f.lines||0}</b> lines</span><span class="dos-stat"><b>${(f.definitions||[]).length}</b> exports</span><span class="dos-stat"><b>${(f.imports||[]).length}</b> imports</span></div>`;
       if((f.definitions||[]).length){body+=`<div class="gs-section"><h4>Exports</h4>`;(f.definitions||[]).slice(0,20).forEach(d=>{body+=`<div class="gs-item"><div class="gs-dot" style="background:var(--accent)"></div>${esc(d)}</div>`});body+=`</div>`}
-      if((f.imports||[]).length){body+=`<div class="gs-section"><h4>Imports</h4>`;(f.imports||[]).forEach(i=>{body+=`<div class="gs-item" onclick="openDossier('${i.replace(/'/g,"\\'")}')"><div class="gs-dot" style="background:${muted}"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.split('/').pop())}</span></div>`});body+=`</div>`}
+      if((f.imports||[]).length){body+=`<div class="gs-section"><h4>Imports</h4>`;(f.imports||[]).forEach(i=>{body+=`<div class="gs-item" onclick="openDossier('${i.replace(/'/g,"\\'")}')"><div class="gs-dot" style="background:var(--ink3)"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.split('/').pop())}</span></div>`});body+=`</div>`}
       body+=`<button type="button" class="gs-action" onclick="openDossier('${nd.id.replace(/'/g,"\\\\'")}')">Open Full Dossier</button>`;
     }
     sb.innerHTML=head+'<div class="gs-body">'+body+'</div>';$('#graph-sidebar').classList.add('open');paint();
@@ -1486,7 +1593,7 @@ function initGraph(){
       hoverNode=hN;
       let tipHTML='';
       if(hN.type==='mod'){
-        const files=Object.values(ci).filter(f=>f.module===hN.id).length;
+        const files=hN.fileCount||filesForModule(hN.id).length;
         tipHTML=`<div class="tt-header">${I.folder({s:14})} ${esc(hN.id)}</div><div class="tt-row">Module · <b>${files}</b> files</div>`;
       }else{
         const f=hN.info||ci[hN.id]||{};
@@ -1561,7 +1668,7 @@ function initGraph(){
   });
   // Graph filter
   const gFilter=document.getElementById('graph-filter');
-  if(gFilter)gFilter.addEventListener('input',()=>paint());
+  if(gFilter)gFilter.addEventListener('input',()=>{graphFilterQ=gFilter.value.trim().toLowerCase();paint();updateFilterStats()});
   // Minimap
   function paintMinimap(){
     const mcv=document.getElementById('minimap-cv');if(!mcv)return;
@@ -1577,14 +1684,18 @@ function initGraph(){
   }
   // Stats bar
   const statsEl=document.getElementById('graph-stats');
-  if(statsEl){const modC=names.length,fileC=Object.keys(ci).length,edgeC=allEdges.filter(e=>!e.child).length;statsEl.innerHTML=`<span>Modules: <b>${modC}</b></span><span>Files: <b>${fileC}</b></span><span>Edges: <b>${edgeC}</b></span><span>Expanded: <b id="gs-exp-count">0</b></span>`}
+  if(statsEl){const modC=names.length,fileC=Object.keys(ci).length,edgeC=allEdges.filter(e=>!e.child).length;statsEl.innerHTML=`<span>Modules: <b>${modC}</b></span><span>Files: <b>${fileC}</b></span><span>Edges: <b>${edgeC}</b></span><span>Expanded: <b id="gs-exp-count">0</b></span><span id="gs-filter-count"></span>`}
   startTick();
   paint();
   return{stop(){run=false},repaint(){paint()}};
 }
 
 /* ======== SEARCH HANDLER ======== */
-$('#search').addEventListener('input',render);
+let searchTimer=null;
+$('#search').addEventListener('input',()=>{
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(render,90);
+});
 
 /* ======== DOSSIER SIDE PANEL ======== */
 function closeDossier(){
@@ -1600,19 +1711,19 @@ window.openDossier=function(path){
   const name=path.split('/').pop(),purpose=desc(path);
   const imp=info.imports||[],impBy=info.imported_by||[],defs=info.definitions||[];
   const extI=info.external_imports||[],risks=info.risk_tags||[];
-  const relRoutes=(CBI.routes||G.api_routes||[]).filter(r=>r.file===path);
-  const fileChunks=cChunks.filter(c=>c.path===path);
-  const fileSymbols=cSymbols.filter(s=>s.path===path);
-  const fileRefs=cRefs.filter(r=>r.source===path);
-  let h=`<div class="dos-head panel-head panel-head--grad"><div class="dos-icon panel-icon">${fileIcon(path)({s:24})}</div><div style="flex:1;min-width:0"><h2 class="panel-title">${esc(name)}</h2><div class="dos-path panel-sub">${esc(path)}</div><div class="panel-tags">${roleBadge(path)} ${tag(info.language,'','Language')} ${tag(info.module,'','Module')} ${info.is_entrypoint?tag('ENTRYPOINT','w','Entry point'):''}</div></div><button type="button" class="dos-close panel-close" aria-label="Close dossier">\u2715</button></div>`;
+  const relRoutes=routes.filter(r=>r.file===path);
+  const fileChunks=chunksByPath[path]||[];
+  const fileSymbols=symbolsByPath[path]||[];
+  const fileRefs=refsBySource[path]||[];
+  let h=`<div class="dos-head panel-head"><div class="dos-icon panel-icon">${fileIcon(path)({s:24})}</div><div style="flex:1;min-width:0"><h2 class="panel-title">${esc(name)}</h2><div class="dos-path panel-sub">${esc(path)}</div><div class="panel-tags">${roleBadge(path)} ${tag(info.language,'','Language')} ${tag(info.module,'','Module')} ${info.is_entrypoint?tag('ENTRYPOINT','w','Entry point'):''}</div></div><button type="button" class="dos-close panel-close" aria-label="Close dossier">\u2715</button></div>`;
   h+=`<div class="dos-section panel-section"><h3>Purpose</h3><p>${esc(purpose)}</p></div>`;
   h+=`<div class="dos-stats panel-stat-row"><div class="dos-stat"><b>${info.lines||0}</b> lines</div><div class="dos-stat"><b>${fileSymbols.length||defs.length}</b> symbols</div><div class="dos-stat"><b>${fileRefs.length||imp.length}</b> refs</div><div class="dos-stat"><b>${fileChunks.length}</b> chunks</div><div class="dos-stat"><b>${impBy.length}</b> dependents</div><div class="dos-stat"><b>${extI.length}</b> packages</div>${risks.length?`<div class="dos-stat danger"><b>${risks.length}</b> risks</div>`:''}</div>`;
-  h+=`<div class="dos-section"><h3>Symbols (${fileSymbols.length||defs.length})</h3><div class="dos-list">${fileSymbols.length?fileSymbols.map(s=>`<div class="dos-list-item">${tag(`${s.name}#L${s.line_start}`)} <span class="muted2">${esc(s.kind||'symbol')}</span></div>`).join(''):(defs.length?defs.map(d=>`<div class="dos-list-item">${tag(d)}</div>`).join(''):'<p class="muted">No symbols detected</p>')}</div></div>`;
-  h+=`<div class="dos-section"><h3>References (${fileRefs.length||imp.length})</h3><div class="dos-list">${fileRefs.length?fileRefs.map(r=>`<div class="dos-list-item">${tag(r.target)} <span class="muted2">${esc(r.kind||'reference')}</span></div>`).join(''):(imp.length?imp.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Self-contained</p>')}</div></div>`;
-  if(fileChunks.length)h+=`<div class="dos-section"><h3>Chunks (${fileChunks.length})</h3>${fileChunks.slice(0,8).map(c=>`<div class="insight"><b>L${c.line_start}-L${c.line_end} ${esc(c.symbol||c.strategy)}</b><p>${esc(c.text_preview||'').slice(0,240)}</p></div>`).join('')}</div>`;
-  h+=`<div class="dos-section"><h3>Used By (${impBy.length})</h3><div class="dos-list">${impBy.length?impBy.map(i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`).join(''):'<p class="muted">Leaf node</p>'}</div></div>`;
+  h+=`<div class="dos-section"><h3>Symbols (${fileSymbols.length||defs.length})</h3><div class="dos-list">${fileSymbols.length?limitedList(fileSymbols,80,s=>`<div class="dos-list-item">${tag(`${s.name}#L${s.line_start}`)} <span class="muted2">${esc(s.kind||'symbol')}</span></div>`,'symbols'):(defs.length?limitedList(defs,80,d=>`<div class="dos-list-item">${tag(d)}</div>`,'definitions'):'<p class="muted">No symbols detected</p>')}</div></div>`;
+  h+=`<div class="dos-section"><h3>References (${fileRefs.length||imp.length})</h3><div class="dos-list">${fileRefs.length?limitedList(fileRefs,80,r=>`<div class="dos-list-item">${tag(r.target)} <span class="muted2">${esc(r.kind||'reference')}</span></div>`,'references'):(imp.length?limitedList(imp,80,i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`,'imports'):'<p class="muted">Self-contained</p>')}</div></div>`;
+  if(fileChunks.length)h+=`<div class="dos-section"><h3>Chunks (${fileChunks.length})</h3>${limitedList(fileChunks,16,c=>`<div class="insight"><b>L${c.line_start}-L${c.line_end} ${esc(c.symbol||c.strategy)}</b><p>${esc(c.text_preview||'').slice(0,240)}</p></div>`,'chunks')}</div>`;
+  h+=`<div class="dos-section"><h3>Used By (${impBy.length})</h3><div class="dos-list">${impBy.length?limitedList(impBy,80,i=>`<div class="dos-list-item">${tag(i)} <span class="muted2">${desc(i).split(' — ')[0]}</span></div>`,'dependents'):'<p class="muted">Leaf node</p>'}</div></div>`;
   if(extI.length)h+=`<div class="dos-section"><h3>External Packages (${extI.length})</h3><div class="dos-list">${extI.map(i=>`<div class="dos-list-item">${tag(i,'w')}</div>`).join('')}</div></div>`;
-  if(risks.length)h+=`<div class="dos-section"><h3>Risk Signals</h3>${risks.map(r=>`<div class="insight risk">${esc(r)}</div>`).join('')}</div>`;
+  if(risks.length)h+=`<div class="dos-section"><h3>Risk Signals</h3><div class="risk-row">${risks.map(r=>`<span class="badge crit">${esc(r)}</span>`).join('')}</div></div>`;
   if(relRoutes.length)h+=`<div class="dos-section"><h3>API Endpoints (${relRoutes.length})</h3>${relRoutes.map(r=>`<div class="dos-list-item">${tag(r.method,'method '+(r.method||'').toLowerCase())} <code>${esc(r.path)}</code> → <b>${esc(r.handler)}</b></div>`).join('')}</div>`;
   h+=`<div class="dos-section"><h3>Connection Map</h3><div class="dos-conn-map">`;
   if(imp.length){h+=`<div class="dos-conn-col"><div class="dos-conn-label">DEPENDS ON</div>`;imp.slice(0,8).forEach(i=>{h+=`<div style="padding:1px 0">${tag(i)}</div>`});if(imp.length>8)h+=`<div class="muted2">+${imp.length-8} more</div>`;h+=`</div>`}

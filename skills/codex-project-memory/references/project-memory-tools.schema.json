@@ -1,0 +1,62 @@
+{
+  "schema_version": "2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Memory Tool Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tools"],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "script",
+          "purpose",
+          "args_schema",
+          "success_statuses",
+          "artifacts",
+          "exit_codes",
+          "warning_policy",
+          "required_artifact_modes"
+        ],
+        "properties": {
+          "name": {"type": "string"},
+          "script": {"type": "string"},
+          "purpose": {"type": "string"},
+          "args_schema": {"type": "object"},
+          "success_statuses": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "artifacts": {"type": "array", "items": {"type": "string"}},
+          "stdout_contract": {"type": "string"},
+          "error_contract": {"type": "string"},
+          "exit_codes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["success", "failure"],
+            "properties": {
+              "success": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+              "failure": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+              "strict_warn_as_failure": {"type": "array", "items": {"type": "integer"}}
+            }
+          },
+          "warning_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode"],
+            "properties": {
+              "mode": {"enum": ["none", "advisory", "strict_exit"]},
+              "description": {"type": "string"}
+            }
+          },
+          "required_artifact_modes": {
+            "type": "object",
+            "additionalProperties": {"enum": ["required", "optional", "generated_on_success"]}
+          }
+        }
+      }
+    }
+  }
+}

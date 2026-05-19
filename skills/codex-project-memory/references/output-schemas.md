@@ -61,8 +61,7 @@ Every durable JSON artifact produced by `build_knowledge_index.py` and `build_kn
 | --- | --- | --- | --- |
 | `.codex/knowledge/index.json` | `references/knowledge-index.schema.json` | `schema_version`, `artifact_type`, `generated_at`, `project_root`, `stats`, `warnings`, `redaction` | Tacit-knowledge and source-coverage artifact. |
 | `.codex/knowledge/knowledge-graph.json` and `.codex/knowledge-graph.json` | `references/knowledge-graph.schema.json` | `schema_version`, `artifact_type`, `generated_at`, `project_root`, `stats`, `warnings`, `redaction` | Structural dependency graph, code index, contexts, routes, models, and risk signals. |
-
-A standalone codebase-index artifact is not currently emitted. If one is added, create `references/codebase-index.schema.json` before release and include files, chunks, symbols, references, and query metadata in both the schema and this contract.
+| `.codex/knowledge/codebase-index.json` | `references/codebase-index.schema.json` | `schema_version`, `status`, `generated_at`, `project_root`, `stats`, `files`, `chunks`, `symbols`, `references` | Rich local search/index artifact with explicit truncation metadata. |
 
 ### Per-Script Output Schemas
 
@@ -76,10 +75,13 @@ A standalone codebase-index artifact is not currently emitted. If one is added, 
 | `analyze_patterns.py` | `"generated"` | `path`, `patterns` |
 | `build_knowledge_graph.py` | `"generated"` | `path`, artifact metadata, `stats`, `code_index`, `ai_context`, `human_context` |
 | `build_knowledge_index.py` | `"built"` | artifact metadata, `index_path`, `markdown_path`, `graph_path`, `html_path`, `sources`, `graph_stats` |
+| `build_knowledge_index.py --query` | `"queried"` | `query`, `top_k`, `codebase_index_path`, `results` |
+| `generate_genome.py` | `"generated"` | `genome_path`, `sections_scanned`, `total_files`, `total_lines` |
+| `memory_status.py` | `"pass"`, `"warn"`, or `"fail"` | `policy`, `artifacts`, `coherence`, `warnings`, `failures` |
 | `track_feedback.py` (log) | `"logged"` | `path`, `category` |
 | `track_feedback.py` (aggregate) | `"aggregated"` | `total`, `by_category` |
 | `track_skill_usage.py` (record) | `"recorded"` | `skill`, `outcome` |
-| `track_skill_usage.py` (report) | `"report"` | `total_entries`, `by_skill` |
+| `track_skill_usage.py` (report) | `"report_ready"` | `total_usages`, `by_skill` |
 | `compact_context.py` | `"compacted"` | `sessions_archived`, `feedback_archived`, `bytes_freed` |
 
 #### Detailed Examples
@@ -123,7 +125,7 @@ A standalone codebase-index artifact is not currently emitted. If one is added, 
 Aggregate mode:
 
 ```json
-{"total_feedback": <int>, "by_category": {<object>}, "by_severity": {<object>}, "top_files": [<object>], "recent": [<object>], "patterns": "<string>"}
+{"status": "aggregated", "total_feedback": <int>, "by_category": {<object>}, "by_severity": {<object>}, "top_files": [<object>], "recent": [<object>], "patterns": "<string>"}
 ```
 
 #### track_skill_usage.py
@@ -143,7 +145,7 @@ Report mode:
 CLI payload:
 
 ```json
-{"status": "generated", "path": "<file>", "schema_version": "2.0", "artifact_type": "knowledge-graph", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>, "files_scanned": <int>, "files_skipped": <int>, "bytes_scanned": <int>}, "warnings": [<string>], "redaction": {"enabled": false, "strategy": "none", "description": "<text>"}, "coverage": {"files_scanned": <int>, "files_skipped": <int>, "candidate_files": <int>, "bytes_scanned": <int>, "skipped_reasons": {<object>}, "warnings": <int>, "limits": {<object>}}, "file_dependencies": {<object>}, "code_index": {"<relative-file>": {"path": "<relative-file>", "language": "<language>", "module": "<module>", "parser": {"parser": "<parser-family>", "confidence": "<high|medium|low|none>", "resolver_strategy": "<strategy>"}, "lines": <int>, "definitions": [<string>], "imports": [<string>], "imported_by": [<string>], "external_imports": [<string>], "is_test": <bool>, "is_entrypoint": <bool>, "risk_tags": [<string>]}}, "entrypoints": [<string>], "external_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": [<object>], "data_models": {<object>}, "risk_signals": [<object>], "ai_context": {<object>}, "human_context": {<object>}, "circular_dependencies": [<object>]}
+{"status": "generated", "path": "<file>", "schema_version": "2.0", "artifact_type": "knowledge-graph", "generated_at": "<iso8601>", "project_root": "<path>", "stats": {"total_files": <int>, "total_edges": <int>, "modules": <int>, "routes": <int>, "models": <int>, "circular_dependencies": <int>, "files_scanned": <int>, "files_skipped": <int>, "bytes_scanned": <int>}, "warnings": [<string>], "redaction": {"enabled": false, "strategy": "none", "description": "<text>"}, "coverage": {"files_scanned": <int>, "files_skipped": <int>, "candidate_files": <int>, "bytes_scanned": <int>, "skipped_reasons": {<object>}, "warnings": <int>, "limits": {<object>}}, "coherence": {"graph_files": <int>, "codebase_index_files": <int>, "graph_only": [<string>], "codebase_only": [<string>], "truncated": <bool>}, "file_dependencies": {<object>}, "code_index": {"<relative-file>": {"path": "<relative-file>", "language": "<language>", "module": "<module>", "parser": {"parser": "<parser-family>", "confidence": "<high|medium|low|none>", "resolver_strategy": "<strategy>"}, "lines": <int>, "definitions": [<string>], "imports": [<string>], "imported_by": [<string>], "external_imports": [<string>], "is_test": <bool>, "is_entrypoint": <bool>, "risk_tags": [<string>], "chunk_stats": {"total_chunks": <int>, "included_chunks": <int>, "truncated": <bool>, "cap_reason": "<string>"}}}, "codebase_index": {<object>}, "entrypoints": [<string>], "external_dependencies": {<object>}, "module_boundaries": {<object>}, "api_routes": [<object>], "data_models": {<object>}, "risk_signals": [<object>], "ai_context": {<object>}, "human_context": {<object>}, "circular_dependencies": [<object>]}
 ```
 
 The written `knowledge-graph.json` artifact contains the same fields except `status` and `path`.
@@ -159,6 +161,26 @@ CLI payload:
 ```
 
 The written `index.json` artifact contains `artifact_type: "knowledge-index"`, metadata, `sources`, `architecture_seams`, `domain_vocabulary`, `decisions`, `recent_commits`, `package`, and `tacit_knowledge`. It does not contain `status`, `path`, or the path-specific CLI fields.
+
+Query mode:
+
+```json
+{"status": "queried", "query": "<string>", "top_k": <int>, "codebase_index_path": "<file>", "results": [<object>]}
+```
+
+#### generate_genome.py
+
+```json
+{"status": "generated", "project": "<name>", "generated_at": "<iso8601>", "depth": "<auto|shallow|full>", "scan_depth": "<string>", "sections_scanned": [<string>], "total_files": <int>, "total_lines": <int>, "genome_path": "<file>", "module_maps_count": <int>}
+```
+
+#### memory_status.py
+
+```json
+{"status": "<pass|warn|fail>", "project_root": "<path>", "git_head": "<sha-or-empty>", "knowledge_dir": "<path>", "policy": {"standalone_graph": "<optional|required>", "strict_warnings_exit_nonzero": <bool>, "max_age_hours": <int>}, "artifacts": [<object>], "coherence": {<object>}, "warnings": [<string>], "failures": [<string>]}
+```
+
+Exit codes: `0` for `pass` or `warn` (default); `1` for `fail`, invalid project root, or `warn` when `--strict` is set.
 
 #### compact_context.py
 

@@ -14,6 +14,11 @@ from typing import Any
 
 SCHEMA_VERSION = "1.0"
 DEFAULT_INDEX_PATH = Path(".codex/knowledge/codebase-index.json")
+MAX_SYMBOLS_PER_FILE = 200
+MAX_CHUNKS_PER_FILE = 300
+MAX_IMPORTS_PER_FILE = 300
+MAX_ROUTES_PER_FILE = 100
+MAX_MODELS_PER_FILE = 100
 SKIP_DIRS = {
     ".git", ".next", ".pytest_cache", "__pycache__", "build", "coverage", "dist",
     "node_modules", "vendor", ".venv", "venv", ".codex", ".codexai", ".idea", ".vscode",
@@ -142,7 +147,7 @@ def line_number_for_offset(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
 
-def extract_symbols(rel_path: str, text: str, language: str) -> list[dict[str, Any]]:
+def collect_symbols(rel_path: str, text: str, language: str) -> list[dict[str, Any]]:
     pattern = PY_SYMBOL_PATTERN if language == "Python" else JS_SYMBOL_PATTERN if language in {"JavaScript", "React JSX", "TypeScript", "React TSX", "JavaScript ESM", "JavaScript CJS"} else GENERIC_SYMBOL_PATTERN
     symbols: list[dict[str, Any]] = []
     for match in pattern.finditer(text):
@@ -167,10 +172,14 @@ def extract_symbols(rel_path: str, text: str, language: str) -> list[dict[str, A
         if key not in seen:
             seen.add(key)
             deduped.append(symbol)
-    return deduped[:200]
+    return deduped
 
 
-def chunk_text(rel_path: str, text: str, symbols: list[dict[str, Any]], max_lines: int = 80) -> list[dict[str, Any]]:
+def extract_symbols(rel_path: str, text: str, language: str) -> list[dict[str, Any]]:
+    return collect_symbols(rel_path, text, language)[:MAX_SYMBOLS_PER_FILE]
+
+
+def collect_chunks(rel_path: str, text: str, symbols: list[dict[str, Any]], max_lines: int = 80) -> list[dict[str, Any]]:
     lines = text.splitlines()
     chunks: list[dict[str, Any]] = []
     symbol_starts = sorted({int(item["line_start"]): str(item["name"]) for item in symbols}.items())
@@ -191,7 +200,11 @@ def chunk_text(rel_path: str, text: str, symbols: list[dict[str, Any]], max_line
             if end == len(lines):
                 break
             start = max(end - overlap + 1, start + 1)
-    return chunks[:300]
+    return chunks
+
+
+def chunk_text(rel_path: str, text: str, symbols: list[dict[str, Any]], max_lines: int = 80) -> list[dict[str, Any]]:
+    return collect_chunks(rel_path, text, symbols, max_lines=max_lines)[:MAX_CHUNKS_PER_FILE]
 
 
 def make_chunk(rel_path: str, start: int, end: int, symbol: str, body: str, strategy: str) -> dict[str, Any]:
@@ -226,14 +239,14 @@ def extract_imports(rel_path: str, text: str) -> list[dict[str, Any]]:
                 "confidence": 0.78,
                 "provenance": {"extractor": "import-regex"},
             })
-    return imports[:300]
+    return imports[:MAX_IMPORTS_PER_FILE]
 
 
 def extract_routes(rel_path: str, text: str) -> list[dict[str, Any]]:
     routes = []
     for method, route_path, handler in ROUTE_PATTERN.findall(text):
         routes.append({"file": rel_path, "method": method.upper(), "path": route_path, "handler": redact_text(handler.strip()[:160]), "confidence": 0.72, "provenance": {"extractor": "route-regex"}})
-    return routes[:100]
+    return routes[:MAX_ROUTES_PER_FILE]
 
 
 def extract_models(rel_path: str, text: str) -> list[dict[str, Any]]:
@@ -244,7 +257,7 @@ def extract_models(rel_path: str, text: str) -> list[dict[str, Any]]:
         name = first or second
         if name and name not in {"function", "class", "schema", "model"}:
             models.append({"name": name, "file": rel_path, "type": "model-like", "confidence": 0.52, "provenance": {"extractor": "model-regex"}})
-    return models[:100]
+    return models[:MAX_MODELS_PER_FILE]
 
 
 def risk_signals(rel_path: str, text: str) -> list[dict[str, Any]]:
@@ -316,7 +329,8 @@ def build_codebase_index(project_root: Path, output_path: Path | None = None, in
     all_risks: list[dict[str, Any]] = []
     reused = 0
 
-    for path in discover_files(project_root):
+    discovered_files = discover_files(project_root)
+    for path in discovered_files:
         rel = path.relative_to(project_root).as_posix()
         try:
             stat = path.stat()
@@ -343,17 +357,35 @@ def build_codebase_index(project_root: Path, output_path: Path | None = None, in
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        symbols = extract_symbols(rel, text, metadata["language"])
-        chunks = chunk_text(rel, text, symbols)
+        all_file_symbols = collect_symbols(rel, text, metadata["language"])
+        symbols = all_file_symbols[:MAX_SYMBOLS_PER_FILE]
+        all_file_chunks = collect_chunks(rel, text, all_file_symbols)
+        chunks = all_file_chunks[:MAX_CHUNKS_PER_FILE]
         imports = extract_imports(rel, text)
         routes = extract_routes(rel, text)
         models = extract_models(rel, text)
         risks = risk_signals(rel, text)
+        symbol_total = len(all_file_symbols)
+        chunk_total = len(all_file_chunks)
         metadata.update({
             "lines": len(text.splitlines()),
             "chunks": [chunk["id"] for chunk in chunks],
             "symbols": [symbol["id"] for symbol in symbols],
             "risk_signals": [risk["type"] for risk in risks],
+            "truncation": {
+                "symbols": {
+                    "total": symbol_total,
+                    "included": len(symbols),
+                    "truncated": symbol_total > len(symbols),
+                    "cap": MAX_SYMBOLS_PER_FILE,
+                },
+                "chunks": {
+                    "total": chunk_total,
+                    "included": len(chunks),
+                    "truncated": chunk_total > len(chunks),
+                    "cap": MAX_CHUNKS_PER_FILE,
+                },
+            },
         })
         files[rel] = metadata
         all_chunks.extend(chunks)
@@ -372,6 +404,20 @@ def build_codebase_index(project_root: Path, output_path: Path | None = None, in
         "project_root": project_root.as_posix(),
         "storage": {"type": "json", "path": index_path.relative_to(project_root).as_posix() if index_path.is_relative_to(project_root) else index_path.as_posix(), "fts": "inverted_index"},
         "incremental": {"enabled": incremental, "rebuild": rebuild, "reused_files": reused, "indexed_files": len(files) - reused},
+        "stats": {
+            "files_discovered": len(discovered_files),
+            "files_indexed": len(files),
+            "symbols_total": sum(int(file.get("truncation", {}).get("symbols", {}).get("total", 0)) for file in files.values()),
+            "symbols_included": len(all_symbols),
+            "chunks_total": sum(int(file.get("truncation", {}).get("chunks", {}).get("total", 0)) for file in files.values()),
+            "chunks_included": len(all_chunks),
+            "truncated_files": sum(
+                1
+                for file in files.values()
+                if file.get("truncation", {}).get("symbols", {}).get("truncated")
+                or file.get("truncation", {}).get("chunks", {}).get("truncated")
+            ),
+        },
         "files": files,
         "chunks": all_chunks,
         "symbols": all_symbols,

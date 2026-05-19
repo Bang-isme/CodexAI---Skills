@@ -71,8 +71,15 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
         "codex-spec-driven-development/references/spec.schema.json",
         "codex-project-memory/references/knowledge-index.schema.json",
         "codex-project-memory/references/knowledge-graph.schema.json",
+        "codex-project-memory/references/codebase-index.schema.json",
+        "codex-project-memory/references/project-memory-tools.schema.json",
     ]:
         write(skills_root / schema, json.dumps({"schema_version": "1.0"}))
+    write(
+        skills_root / "codex-project-memory" / "references" / "project-memory-tools.json",
+        json.dumps({"tools": [{"name": "test-tool", "script": "scripts/build_knowledge_index.py", "args_schema": {}, "success_statuses": [0]}]}),
+    )
+    write(skills_root / "codex-project-memory" / "scripts" / "build_knowledge_index.py", "print('stub')\n")
     aliases = "\n".join(pack_health.REQUIRED_ALIASES)
     write(skills_root / "codex-master-instructions" / "SKILL.md", aliases)
 

@@ -248,6 +248,8 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         "codex-spec-driven-development/references/spec.schema.json",
         "codex-project-memory/references/knowledge-index.schema.json",
         "codex-project-memory/references/knowledge-graph.schema.json",
+        "codex-project-memory/references/codebase-index.schema.json",
+        "codex-project-memory/references/project-memory-tools.schema.json",
     ]
     schema_failures: list[str] = []
     for rel in schema_paths:
@@ -269,6 +271,36 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         "pass" if not schema_failures else "fail",
         "contract schemas parse and declare schema_version" if not schema_failures else "; ".join(schema_failures),
         failures=schema_failures,
+    )
+
+    tool_contract_path = skills_root / "codex-project-memory" / "references" / "project-memory-tools.json"
+    tool_contract_failures: list[str] = []
+    try:
+        tool_contract = json.loads(read_text(tool_contract_path))
+    except Exception as exc:
+        tool_contract = {}
+        tool_contract_failures.append(f"project-memory-tools.json: invalid JSON ({exc})")
+    tools = tool_contract.get("tools", []) if isinstance(tool_contract, dict) else []
+    if not isinstance(tools, list) or not tools:
+        tool_contract_failures.append("project-memory-tools.json: missing tools")
+    else:
+        for item in tools:
+            if not isinstance(item, dict):
+                tool_contract_failures.append("tool entry is not an object")
+                continue
+            for field in ("name", "script", "args_schema", "success_statuses"):
+                if field not in item:
+                    tool_contract_failures.append(f"{item.get('name', '<unknown>')}: missing {field}")
+            script = item.get("script")
+            if isinstance(script, str) and not (skills_root / "codex-project-memory" / script).exists():
+                tool_contract_failures.append(f"{item.get('name', '<unknown>')}: script missing ({script})")
+    add(
+        checks,
+        "project_memory_tool_contracts",
+        "pass" if not tool_contract_failures else "fail",
+        f"{len(tools)} project-memory tool contract(s) checked" if not tool_contract_failures else "; ".join(tool_contract_failures[:5]),
+        failures=tool_contract_failures,
+        total=len(tools) if isinstance(tools, list) else 0,
     )
 
     master_path = skills_root / "codex-master-instructions" / "SKILL.md"
@@ -382,6 +414,10 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-runtime-hook/scripts/validate_codex_hooks.py",
         "codex-project-memory/references/knowledge-index.schema.json",
         "codex-project-memory/references/knowledge-graph.schema.json",
+        "codex-project-memory/references/codebase-index.schema.json",
+        "codex-project-memory/references/project-memory-tools.schema.json",
+        "codex-project-memory/references/project-memory-tools.json",
+        "codex-project-memory/scripts/memory_status.py",
         "codex-logical-decision-layer/SKILL.md",
         "codex-spec-driven-development/SKILL.md",
         "codex-spec-driven-development/references/spec.schema.json",
