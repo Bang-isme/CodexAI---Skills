@@ -62,7 +62,29 @@ def test_manifest_router_and_plugin_tools_are_linked() -> None:
         if not (SKILLS_ROOT / rel).exists():
             issues.append(f"codex_plugin.{key} missing: {rel}")
 
+    corpus = SKILLS_ROOT / ".system" / "references" / "prompt-router.corpus.json"
+    if not corpus.exists():
+        issues.append("missing prompt-router.corpus.json")
+
+    deploy_workflow = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
+    if not deploy_workflow.exists():
+        issues.append("missing .github/workflows/deploy.yml")
+    else:
+        deploy_text = deploy_workflow.read_text(encoding="utf-8")
+        for needle in ("promote-staging", "promote-production", "environment: staging", "environment: production"):
+            if needle not in deploy_text:
+                issues.append(f"deploy.yml missing: {needle}")
+    local_gate = SKILLS_ROOT / ".system" / "scripts" / "local_release_gate.py"
+    if not local_gate.exists():
+        issues.append("missing local_release_gate.py")
+
     assert not issues, "linkage issues:\n" + "\n".join(issues)
+
+
+def test_ci_workflow_uses_dev_requirements_cache() -> None:
+    ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "cache-dependency-path: requirements-dev.txt" in ci
+    assert "python-version: [\"3.12\", \"3.13\"]" in ci or 'python-version: ["3.12", "3.13"]' in ci
 
 
 def test_plugin_tool_registry_covers_trust_harness_commands() -> None:

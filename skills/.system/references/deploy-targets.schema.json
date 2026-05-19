@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeployTarget",
+  "type": "object",
+  "required": ["target", "environment", "artifact"],
+  "properties": {
+    "target": {
+      "type": "string",
+      "enum": ["none", "s3", "ssh"],
+      "description": "Promotion target after ZIP build"
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["staging", "production"]
+    },
+    "artifact": {
+      "type": "string",
+      "description": "Glob or path to release ZIP under dist/"
+    },
+    "smoke": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Post-extract validators",
+      "default": ["validate_codex_plugin", "validate_claude_plugin"]
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -86,4 +86,5 @@ User intent -> Memory action?
 - `references/project-memory-tools.json`: machine-readable tool manifest for CLI/MCP-style harness generation.
 - `references/project-memory-tools.schema.json`: schema for the tool manifest.
 - `references/ci-readiness.md`: release gate commands, strict mode, and Windows symlink deselection.
+- `references/scale-sla.md`: scale tiers, `run_scale_gate.py` report, and CI workflow mapping for large codebases.
 - `references/artifact-lifecycle-policy.md`: hybrid commit policy for schemas vs generated `.codex/` artifacts.

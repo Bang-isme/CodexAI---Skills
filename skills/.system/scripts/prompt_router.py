@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+INJECTION_SECURITY_BOOST = 3
+
 
 ROUTES: list[dict[str, Any]] = [
     {
@@ -109,7 +111,8 @@ def route_prompt(prompt: str) -> dict[str, Any]:
             "normalized_prompt": "",
         }
 
-    if INJECTION_RE.search(normalized):
+    injection_detected = bool(INJECTION_RE.search(normalized))
+    if injection_detected:
         warnings.append("prompt_injection_signal")
 
     lowered = normalized.lower()
@@ -123,6 +126,10 @@ def route_prompt(prompt: str) -> dict[str, Any]:
         score = len(matches)
         if route["agent"] == "security-auditor" and matches:
             score += 2
+        if injection_detected and route["agent"] == "security-auditor":
+            score += INJECTION_SECURITY_BOOST
+            if "prompt_injection" not in matches:
+                matches.append("prompt_injection")
         if score > best_score:
             best = route
             best_matches = matches

@@ -77,10 +77,19 @@ Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI.
 
 The repository ships a senior baseline GitHub Actions setup:
 
-- `ci.yml`: plugin validators, pack health, plugin tool-call contract validation, Linux/Windows pytest, project-memory contract smoke, and GitHub CLI contract checks.
-- `release.yml`: tag/manual release packaging with metadata validation and clean ZIP artifact upload.
+- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium), Python 3.12–3.13 × Linux/Windows matrix, Python 3.11 on `main`, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
+- `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
+- `deploy.yml`: staging artifact after `main` CI success; production GitHub Release on tag `v*` with `production` environment approval; optional S3/SSH when secrets are configured.
+- `release.yml`: manual ZIP build only (no GitHub Release). Prefer tagging to trigger `deploy.yml` production.
 
-The pack does not auto-deploy to a runtime environment. Release automation builds auditable artifacts; downstream teams choose promotion timing and installation scope.
+**Local release gate** (before tagging):
+
+```bash
+python skills/.system/scripts/local_release_gate.py --format json
+python skills/.system/scripts/local_release_gate.py --apply --format json
+```
+
+See `skills/.system/references/deploy-promotion.md` for staging → production flow and secrets.
 
 ---
 

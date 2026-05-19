@@ -1,8 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- CI/CD maturity: pip cache on all Python jobs, `requirements-dev.txt`, Python 3.12–3.13 OS matrix, Python 3.11 gate on `main`, trust harness smoke, advisory pip-audit, deploy-mode `auto_gate` on `main`.
+- Added `.github/workflows/deploy.yml` (staging artifact after green `main` CI, production GitHub Release on `v*` with environment approval, optional S3/SSH).
+- Added `local_release_gate.py`, `promote_deploy.py`, `deploy-promotion.md`, and `deploy-targets.schema.json`.
+- Added plugin tool `local_release_gate` in `plugin-tools.json`.
+- Dependabot pip updates for `requirements-dev.txt`.
+
+### Changed
+- `release.yml` is manual ZIP-only; production releases use `deploy.yml` on tag push.
+
 ## [15.2.0] - 2026-04-28
 
 ### Added
+- Added CI scale hardening: `prompt-router.corpus.json` gate, `generate_scale_fixture.py`, `run_scale_gate.py`, PR job `memory-at-scale-medium` (2500 files), and weekly `scale-nightly.yml` (8000 files).
+- Added `references/scale-sla.md` documenting memory tooling tiers for medium-to-very-large codebases.
 - Added plugin-level tool-call contract harness: `skills/.system/references/plugin-tools.json`, schema, `tool-call-contract.md`, and `validate_tool_contracts.py` for external CLI/MCP wrappers (not a repo CLI binary).
 - Added `codex-project-memory` tooling v2: explicit `memory_status.py` policies (`--strict`, `--require-standalone-graph`) with `policy` metadata in stdout.
 - Added machine-readable tool manifest at `references/project-memory-tools.json` (schema 2.0) with `exit_codes`, `warning_policy`, and `required_artifact_modes`.

@@ -41,7 +41,8 @@ def test_release_version_metadata_matches_single_source_of_truth() -> None:
     assert manifest["version"] == version
     assert f"version-{version}-blue" in root_readme
     assert f"| Version | `{version}` |" in skills_readme
-    assert changelog.startswith(f"# Changelog\n\n## [{version}]")
+    assert f"## [{version}]" in changelog
+    assert changelog.startswith("# Changelog\n\n## [Unreleased]") or changelog.startswith(f"# Changelog\n\n## [{version}]")
 
 
 def test_public_test_count_metadata_matches_verified_suite_target() -> None:

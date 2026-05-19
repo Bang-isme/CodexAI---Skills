@@ -163,10 +163,16 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "gh --version" in ci
     assert "actions/checkout@v5" in ci
     assert "actions/setup-python@v6" in ci
-    assert "pytest pyyaml" in ci
+    assert "requirements-dev.txt" in ci
 
-    assert "build_release_zip.py" in release
+    deploy = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    assert "promote-staging" in deploy
+    assert "promote-production" in deploy
+    assert "local_release_gate.py" in release or "local_release_gate.py" in deploy
+
+    assert "local_release_gate.py" in release
     assert "actions/checkout@v5" in release
     assert "actions/setup-python@v6" in release
     assert "actions/upload-artifact" in release
-    assert "--exclude-tests" in release
+    assert "local_release_gate.py" in release
+    assert "--apply" in release

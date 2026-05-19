@@ -1,0 +1,52 @@
+name: Scale Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scale-nightly-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.13"
+  PYTHONUTF8: "1"
+
+jobs:
+  memory-at-scale-large:
+    name: Memory at scale (large)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Run large scale gate
+        run: |
+          python skills/codex-project-memory/scripts/run_scale_gate.py \
+            --tier large \
+            --file-count 8000 \
+            --max-files 10000 \
+            --budget-seconds 900 \
+            --report-path scale-gate-report-large.json \
+            --format json
+
+      - name: Upload scale gate report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scale-gate-report-large
+          path: scale-gate-report-large.json
+          if-no-files-found: ignore
+          retention-days: 14

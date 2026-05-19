@@ -56,6 +56,8 @@ def test_plugin_tool_registry_schema_version_and_tools() -> None:
         "trust_harness",
         "memory_status",
         "memory_build_index",
+        "memory_scale_gate",
+        "local_release_gate",
     }
     for tool in registry["tools"]:
         for field in (

@@ -139,6 +139,7 @@ def validate_registry_shape(registry: Any, checks: list[dict[str, Any]]) -> list
             "release_zip_dry_run",
             "memory_status",
             "memory_build_index",
+            "memory_scale_gate",
         }:
             if not isinstance(required_args, list) or not required_args:
                 failures.append(f"{prefix}: args_schema.required must list required wrapper inputs")

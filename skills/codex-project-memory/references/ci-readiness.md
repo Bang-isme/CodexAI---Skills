@@ -87,3 +87,27 @@ Read `references/project-memory-tools.json` (schema `2.0`) for:
 - `required_artifact_modes` — `required`, `optional`, or `generated_on_success`
 
 Do not scrape prose from `script-commands.md` for automation; use the JSON manifest and `references/output-schemas.md` for field shapes.
+
+## Scale SLA (medium → very large repos)
+
+See `references/scale-sla.md` for tier definitions, `run_scale_gate.py` report fields, and CI workflow mapping.
+
+Quick rules:
+
+- Prefer `--incremental` on repeat builds; use `--rebuild` only when invalidating caches.
+- Raise `--max-files` above the default 1000 when indexing large trees; CI medium gate uses 5000.
+- PR CI runs synthetic **2500**-file gate; weekly workflow runs **8000** files with standalone graph build.
+- Do not treat missing `.codex/knowledge-graph.json` as failure unless `--require-standalone-graph` is set.
+
+## CI/CD checklist mapping
+
+| Capability | Workflow / job | Notes |
+|------------|----------------|-------|
+| CI pipeline | `.github/workflows/ci.yml` | PR + push `main`; 386+ tests |
+| Caching | `setup-python` `cache: pip` + `requirements-dev.txt` | All Python jobs |
+| Matrix builds | `test`: OS × Python 3.12/3.13; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
+| Deployments | `.github/workflows/deploy.yml` | Staging artifact → tag `v*` + `production` approval |
+| Plugin scale gate | `memory-at-scale-medium` / `scale-nightly.yml` | Polyglot synthetic fixtures |
+| Local release | `local_release_gate.py` | Before `git tag v*` |
+
+Supported Python: **3.11+** (3.11 verified on `main` only to limit PR matrix cost).
