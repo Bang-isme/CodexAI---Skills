@@ -250,6 +250,7 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         "codex-project-memory/references/knowledge-graph.schema.json",
         "codex-project-memory/references/codebase-index.schema.json",
         "codex-project-memory/references/project-memory-tools.schema.json",
+        ".system/references/plugin-tools.schema.json",
     ]
     schema_failures: list[str] = []
     for rel in schema_paths:
@@ -301,6 +302,40 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         f"{len(tools)} project-memory tool contract(s) checked" if not tool_contract_failures else "; ".join(tool_contract_failures[:5]),
         failures=tool_contract_failures,
         total=len(tools) if isinstance(tools, list) else 0,
+    )
+
+    plugin_tool_path = skills_root / ".system" / "references" / "plugin-tools.json"
+    plugin_tool_failures: list[str] = []
+    try:
+        plugin_tools_doc = json.loads(read_text(plugin_tool_path))
+    except Exception as exc:
+        plugin_tools_doc = {}
+        plugin_tool_failures.append(f"plugin-tools.json: invalid JSON ({exc})")
+    plugin_tools = plugin_tools_doc.get("tools", []) if isinstance(plugin_tools_doc, dict) else []
+    if not isinstance(plugin_tools, list) or not plugin_tools:
+        plugin_tool_failures.append("plugin-tools.json: missing tools")
+    else:
+        for item in plugin_tools:
+            if not isinstance(item, dict):
+                plugin_tool_failures.append("plugin tool entry is not an object")
+                continue
+            for field in ("name", "kind", "script", "args_schema", "safety_policy"):
+                if field not in item:
+                    plugin_tool_failures.append(f"{item.get('name', '<unknown>')}: missing {field}")
+            script = item.get("script")
+            if isinstance(script, str):
+                normalized = script.replace("\\", "/").lstrip("/")
+                if normalized.startswith(".."):
+                    plugin_tool_failures.append(f"{item.get('name', '<unknown>')}: script escapes skills root")
+                elif not (skills_root / normalized).exists():
+                    plugin_tool_failures.append(f"{item.get('name', '<unknown>')}: script missing ({script})")
+    add(
+        checks,
+        "plugin_tool_contracts",
+        "pass" if not plugin_tool_failures else "fail",
+        f"{len(plugin_tools)} plugin tool contract(s) checked" if not plugin_tool_failures else "; ".join(plugin_tool_failures[:5]),
+        failures=plugin_tool_failures,
+        total=len(plugin_tools) if isinstance(plugin_tools, list) else 0,
     )
 
     master_path = skills_root / "codex-master-instructions" / "SKILL.md"
@@ -417,6 +452,10 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-project-memory/references/codebase-index.schema.json",
         "codex-project-memory/references/project-memory-tools.schema.json",
         "codex-project-memory/references/project-memory-tools.json",
+        ".system/references/plugin-tools.schema.json",
+        ".system/references/plugin-tools.json",
+        ".system/references/tool-call-contract.md",
+        ".system/scripts/validate_tool_contracts.py",
         "codex-project-memory/scripts/memory_status.py",
         "codex-logical-decision-layer/SKILL.md",
         "codex-spec-driven-development/SKILL.md",

@@ -3,6 +3,7 @@
 ## [15.2.0] - 2026-04-28
 
 ### Added
+- Added plugin-level tool-call contract harness: `skills/.system/references/plugin-tools.json`, schema, `tool-call-contract.md`, and `validate_tool_contracts.py` for external CLI/MCP wrappers (not a repo CLI binary).
 - Added `codex-project-memory` tooling v2: explicit `memory_status.py` policies (`--strict`, `--require-standalone-graph`) with `policy` metadata in stdout.
 - Added machine-readable tool manifest at `references/project-memory-tools.json` (schema 2.0) with `exit_codes`, `warning_policy`, and `required_artifact_modes`.
 - Added fixture-based contract smoke tests for `build_knowledge_index`, `build_knowledge_graph`, and `memory_status` normal/strict modes.

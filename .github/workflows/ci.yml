@@ -41,6 +41,9 @@ jobs:
       - name: Check pack health
         run: python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
 
+      - name: Validate plugin tool-call contracts
+        run: python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --strict --format json
+
       - name: Validate release archive plan
         run: python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format json
 
