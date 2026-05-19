@@ -140,6 +140,56 @@ def test_validate_tool_contracts_reports_missing_script(tmp_path: Path) -> None:
     assert script_check["status"] == "fail"
 
 
+def test_validate_tool_contracts_rejects_invalid_smoke_cwd(tmp_path: Path) -> None:
+    skills_root = tmp_path / "skills"
+    scripts = skills_root / ".system" / "scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "stub.py").write_text("print('ok')\n", encoding="utf-8")
+    refs = skills_root / ".system" / "references"
+    refs.mkdir(parents=True)
+    (refs / "plugin-tools.schema.json").write_text(
+        json.dumps({"schema_version": "1.0"}),
+        encoding="utf-8",
+    )
+    (refs / "plugin-tools.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "tools": [
+                    {
+                        "name": "bad_cwd_tool",
+                        "kind": "health",
+                        "script": ".system/scripts/stub.py",
+                        "purpose": "Negative test for invalid smoke.cwd enum.",
+                        "args_schema": {"type": "object", "required": ["skills_root"], "properties": {"skills_root": {"type": "string"}}},
+                        "exit_codes": {"success": [0], "failure": [1]},
+                        "warning_policy": {"mode": "none", "description": "No warnings for this negative test."},
+                        "artifact_policy": {"mode": "none", "description": "No artifacts for this negative test."},
+                        "safety_policy": {
+                            "network": "none",
+                            "writes_artifacts": False,
+                            "reads_secrets": False,
+                            "smoke_allowed": True,
+                            "description": "Smoke declared with invalid cwd.",
+                        },
+                        "smoke": {
+                            "argv": ["--help"],
+                            "expect_exit_codes": [0],
+                            "cwd": "typo_root",
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    payload = tool_contracts.validate(skills_root, run_smokes=True)
+    assert payload["status"] == "fail"
+    shape = next(item for item in payload["checks"] if item["name"] == "registry_shape")
+    assert shape["status"] == "fail"
+    assert any("invalid smoke.cwd" in str(entry) for entry in shape.get("failures", []))
+
+
 def test_pack_health_includes_plugin_tool_contract_check() -> None:
     pack_health = load_script_module("pack_health_for_contracts", ".system/scripts/check_pack_health.py")
     payload = pack_health.summarize(pack_health.check_source(SKILLS_ROOT))

@@ -39,6 +39,7 @@ ALLOWED_KINDS = {"validator", "health", "router", "harness", "memory", "release"
 ALLOWED_WARNING_MODES = {"none", "advisory", "strict_exit"}
 ALLOWED_ARTIFACT_MODES = {"none", "read_only", "generated_on_success", "optional_outputs"}
 ALLOWED_NETWORK = {"none", "optional_external", "github_api"}
+ALLOWED_SMOKE_CWD = {"skills_root", "repo_root"}
 
 
 def default_skills_root() -> Path:
@@ -177,6 +178,10 @@ def validate_registry_shape(registry: Any, checks: list[dict[str, Any]]) -> list
                 failures.append(f"{prefix}: smoke must be an object")
             elif not smoke.get("argv"):
                 failures.append(f"{prefix}: smoke.argv required when smoke is present")
+            else:
+                cwd = smoke.get("cwd", "repo_root")
+                if cwd not in ALLOWED_SMOKE_CWD:
+                    failures.append(f"{prefix}: invalid smoke.cwd {cwd!r}")
     add(
         checks,
         "registry_shape",
@@ -281,6 +286,9 @@ def run_smoke(
             failures.append(f"{name}: {exc}")
             continue
         cwd_key = smoke.get("cwd", "repo_root")
+        if cwd_key not in ALLOWED_SMOKE_CWD:
+            failures.append(f"{name}: invalid smoke.cwd {cwd_key!r}")
+            continue
         cwd = skills_root if cwd_key == "skills_root" else repo_root
         cmd = [sys.executable, str(script_path), *substitute_argv([str(x) for x in argv], skills_root, repo_root)]
         expect = smoke.get("expect_exit_codes", [0])
