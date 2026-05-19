@@ -402,7 +402,7 @@
         "smoke_allowed": false,
         "description": "Local gate is filesystem-only; S3/SSH uses separate promote_deploy with operator env."
       },
-      "wrapper_notes": "Run before git tag v*; pair with deploy.yml production approval on GitHub.",
+      "wrapper_notes": "Optional local check before sharing a plugin ZIP; not tied to production deploy.",
       "smoke": {
         "argv": ["--format", "json"],
         "expect_exit_codes": [0, 1],

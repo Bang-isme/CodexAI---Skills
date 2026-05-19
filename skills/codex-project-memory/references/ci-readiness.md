@@ -106,7 +106,7 @@ Quick rules:
 | CI pipeline | `.github/workflows/ci.yml` | PR + push `main`; 386+ tests |
 | Caching | `setup-python` `cache: pip` + `requirements-dev.txt` | All Python jobs |
 | Matrix builds | `test`: OS × Python 3.12/3.13; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
-| Deployments | `.github/workflows/deploy.yml` | Staging artifact → tag `v*` + `production` approval |
+| Deployments | N/A (plugin pack) | Use `release.yml` manual ZIP or local `local_release_gate.py` only |
 | Plugin scale gate | `memory-at-scale-medium` / `scale-nightly.yml` | Polyglot synthetic fixtures |
 | Local release | `local_release_gate.py` | Before `git tag v*` |
 

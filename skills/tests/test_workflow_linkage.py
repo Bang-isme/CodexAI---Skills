@@ -67,13 +67,8 @@ def test_manifest_router_and_plugin_tools_are_linked() -> None:
         issues.append("missing prompt-router.corpus.json")
 
     deploy_workflow = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
-    if not deploy_workflow.exists():
-        issues.append("missing .github/workflows/deploy.yml")
-    else:
-        deploy_text = deploy_workflow.read_text(encoding="utf-8")
-        for needle in ("promote-staging", "promote-production", "environment: staging", "environment: production"):
-            if needle not in deploy_text:
-                issues.append(f"deploy.yml missing: {needle}")
+    if deploy_workflow.exists():
+        issues.append("deploy.yml should not exist (plugin pack uses CI only, no production CD)")
     local_gate = SKILLS_ROOT / ".system" / "scripts" / "local_release_gate.py"
     if not local_gate.exists():
         issues.append("missing local_release_gate.py")

@@ -1,48 +1,28 @@
-# Deploy promotion (staging → production)
+# Plugin pack CI and local packaging
 
-Plugin pack releases are **ZIP artifacts**, not container deploys. GitHub Actions implements promotion; optional S3/SSH targets attach when secrets exist.
+This repository is a **skill/plugin pack**. GitHub Actions here validate and test the pack — they do **not** deploy to staging or production servers.
 
-## Flow
+## What runs in CI
 
-| Stage | Trigger | Environment | Output |
-|-------|---------|-------------|--------|
-| Staging | `CI` workflow completes successfully on `main` | `staging` | Artifact `codexai-skill-pack-staging` (14d) |
-| Production | Tag push `v*` | `production` (approval required) | GitHub Release + `dist/*.zip` |
-| Manual | `workflow_dispatch` on `deploy.yml` | `staging` or `production` | Gate + optional S3/SSH |
+| Workflow | Purpose |
+|----------|---------|
+| `ci.yml` | Validators, contracts, tests, memory scale (medium), trust harness smoke |
+| `scale-nightly.yml` | Large-tier memory scale stress (weekly) |
+| `release.yml` | Optional manual ZIP build (`workflow_dispatch` only) |
 
-## GitHub configuration (repo settings)
+No `deploy.yml`, no GitHub Environments, and no S3/SSH promotion in CI.
 
-1. **Environments** → create `staging` and `production`.
-2. **production** → enable **Required reviewers** (and optional wait timer).
-3. **Secrets** (optional real deploy):
-   - `S3_BUCKET_STAGING`, `S3_BUCKET_PRODUCTION`
-   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-   - `SSH_HOST_STAGING`, `SSH_HOST_PRODUCTION`, `SSH_KEY` (for SSH; wire in workflow if using key-based auth)
-4. **Variables** (optional): `S3_PREFIX`, `SSH_USER`, `SSH_DEPLOY_PATH`
+## Local operator (optional)
 
-## Local operator path
+Before sharing a ZIP or opening a release PR, run:
 
 ```bash
-# Dry-run validators + release plan
 python skills/.system/scripts/local_release_gate.py --format json
-
-# Build ZIP locally
 python skills/.system/scripts/local_release_gate.py --apply --format json
-
-# Preview S3 commands without uploading
-python skills/.system/scripts/local_release_gate.py --apply --target s3 --dry-run --format text
 ```
 
-After local gate passes: `git tag vX.Y.Z && git push origin vX.Y.Z` → approve **production** deployment in GitHub Actions.
+`promote_deploy.py` remains available for teams that want to **manually** copy a ZIP to S3/SSH from their machine (set env vars locally). It is not wired into GitHub Actions.
 
-## Scripts
+## External consumers
 
-| Script | Role |
-|--------|------|
-| `local_release_gate.py` | Pack health + contracts + ZIP dry-run/apply |
-| `promote_deploy.py` | Extract ZIP smoke + optional S3/SSH |
-| `build_release_zip.py` | Canonical ZIP builder |
-
-## Schema
-
-See `deploy-targets.schema.json` for automation contracts.
+Downstream teams install from source, global skills sync, or a ZIP they build locally. Promotion timing and hosting are outside this plugin repo.

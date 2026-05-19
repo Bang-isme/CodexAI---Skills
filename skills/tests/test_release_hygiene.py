@@ -165,10 +165,7 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "actions/setup-python@v6" in ci
     assert "requirements-dev.txt" in ci
 
-    deploy = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
-    assert "promote-staging" in deploy
-    assert "promote-production" in deploy
-    assert "local_release_gate.py" in release or "local_release_gate.py" in deploy
+    assert not (REPO_ROOT / ".github" / "workflows" / "deploy.yml").exists()
 
     assert "local_release_gate.py" in release
     assert "actions/checkout@v5" in release

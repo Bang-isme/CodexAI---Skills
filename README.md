@@ -79,17 +79,18 @@ The repository ships a senior baseline GitHub Actions setup:
 
 - `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium), Python 3.12–3.13 × Linux/Windows matrix, Python 3.11 on `main`, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
 - `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
-- `deploy.yml`: staging artifact after `main` CI success; production GitHub Release on tag `v*` with `production` environment approval; optional S3/SSH when secrets are configured.
-- `release.yml`: manual ZIP build only (no GitHub Release). Prefer tagging to trigger `deploy.yml` production.
+- `release.yml`: optional manual ZIP build (`workflow_dispatch` only).
 
-**Local release gate** (before tagging):
+CI validates the plugin pack only — **no staging/production deploy** in GitHub Actions.
+
+**Local pack check** (optional, before sharing a ZIP):
 
 ```bash
 python skills/.system/scripts/local_release_gate.py --format json
 python skills/.system/scripts/local_release_gate.py --apply --format json
 ```
 
-See `skills/.system/references/deploy-promotion.md` for staging → production flow and secrets.
+See `skills/.system/references/deploy-promotion.md`.
 
 ---
 

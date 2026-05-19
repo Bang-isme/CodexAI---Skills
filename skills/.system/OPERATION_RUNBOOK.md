@@ -76,25 +76,19 @@ CI/CD workflows:
 
 - `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium), Python matrix (3.12–3.13 × OS; 3.11 on `main`), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
 - `.github/workflows/scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with report artifact.
-- `.github/workflows/deploy.yml`: **staging** artifact after successful `CI` on `main`; **production** GitHub Release on tag `v*` (requires `production` environment approval in GitHub Settings); optional S3/SSH when secrets exist.
-- `.github/workflows/release.yml`: manual ZIP build without creating a GitHub Release (use tag push for production).
+- `.github/workflows/release.yml`: optional manual ZIP (`workflow_dispatch` only).
 - Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
 
-GitHub Environments (configure in repo Settings → Environments):
+There is **no** `deploy.yml` and no GitHub Environments for staging/production — CI is plugin validation only.
 
-| Environment | Purpose | Approval |
-|-------------|---------|----------|
-| `staging` | Artifact from latest green `main` | Optional |
-| `production` | Tag `v*` release + optional real deploy | **Required reviewers** recommended |
-
-Local pre-tag gate:
+Local pack gate (optional):
 
 ```powershell
 python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --format json
 python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --apply --format json
 ```
 
-Promotion docs: `<SOURCE_SKILLS_ROOT>/.system/references/deploy-promotion.md`
+Docs: `<SOURCE_SKILLS_ROOT>/.system/references/deploy-promotion.md`
 - Deployment remains explicit: this pack publishes release artifacts only; downstream consumers choose when to install or promote them.
 
 Legacy global sync remains available for development compatibility.
