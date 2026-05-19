@@ -332,6 +332,44 @@
         "expect_exit_codes": [0],
         "cwd": "repo_root"
       }
+    },
+    {
+      "name": "memory_scale_gate",
+      "kind": "memory",
+      "script": "codex-project-memory/scripts/run_scale_gate.py",
+      "purpose": "Run synthetic scale gate: fixture generation, knowledge index build, incremental reuse, and memory_status on a large file tree.",
+      "args_schema": {
+        "type": "object",
+        "required": ["tier"],
+        "properties": {
+          "tier": {"type": "string", "enum": ["medium", "large"]},
+          "project_root": {"type": "string"},
+          "file_count": {"type": "integer"},
+          "max_files": {"type": "integer"},
+          "budget_seconds": {"type": "integer"},
+          "report_path": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "codex-project-memory/references/scale-sla.md#scale-gate-report",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "none",
+        "description": "Gate fails hard when budget, memory_status, or incremental reuse checks fail."
+      },
+      "artifact_policy": {
+        "mode": "generated_on_success",
+        "description": "Writes scale-gate-report.json and ephemeral fixture tree under project_root.",
+        "paths": ["scale-gate-report.json", ".codex/knowledge/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": false,
+        "description": "CI and operators only; creates many files under project_root."
+      },
+      "wrapper_notes": "Use tier medium for PR-sized checks; large tier is for scheduled stress runs."
     }
   ]
 }

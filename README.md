@@ -77,7 +77,8 @@ Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI.
 
 The repository ships a senior baseline GitHub Actions setup:
 
-- `ci.yml`: plugin validators, pack health, plugin tool-call contract validation, Linux/Windows pytest, project-memory contract smoke, and GitHub CLI contract checks.
+- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium synthetic gate), Linux/Windows pytest, project-memory smoke, and GitHub CLI contract checks.
+- `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
 - `release.yml`: tag/manual release packaging with metadata validation and clean ZIP artifact upload.
 
 The pack does not auto-deploy to a runtime environment. Release automation builds auditable artifacts; downstream teams choose promotion timing and installation scope.

@@ -3,6 +3,8 @@
 ## [15.2.0] - 2026-04-28
 
 ### Added
+- Added CI scale hardening: `prompt-router.corpus.json` gate, `generate_scale_fixture.py`, `run_scale_gate.py`, PR job `memory-at-scale-medium` (2500 files), and weekly `scale-nightly.yml` (8000 files).
+- Added `references/scale-sla.md` documenting memory tooling tiers for medium-to-very-large codebases.
 - Added plugin-level tool-call contract harness: `skills/.system/references/plugin-tools.json`, schema, `tool-call-contract.md`, and `validate_tool_contracts.py` for external CLI/MCP wrappers (not a repo CLI binary).
 - Added `codex-project-memory` tooling v2: explicit `memory_status.py` policies (`--strict`, `--require-standalone-graph`) with `policy` metadata in stdout.
 - Added machine-readable tool manifest at `references/project-memory-tools.json` (schema 2.0) with `exit_codes`, `warning_policy`, and `required_artifact_modes`.

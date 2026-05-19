@@ -87,3 +87,14 @@ Read `references/project-memory-tools.json` (schema `2.0`) for:
 - `required_artifact_modes` — `required`, `optional`, or `generated_on_success`
 
 Do not scrape prose from `script-commands.md` for automation; use the JSON manifest and `references/output-schemas.md` for field shapes.
+
+## Scale SLA (medium → very large repos)
+
+See `references/scale-sla.md` for tier definitions, `run_scale_gate.py` report fields, and CI workflow mapping.
+
+Quick rules:
+
+- Prefer `--incremental` on repeat builds; use `--rebuild` only when invalidating caches.
+- Raise `--max-files` above the default 1000 when indexing large trees; CI medium gate uses 5000.
+- PR CI runs synthetic **2500**-file gate; weekly workflow runs **8000** files with standalone graph build.
+- Do not treat missing `.codex/knowledge-graph.json` as failure unless `--require-standalone-graph` is set.

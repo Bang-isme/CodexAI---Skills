@@ -82,11 +82,21 @@ Plugin validators (`validate_codex_plugin.py`, `validate_claude_plugin.py`) and 
 
 `trust_harness.py` returns planned or applied setup steps. Default is dry-run without `--apply`.
 
+## Prompt routing corpus
+
+Committed regression corpus for portable routing:
+
+- Path: `skills/.system/references/prompt-router.corpus.json`
+- CI: `python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json`
+- `trust_harness.py` loads the same file via `validate_corpus()`.
+
 ## Verification commands
 
 ```bash
 python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --strict --format json
 python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
+python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
+python skills/codex-project-memory/scripts/run_scale_gate.py --tier medium --format json
 python -m pytest skills/tests/test_tool_contracts.py -q
 ```
 

@@ -62,6 +62,10 @@ def test_manifest_router_and_plugin_tools_are_linked() -> None:
         if not (SKILLS_ROOT / rel).exists():
             issues.append(f"codex_plugin.{key} missing: {rel}")
 
+    corpus = SKILLS_ROOT / ".system" / "references" / "prompt-router.corpus.json"
+    if not corpus.exists():
+        issues.append("missing prompt-router.corpus.json")
+
     assert not issues, "linkage issues:\n" + "\n".join(issues)
 
 

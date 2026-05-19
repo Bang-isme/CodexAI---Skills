@@ -93,6 +93,28 @@ def test_prompt_router_handles_edge_prompts_without_trusting_prompt_injection() 
     assert vietnamese_security["suggested_agent"] == "security-auditor"
 
 
+def test_prompt_router_cli_validates_committed_corpus() -> None:
+    script = SKILLS_ROOT / ".system" / "scripts" / "prompt_router.py"
+    corpus = SKILLS_ROOT / ".system" / "references" / "prompt-router.corpus.json"
+    assert corpus.exists()
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--corpus", str(corpus), "--format", "json"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+        check=False,
+    )
+
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert payload["status"] == "pass"
+    assert payload["total"] >= 6
+    assert payload["failed"] == 0
+
+
 def test_prompt_router_cli_validates_external_corpus(tmp_path: Path) -> None:
     script = SKILLS_ROOT / ".system" / "scripts" / "prompt_router.py"
     corpus = tmp_path / "corpus.json"

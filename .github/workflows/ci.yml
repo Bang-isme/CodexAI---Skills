@@ -44,6 +44,9 @@ jobs:
       - name: Validate plugin tool-call contracts
         run: python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --strict --format json
 
+      - name: Validate prompt router corpus
+        run: python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
+
       - name: Validate release archive plan
         run: python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format json
 
@@ -76,6 +79,38 @@ jobs:
           else
             python -m pytest skills/tests -q
           fi
+
+  memory-at-scale-medium:
+    name: Memory at scale (medium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run medium scale gate
+        run: |
+          python skills/codex-project-memory/scripts/run_scale_gate.py \
+            --tier medium \
+            --file-count 2500 \
+            --max-files 5000 \
+            --budget-seconds 420 \
+            --report-path scale-gate-report-medium.json \
+            --format json
+
+      - name: Upload scale gate report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scale-gate-report-medium
+          path: scale-gate-report-medium.json
+          if-no-files-found: ignore
+          retention-days: 7
 
   memory-tooling:
     name: Project-memory tooling gate
