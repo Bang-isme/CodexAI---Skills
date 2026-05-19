@@ -69,6 +69,13 @@ python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-roo
 
 The release ZIP builder excludes `.git`, `__pycache__`, `.pytest_cache`, `.codexai-backups`, coverage output, logs, cache/state directories, and the built-in `.system` marker.
 
+CI/CD workflows:
+
+- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, Linux/Windows tests, project-memory tooling, and GitHub CLI contract checks.
+- `.github/workflows/release.yml`: tag/manual release packaging gate that validates plugin metadata and uploads a clean release ZIP artifact.
+- Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
+- Deployment remains explicit: this pack publishes release artifacts only; downstream consumers choose when to install or promote them.
+
 Legacy global sync remains available for development compatibility.
 
 Windows PowerShell:

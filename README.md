@@ -37,6 +37,7 @@ The pack is designed for 3 outcomes:
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 | GitHub Automation | GitHub CLI (`gh`) + `gh auth login` for PR/release workflows |
+| CI/CD | `.github/workflows/ci.yml` + `.github/workflows/release.yml` |
 
 ---
 
@@ -69,6 +70,17 @@ gh auth status
 ```
 
 Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI. Never commit tokens into plugin manifests, skill docs, generated artifacts, or source files.
+
+---
+
+## CI/CD Baseline
+
+The repository ships a senior baseline GitHub Actions setup:
+
+- `ci.yml`: plugin validators, pack health, Linux/Windows pytest, project-memory contract smoke, and GitHub CLI contract checks.
+- `release.yml`: tag/manual release packaging with metadata validation and clean ZIP artifact upload.
+
+The pack does not auto-deploy to a runtime environment. Release automation builds auditable artifacts; downstream teams choose promotion timing and installation scope.
 
 ---
 

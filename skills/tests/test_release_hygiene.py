@@ -148,3 +148,20 @@ def test_coveragerc_measures_source_only_and_excludes_tests() -> None:
     assert "skills/codex-runtime-hook/scripts" in run_source
     assert "*/tests/*" in run_omit
     assert "*/.codexai-backups/*" in run_omit
+
+
+def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
+    ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    release = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert "validate_codex_plugin.py" in ci
+    assert "validate_claude_plugin.py" in ci
+    assert "check_pack_health.py" in ci
+    assert "memory_status.py" in ci
+    assert "windows-latest" in ci
+    assert "test_project_traversal_does_not_follow_symlinks_outside_root" in ci
+    assert "gh --version" in ci
+
+    assert "build_release_zip.py" in release
+    assert "actions/upload-artifact" in release
+    assert "--exclude-tests" in release

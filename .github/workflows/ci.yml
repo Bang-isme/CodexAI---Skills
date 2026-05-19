@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  PYTHONUTF8: "1"
+
+jobs:
+  validate-packaging:
+    name: Validate plugin packaging and contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate Codex plugin
+        run: python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --strict --format json
+
+      - name: Validate Claude plugin
+        run: python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format json
+
+      - name: Check pack health
+        run: python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
+
+      - name: Validate release archive plan
+        run: python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format json
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install test runner
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run full test suite
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            python -m pytest skills/tests -q -k "not test_project_traversal_does_not_follow_symlinks_outside_root"
+          else
+            python -m pytest skills/tests -q
+          fi
+
+  memory-tooling:
+    name: Project-memory tooling gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install test runner
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run focused project-memory contract tests
+        run: python -m pytest skills/tests/test_full_cycle_hardening.py -q -k "memory_status or project_memory_tool or memory_tools_fixture"
+
+      - name: Build project-memory artifacts
+        run: |
+          python skills/codex-project-memory/scripts/build_knowledge_index.py --project-root .
+          python skills/codex-project-memory/scripts/build_knowledge_graph.py --project-root .
+
+      - name: Validate project-memory status (warnings allowed)
+        run: python skills/codex-project-memory/scripts/memory_status.py --project-root . --format json
+
+      - name: Validate project-memory strict behavior is explicit
+        shell: bash
+        run: |
+          set +e
+          python skills/codex-project-memory/scripts/memory_status.py --project-root . --strict --format json
+          code=$?
+          set -e
+          if [[ "$code" != "0" && "$code" != "1" ]]; then
+            echo "Unexpected memory_status --strict exit code: $code"
+            exit 1
+          fi
+
+  github-cli-contract:
+    name: GitHub CLI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure GitHub CLI is available
+        run: gh --version
+
+      - name: Verify unauthenticated contract is documented
+        run: |
+          test -f skills/.system/GITHUB_CLI_INTEGRATION.md
+          grep -q "gh auth login" skills/.system/GITHUB_CLI_INTEGRATION.md
+
