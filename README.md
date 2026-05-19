@@ -81,7 +81,7 @@ The repository ships a senior baseline GitHub Actions setup:
 - `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
 - `release.yml`: optional manual ZIP build (`workflow_dispatch` only).
 
-CI validates the plugin pack only — **no staging/production deploy** in GitHub Actions.
+CI validates **this plugin pack** only. CI/CD scripts and `plugin-tools.json` are **capabilities for your Project CLI** to invoke locally against any `project-root` — not a production deploy pipeline for this repo.
 
 **Local pack check** (optional, before sharing a ZIP):
 

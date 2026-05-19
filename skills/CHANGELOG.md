@@ -5,6 +5,7 @@
 ### Added
 - CI/CD maturity: pip cache on all Python jobs, `requirements-dev.txt`, Python 3.12–3.13 OS matrix, Python 3.11 gate on `main`, trust harness smoke, advisory pip-audit, deploy-mode `auto_gate` on `main`.
 - Removed `.github/workflows/deploy.yml` — CI validates the plugin pack only; no staging/production CD in GitHub Actions.
+- Documented CI/CD as **local capability surface** for external Project CLI (`deploy-promotion.md`, README).
 - Added `local_release_gate.py`, `promote_deploy.py`, `deploy-promotion.md`, and `deploy-targets.schema.json`.
 - Added plugin tool `local_release_gate` in `plugin-tools.json`.
 - Dependabot pip updates for `requirements-dev.txt`.

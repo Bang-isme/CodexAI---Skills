@@ -7,7 +7,7 @@ This skills plugin publishes **machine-readable tool contracts** so a separate e
 | Layer | Owns |
 | --- | --- |
 | **This plugin** | `plugin-tools.json`, JSON schema, `validate_tool_contracts.py`, script stdout contracts, safety boundaries, CI smoke evidence |
-| **External CLI (future)** | Command UX, distribution, installer, auth prompts, token/session storage, orchestration and retries |
+| **Project CLI (external)** | Command UX, `project-root`, distribution, auth, orchestration — runs plugin scripts locally on user repos |
 | **GitHub CLI (`gh`)** | PR automation auth via `gh auth login`, `GH_TOKEN`, or `GITHUB_TOKEN` in CI — never embedded in plugin JSON |
 
 ## Registry
