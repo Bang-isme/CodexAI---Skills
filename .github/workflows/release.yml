@@ -1,4 +1,4 @@
-﻿# Production releases are handled by deploy.yml on tag push v*.
+# Production releases are handled by deploy.yml on tag push v*.
 # This workflow remains for manual packaging without creating a GitHub Release.
 
 name: Release Package (manual)
@@ -33,7 +33,7 @@ jobs:
         run: python skills/.system/scripts/local_release_gate.py --apply --format json
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codexai-skill-pack
           path: dist/*.zip
