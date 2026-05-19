@@ -36,6 +36,7 @@ jobs:
           python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --strict --format json
           python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format json
           python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
+          python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --strict --format json
 
       - name: Build release ZIP
         run: python skills/.system/scripts/build_release_zip.py --project-root . --apply --exclude-tests --format json
