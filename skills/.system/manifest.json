@@ -51,6 +51,13 @@
     "prototype"
   ],
   "scripts_registry": ".system/REGISTRY.md",
+  "plugin_tool_contract": {
+    "registry": ".system/references/plugin-tools.json",
+    "schema": ".system/references/plugin-tools.schema.json",
+    "documentation": ".system/references/tool-call-contract.md",
+    "validator": ".system/scripts/validate_tool_contracts.py",
+    "skill_level_memory_tools": "codex-project-memory/references/project-memory-tools.json"
+  },
   "codex_plugin": {
     "manifest": "../.codex-plugin/plugin.json",
     "marketplace": "../.agents/plugins/marketplace.json",

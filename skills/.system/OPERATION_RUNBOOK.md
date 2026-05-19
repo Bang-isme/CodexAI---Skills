@@ -40,6 +40,9 @@ Plugin packaging:
 - Manifest: `<PLUGIN_ROOT>/.codex-plugin/plugin.json`
 - Local marketplace: `<PLUGIN_ROOT>/.agents/plugins/marketplace.json`
 - Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_codex_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
+- Tool-call contract registry: `<SOURCE_SKILLS_ROOT>/.system/references/plugin-tools.json`
+- Contract validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_tool_contracts.py" --skills-root "<SOURCE_SKILLS_ROOT>" --strict --format json`
+- Contract docs: `<SOURCE_SKILLS_ROOT>/.system/references/tool-call-contract.md`
 - GitHub CLI integration: `<SOURCE_SKILLS_ROOT>/.system/GITHUB_CLI_INTEGRATION.md`
 
 GitHub automation prerequisite:
@@ -71,7 +74,7 @@ The release ZIP builder excludes `.git`, `__pycache__`, `.pytest_cache`, `.codex
 
 CI/CD workflows:
 
-- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, Linux/Windows tests, project-memory tooling, and GitHub CLI contract checks.
+- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, plugin tool-call contract validation, Linux/Windows tests, project-memory tooling, and GitHub CLI contract checks.
 - `.github/workflows/release.yml`: tag/manual release packaging gate that validates plugin metadata and uploads a clean release ZIP artifact.
 - Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
 - Deployment remains explicit: this pack publishes release artifacts only; downstream consumers choose when to install or promote them.

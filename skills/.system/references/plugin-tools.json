@@ -1,0 +1,337 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "name": "pack_health",
+      "kind": "health",
+      "script": ".system/scripts/check_pack_health.py",
+      "purpose": "Validate skills pack integrity: manifest, registry, schemas, aliases, and plugin paths.",
+      "args_schema": {
+        "type": "object",
+        "required": ["skills_root"],
+        "properties": {
+          "skills_root": {"type": "string"},
+          "global_root": {"type": "string"},
+          "strict": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#pack-health-output",
+      "exit_codes": {"success": [0], "failure": [1], "strict_warn_as_failure": [1]},
+      "warning_policy": {
+        "mode": "strict_exit",
+        "description": "Warnings (e.g. mojibake) fail when --strict is set."
+      },
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads skills tree and optional global install; does not write artifacts.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Local filesystem scan only; safe for CI smoke with --skills-root."
+      },
+      "wrapper_notes": "External CLI should pass installed or source skills root; map --strict to CI gates.",
+      "smoke": {
+        "argv": ["--skills-root", "{skills_root}", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "codex_plugin_validate",
+      "kind": "validator",
+      "script": ".system/scripts/validate_codex_plugin.py",
+      "purpose": "Validate Codex-native plugin packaging, marketplace entry, skill metadata, and native agents.",
+      "args_schema": {
+        "type": "object",
+        "required": ["plugin_root"],
+        "properties": {
+          "plugin_root": {"type": "string"},
+          "strict": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1], "strict_warn_as_failure": [1]},
+      "warning_policy": {
+        "mode": "strict_exit",
+        "description": "Warning groups fail exit when --strict is set."
+      },
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads plugin manifests and skills metadata only.",
+        "paths": [".codex-plugin/plugin.json", ".agents/plugins/marketplace.json"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Static validation of repository plugin layout."
+      },
+      "wrapper_notes": "plugin_root is repository root containing .codex-plugin and skills/.",
+      "smoke": {
+        "argv": ["--plugin-root", "{repo_root}", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "claude_plugin_validate",
+      "kind": "validator",
+      "script": ".system/scripts/validate_claude_plugin.py",
+      "purpose": "Validate Claude plugin manifest, hooks, and version alignment with skills/VERSION.",
+      "args_schema": {
+        "type": "object",
+        "required": ["plugin_root"],
+        "properties": {
+          "plugin_root": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "advisory",
+        "description": "Warnings are reported in JSON checks; default exit follows failed checks only."
+      },
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads .claude-plugin and hooks configuration.",
+        "paths": [".claude-plugin/plugin.json", "hooks/hooks.json"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Static validation only."
+      },
+      "wrapper_notes": "Pair with codex_plugin_validate for dual-host packaging gates.",
+      "smoke": {
+        "argv": ["--plugin-root", "{repo_root}", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "release_zip_dry_run",
+      "kind": "release",
+      "script": ".system/scripts/build_release_zip.py",
+      "purpose": "Plan release ZIP contents without writing an archive (--dry-run).",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "dry_run": {"type": "boolean", "default": true},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#release-dry-run-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "none",
+        "description": "Dry-run reports excluded paths; no advisory warn exit."
+      },
+      "artifact_policy": {
+        "mode": "none",
+        "description": "Dry-run must not create dist/ or ZIP files.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Wrappers must pass --dry-run for smoke; production release omits dry-run explicitly."
+      },
+      "wrapper_notes": "Smoke always includes --dry-run. Real release is a separate explicit wrapper command.",
+      "smoke": {
+        "argv": ["--project-root", "{repo_root}", "--dry-run", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "prompt_route",
+      "kind": "router",
+      "script": ".system/scripts/prompt_router.py",
+      "purpose": "Classify prompts into workflow/skill routes for generic harness adapters.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "prompt": {"type": "string"},
+          "corpus": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#prompt-route-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "none",
+        "description": "Routing returns JSON status; invalid corpus fails hard."
+      },
+      "artifact_policy": {
+        "mode": "none",
+        "description": "Stateless classification; optional corpus file is read-only input.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Safe to smoke with --help or empty prompt JSON envelope."
+      },
+      "wrapper_notes": "External CLI supplies user prompt text; do not persist prompts in plugin files.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "trust_harness",
+      "kind": "harness",
+      "script": ".system/scripts/trust_harness.py",
+      "purpose": "Portable setup and evidence harness for generic CLI/IDE adapters (dry-run by default).",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "project_root": {"type": "string"},
+          "skills_root": {"type": "string"},
+          "setup": {"type": "string", "enum": ["none", "generic", "codex", "claude", "all"], "default": "none"},
+          "apply": {"type": "boolean", "default": false},
+          "skip_tests": {"type": "boolean", "default": false},
+          "evidence": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#trust-harness-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "advisory",
+        "description": "Dry-run reports planned mutations; apply mode may surface test warnings."
+      },
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "May write evidence JSON or project-local adapter files only when --apply is set.",
+        "paths": [".codexai/", "evidence.json"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Smoke uses --help only; wrappers must require explicit opt-in for --apply."
+      },
+      "wrapper_notes": "Never smoke with --apply. External CLI owns user confirmation for mutating setup.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "memory_status",
+      "kind": "memory",
+      "script": "codex-project-memory/scripts/memory_status.py",
+      "purpose": "Validate generated project-memory artifacts for schema, staleness, and graph coherence.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "knowledge_dir": {"type": "string", "default": ".codex/knowledge"},
+          "max_age_hours": {"type": "integer", "default": 168},
+          "strict": {"type": "boolean", "default": false},
+          "require_standalone_graph": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "codex-project-memory/references/output-schemas.md#memory_status.py",
+      "exit_codes": {"success": [0], "failure": [1], "strict_warn_as_failure": [1]},
+      "warning_policy": {
+        "mode": "strict_exit",
+        "description": "Default warn exits 0; --strict promotes warn to exit 1."
+      },
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads .codex/knowledge and optional standalone graph under project root.",
+        "paths": [
+          ".codex/knowledge/index.json",
+          ".codex/knowledge/knowledge-graph.json",
+          ".codex/knowledge/codebase-index.json",
+          ".codex/knowledge-graph.json"
+        ]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Fixture smoke uses ephemeral tmp project roots only."
+      },
+      "wrapper_notes": "See codex-project-memory/references/project-memory-tools.json for skill-level detail.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "memory_build_index",
+      "kind": "memory",
+      "script": "codex-project-memory/scripts/build_knowledge_index.py",
+      "purpose": "Build searchable project-memory index and related artifacts under .codex/knowledge.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "output_dir": {"type": "string", "default": ".codex/knowledge"},
+          "query": {"type": "string"},
+          "top_k": {"type": "integer", "default": 10},
+          "incremental": {"type": "boolean", "default": false},
+          "rebuild": {"type": "boolean", "default": false},
+          "no_redaction": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "codex-project-memory/references/output-schemas.md#build_knowledge_index.py",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "advisory",
+        "description": "Traversal/redaction warnings may appear in artifact JSON while CLI exits 0 on built/queried."
+      },
+      "artifact_policy": {
+        "mode": "generated_on_success",
+        "description": "Writes index, graph, codebase index, and HTML under output_dir.",
+        "paths": [
+          ".codex/knowledge/index.json",
+          ".codex/knowledge/knowledge-graph.json",
+          ".codex/knowledge/codebase-index.json",
+          ".codex/knowledge/index.html"
+        ]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": false,
+        "description": "Not smoke-run by plugin validator; wrappers run on user project with explicit consent."
+      },
+      "wrapper_notes": "Expensive; external CLI should show cost estimate and target paths before execution.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    }
+  ]
+}

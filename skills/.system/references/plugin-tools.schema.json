@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CodexAI Plugin Tool Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tools"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind",
+          "script",
+          "purpose",
+          "args_schema",
+          "exit_codes",
+          "warning_policy",
+          "artifact_policy",
+          "safety_policy"
+        ],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "kind": {
+            "enum": ["validator", "health", "router", "harness", "memory", "release", "packaging"]
+          },
+          "script": {"type": "string"},
+          "purpose": {"type": "string", "minLength": 8},
+          "args_schema": {
+            "type": "object",
+            "required": ["type", "properties"],
+            "properties": {
+              "type": {"const": "object"},
+              "required": {"type": "array", "items": {"type": "string"}},
+              "properties": {"type": "object"}
+            }
+          },
+          "stdout_contract": {"type": "string"},
+          "exit_codes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["success", "failure"],
+            "properties": {
+              "success": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+              "failure": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+              "strict_warn_as_failure": {"type": "array", "items": {"type": "integer"}}
+            }
+          },
+          "warning_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "description"],
+            "properties": {
+              "mode": {"enum": ["none", "advisory", "strict_exit"]},
+              "description": {"type": "string", "minLength": 8}
+            }
+          },
+          "artifact_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "description"],
+            "properties": {
+              "mode": {"enum": ["none", "read_only", "generated_on_success", "optional_outputs"]},
+              "description": {"type": "string", "minLength": 8},
+              "paths": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "safety_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "network",
+              "writes_artifacts",
+              "reads_secrets",
+              "smoke_allowed",
+              "description"
+            ],
+            "properties": {
+              "network": {"enum": ["none", "optional_external", "github_api"]},
+              "writes_artifacts": {"type": "boolean"},
+              "reads_secrets": {"type": "boolean"},
+              "smoke_allowed": {"type": "boolean"},
+              "description": {"type": "string", "minLength": 8}
+            }
+          },
+          "wrapper_notes": {"type": "string"},
+          "smoke": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+              "expect_exit_codes": {"type": "array", "items": {"type": "integer"}, "minItems": 1},
+              "cwd": {"enum": ["skills_root", "repo_root"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

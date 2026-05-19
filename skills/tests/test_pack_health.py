@@ -73,8 +73,37 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
         "codex-project-memory/references/knowledge-graph.schema.json",
         "codex-project-memory/references/codebase-index.schema.json",
         "codex-project-memory/references/project-memory-tools.schema.json",
+        ".system/references/plugin-tools.schema.json",
     ]:
         write(skills_root / schema, json.dumps({"schema_version": "1.0"}))
+    write(
+        skills_root / ".system" / "references" / "plugin-tools.json",
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "tools": [
+                    {
+                        "name": "pack_health",
+                        "kind": "health",
+                        "script": ".system/scripts/check_pack_health.py",
+                        "purpose": "Pack health stub for minimal fixture.",
+                        "args_schema": {"type": "object", "required": ["skills_root"], "properties": {"skills_root": {"type": "string"}}},
+                        "exit_codes": {"success": [0], "failure": [1]},
+                        "warning_policy": {"mode": "none", "description": "No warnings in minimal fixture."},
+                        "artifact_policy": {"mode": "none", "description": "No artifacts in minimal fixture."},
+                        "safety_policy": {
+                            "network": "none",
+                            "writes_artifacts": False,
+                            "reads_secrets": False,
+                            "smoke_allowed": False,
+                            "description": "Fixture only.",
+                        },
+                    }
+                ],
+            }
+        ),
+    )
+    write(skills_root / ".system" / "scripts" / "check_pack_health.py", "print('stub')\n")
     write(
         skills_root / "codex-project-memory" / "references" / "project-memory-tools.json",
         json.dumps({"tools": [{"name": "test-tool", "script": "scripts/build_knowledge_index.py", "args_schema": {}, "success_statuses": [0]}]}),
@@ -95,6 +124,7 @@ def test_pack_health_current_source_is_operationally_clean() -> None:
     assert "registry_scripts" in names
     assert "critical_aliases" in names
     assert "markdown_mojibake" in names
+    assert "plugin_tool_contracts" in names
 
 
 def test_pack_health_reports_missing_manifest_skill(tmp_path: Path) -> None:
