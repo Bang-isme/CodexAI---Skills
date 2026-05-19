@@ -161,7 +161,12 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "windows-latest" in ci
     assert "test_project_traversal_does_not_follow_symlinks_outside_root" in ci
     assert "gh --version" in ci
+    assert "actions/checkout@v5" in ci
+    assert "actions/setup-python@v6" in ci
+    assert "pytest pyyaml" in ci
 
     assert "build_release_zip.py" in release
+    assert "actions/checkout@v5" in release
+    assert "actions/setup-python@v6" in release
     assert "actions/upload-artifact" in release
     assert "--exclude-tests" in release
