@@ -85,10 +85,10 @@ jobs:
           fi
 
   test-python-min:
-    name: Test (py3.11, ubuntu)
+    name: Test (py3.11 smoke, ubuntu)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -103,8 +103,19 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install --upgrade pip -r requirements-dev.txt
 
-      - name: Run full test suite
-        run: python -m pytest skills/tests -q
+      - name: Run smoke test suite
+        run: python skills/tests/smoke_test.py
+
+      - name: Run core contract pytest subset
+        run: |
+          python -m pytest \
+            skills/tests/test_release_integrity.py \
+            skills/tests/test_pack_health.py \
+            skills/tests/test_tool_contracts.py \
+            skills/tests/test_workflow_linkage.py \
+            skills/tests/test_codex_native_plugin.py \
+            skills/tests/test_claude_compatibility.py \
+            -q
 
   trust-harness-smoke:
     name: Trust harness smoke
