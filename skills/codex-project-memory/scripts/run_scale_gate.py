@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+SCALE_GATE_MARKER = ".scale-gate-fixture"
+SAFE_ROOT_NAME_PREFIXES = (".scale-gate-", "codex-scale-gate-")
 TIER_DEFAULTS = {
     "medium": {"file_count": 2500, "max_files": 5000, "budget_seconds": 420, "require_graph": False},
     "large": {"file_count": 8000, "max_files": 10000, "budget_seconds": 900, "require_graph": True},
@@ -70,6 +74,31 @@ def read_codebase_index_summary(project_root: Path) -> dict[str, Any]:
     }
 
 
+def is_deletable_fixture_root(project_root: Path) -> bool:
+    """Only ephemeral scale-gate directories may be removed automatically."""
+    resolved = project_root.expanduser().resolve()
+    name = resolved.name
+    if any(name.startswith(prefix) for prefix in SAFE_ROOT_NAME_PREFIXES):
+        return True
+    return (resolved / SCALE_GATE_MARKER).is_file()
+
+
+def safe_reset_fixture_root(project_root: Path, *, keep_fixture: bool) -> None:
+    if keep_fixture or not project_root.exists():
+        return
+    if not is_deletable_fixture_root(project_root):
+        raise ValueError(
+            "refusing to delete project root that is not a scale-gate fixture: "
+            f"{project_root}. Use a directory named .scale-gate-* / codex-scale-gate-*, "
+            "or one containing .scale-gate-fixture, or pass --keep-fixture."
+        )
+    shutil.rmtree(project_root, ignore_errors=True)
+
+
+def default_fixture_root(tier: str) -> Path:
+    return Path(tempfile.mkdtemp(prefix=f"codex-scale-gate-{tier}-"))
+
+
 def read_codebase_incremental(project_root: Path) -> int:
     path = project_root / ".codex" / "knowledge" / "codebase-index.json"
     if not path.exists():
@@ -98,10 +127,15 @@ def run_gate(
     failures: list[str] = []
     started = time.monotonic()
     project_root = project_root.expanduser().resolve()
-    if project_root.exists() and not keep_fixture:
-        import shutil
-
-        shutil.rmtree(project_root, ignore_errors=True)
+    try:
+        safe_reset_fixture_root(project_root, keep_fixture=keep_fixture)
+    except ValueError as exc:
+        return {
+            "status": "fail",
+            "tier": tier,
+            "project_root": str(project_root),
+            "failures": [str(exc)],
+        }
     project_root.mkdir(parents=True, exist_ok=True)
 
     gen_code, gen_payload, _ = run_script(
@@ -223,7 +257,12 @@ def run_gate(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run synthetic memory scale gate and emit JSON report.")
-    parser.add_argument("--project-root", default="", help="Fixture project root (default: temp under cwd)")
+    parser.add_argument(
+        "--project-root",
+        default="",
+        help="Fixture root (.scale-gate-* / codex-scale-gate-* or marked with .scale-gate-fixture). "
+        "Default: system temp directory (never deletes caller paths).",
+    )
     parser.add_argument("--tier", choices=tuple(TIER_DEFAULTS), default="medium")
     parser.add_argument("--file-count", type=int, default=0)
     parser.add_argument("--max-files", type=int, default=0)
@@ -245,7 +284,7 @@ def main() -> int:
     if args.project_root:
         project_root = Path(args.project_root)
     else:
-        project_root = Path.cwd() / f".scale-gate-{args.tier}"
+        project_root = default_fixture_root(args.tier)
 
     report = run_gate(
         project_root=project_root,
@@ -263,7 +302,11 @@ def main() -> int:
         report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if args.format == "text":
-        print(f"status={report['status']} duration={report['duration_seconds']}s reused={report['incremental_reused']}")
+        print(
+            f"status={report.get('status')} "
+            f"duration={report.get('duration_seconds', 'n/a')}s "
+            f"reused={report.get('incremental_reused', 'n/a')}"
+        )
         for failure in report.get("failures", []):
             print(f"- {failure}")
     else:

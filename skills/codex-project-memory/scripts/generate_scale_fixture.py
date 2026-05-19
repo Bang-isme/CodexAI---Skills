@@ -203,6 +203,13 @@ def generate_fixture(
     if include_package_json:
         write_config_stubs(root, created)
 
+    marker_path = root / ".scale-gate-fixture"
+    marker_path.write_text(
+        json.dumps({"schema_version": "1.0", "seed": seed, "file_count": file_count}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    created.append(".scale-gate-fixture")
+
     return {
         "status": "generated",
         "output_dir": str(root),

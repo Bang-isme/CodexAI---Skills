@@ -96,12 +96,65 @@ def test_polyglot_fixture_indexes_multiple_language_parsers(tmp_path: Path) -> N
     assert "regex-js-ts-symbols" in parsers
 
 
+def load_scale_gate_module():
+    spec = importlib.util.spec_from_file_location("run_scale_gate_test", SCALE_GATE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_scale_gate_refuses_unsafe_project_root_deletion(tmp_path: Path) -> None:
+    gate = load_scale_gate_module()
+    victim = tmp_path / "real-project"
+    victim.mkdir()
+    (victim / "important.txt").write_text("keep me\n", encoding="utf-8")
+
+    report = gate.run_gate(
+        project_root=victim,
+        file_count=5,
+        max_files=50,
+        budget_seconds=60,
+        tier="medium",
+        seed=1,
+        require_graph=False,
+        keep_fixture=False,
+    )
+
+    assert report["status"] == "fail"
+    assert victim.exists()
+    assert (victim / "important.txt").read_text(encoding="utf-8") == "keep me\n"
+    assert any("refusing to delete" in item for item in report.get("failures", []))
+
+
+def test_scale_gate_allows_named_fixture_root(tmp_path: Path) -> None:
+    gate = load_scale_gate_module()
+    fixture = tmp_path / ".scale-gate-test"
+    fixture.mkdir()
+    (fixture / "old.txt").write_text("stale\n", encoding="utf-8")
+
+    report = gate.run_gate(
+        project_root=fixture,
+        file_count=5,
+        max_files=50,
+        budget_seconds=120,
+        tier="medium",
+        seed=2,
+        require_graph=False,
+        keep_fixture=False,
+    )
+
+    assert (fixture / ".scale-gate-fixture").is_file()
+    assert not any("refusing to delete" in item for item in report.get("failures", []))
+    assert not (fixture / "old.txt").exists()
+
+
 def test_run_scale_gate_small_fixture(tmp_path: Path) -> None:
     if os.environ.get("RUN_SCALE_GATE") != "1":
         import pytest
 
         pytest.skip("Set RUN_SCALE_GATE=1 to run full scale gate locally")
-    project = tmp_path / "scale-project"
+    project = tmp_path / ".scale-gate-local-smoke"
     report_path = tmp_path / "scale-gate-report.json"
     result = subprocess.run(
         [

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- `run_scale_gate.py` no longer calls `shutil.rmtree` on arbitrary `--project-root` paths; only `.scale-gate-*` / `codex-scale-gate-*` dirs or trees marked with `.scale-gate-fixture`. Default fixture root uses `tempfile.mkdtemp`.
+
 ### Added
 - CI/CD maturity: pip cache on all Python jobs, `requirements-dev.txt`, Python 3.12–3.13 OS matrix, Python 3.11 gate on `main`, trust harness smoke, advisory pip-audit, deploy-mode `auto_gate` on `main`.
 - Removed `.github/workflows/deploy.yml` — CI validates the plugin pack only; no staging/production CD in GitHub Actions.
