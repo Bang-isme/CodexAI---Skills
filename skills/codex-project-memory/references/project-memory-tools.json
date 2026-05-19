@@ -1,0 +1,189 @@
+{
+  "schema_version": "2.0",
+  "tools": [
+    {
+      "name": "build_knowledge_index",
+      "script": "scripts/build_knowledge_index.py",
+      "purpose": "Build index.json, INDEX.md, knowledge-graph.json, codebase-index.json, progress JSON, and offline dashboard HTML.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "output_dir": {"type": "string", "default": ".codex/knowledge"},
+          "query": {"type": "string"},
+          "top_k": {"type": "integer", "default": 10},
+          "incremental": {"type": "boolean", "default": false},
+          "rebuild": {"type": "boolean", "default": false},
+          "no_redaction": {"type": "boolean", "default": false}
+        }
+      },
+      "success_statuses": ["built", "queried"],
+      "artifacts": [
+        ".codex/knowledge/index.json",
+        ".codex/knowledge/knowledge-graph.json",
+        ".codex/knowledge/codebase-index.json",
+        ".codex/knowledge/index.html"
+      ],
+      "required_artifact_modes": {
+        ".codex/knowledge/index.json": "generated_on_success",
+        ".codex/knowledge/knowledge-graph.json": "generated_on_success",
+        ".codex/knowledge/codebase-index.json": "generated_on_success",
+        ".codex/knowledge/index.html": "generated_on_success"
+      },
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "advisory",
+        "description": "Traversal and redaction warnings appear in artifact JSON; CLI still exits 0 on built/queried."
+      },
+      "stdout_contract": "references/output-schemas.md#build_knowledge_index.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    },
+    {
+      "name": "build_knowledge_graph",
+      "script": "scripts/build_knowledge_graph.py",
+      "purpose": "Build structural dependency graph, route/model maps, risk signals, and AI/human context.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "output": {"type": "string"},
+          "include_tests": {"type": "boolean", "default": false},
+          "no_redaction": {"type": "boolean", "default": false},
+          "print_full_json": {"type": "boolean", "default": false}
+        }
+      },
+      "success_statuses": ["generated"],
+      "artifacts": [".codex/knowledge-graph.json"],
+      "required_artifact_modes": {
+        ".codex/knowledge-graph.json": "generated_on_success"
+      },
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "advisory",
+        "description": "Graph build warnings are embedded in the artifact; default stdout is a summary envelope unless --print-full-json."
+      },
+      "stdout_contract": "references/output-schemas.md#build_knowledge_graph.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    },
+    {
+      "name": "memory_status",
+      "script": "scripts/memory_status.py",
+      "purpose": "Validate generated memory artifacts for schema presence, staleness, and graph/codebase coherence.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "knowledge_dir": {"type": "string", "default": ".codex/knowledge"},
+          "max_age_hours": {"type": "integer", "default": 168},
+          "strict": {"type": "boolean", "default": false},
+          "require_standalone_graph": {"type": "boolean", "default": false}
+        }
+      },
+      "success_statuses": ["pass", "warn"],
+      "artifacts": [
+        ".codex/knowledge/index.json",
+        ".codex/knowledge/knowledge-graph.json",
+        ".codex/knowledge/codebase-index.json",
+        ".codex/knowledge/index.html",
+        ".codex/knowledge-graph.json"
+      ],
+      "required_artifact_modes": {
+        ".codex/knowledge/index.json": "required",
+        ".codex/knowledge/knowledge-graph.json": "required",
+        ".codex/knowledge/codebase-index.json": "optional",
+        ".codex/knowledge/index.html": "optional",
+        ".codex/knowledge-graph.json": "optional"
+      },
+      "exit_codes": {
+        "success": [0],
+        "failure": [1],
+        "strict_warn_as_failure": [1]
+      },
+      "warning_policy": {
+        "mode": "strict_exit",
+        "description": "Default: warn exits 0. --strict promotes warn to exit 1. --require-standalone-graph promotes missing/invalid standalone graph from warn to fail."
+      },
+      "stdout_contract": "references/output-schemas.md#memory_status.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    },
+    {
+      "name": "generate_genome",
+      "script": "scripts/generate_genome.py",
+      "purpose": "Generate layered project context under .codex/context.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "depth": {"enum": ["shallow", "full", "auto"], "default": "auto"},
+          "sections": {"type": "string", "default": "all"},
+          "format": {"enum": ["md", "json"], "default": "md"},
+          "force": {"type": "boolean", "default": false}
+        }
+      },
+      "success_statuses": ["generated"],
+      "artifacts": [".codex/context/genome.md"],
+      "required_artifact_modes": {
+        ".codex/context/genome.md": "generated_on_success"
+      },
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Scan warnings may appear in stdout payload."},
+      "stdout_contract": "references/output-schemas.md#generate_genome.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    },
+    {
+      "name": "track_feedback",
+      "script": "scripts/track_feedback.py",
+      "purpose": "Log or aggregate corrections to AI output.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "file": {"type": "string"},
+          "ai_version": {"type": "string"},
+          "user_fix": {"type": "string"},
+          "category": {"type": "string"},
+          "severity": {"type": "string"},
+          "aggregate": {"type": "boolean", "default": false}
+        }
+      },
+      "success_statuses": ["logged", "aggregated"],
+      "artifacts": [".codex/feedback/*.md"],
+      "required_artifact_modes": {".codex/feedback/*.md": "generated_on_success"},
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "No warn exit semantics."},
+      "stdout_contract": "references/output-schemas.md#track_feedback.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    },
+    {
+      "name": "track_skill_usage",
+      "script": "scripts/track_skill_usage.py",
+      "purpose": "Record skill usage or report skill effectiveness trends.",
+      "args_schema": {
+        "type": "object",
+        "required": ["skills_root"],
+        "properties": {
+          "skills_root": {"type": "string"},
+          "record": {"type": "boolean", "default": false},
+          "report": {"type": "boolean", "default": false},
+          "skill": {"type": "string"},
+          "task": {"type": "string"},
+          "outcome": {"enum": ["success", "partial", "failed"]},
+          "notes": {"type": "string"},
+          "data_dir": {"type": "string"}
+        }
+      },
+      "success_statuses": ["recorded", "report_ready"],
+      "artifacts": [".analytics/usage-log.jsonl"],
+      "required_artifact_modes": {".analytics/usage-log.jsonl": "generated_on_success"},
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Report mode may include warnings in payload."},
+      "stdout_contract": "references/output-schemas.md#track_skill_usage.py",
+      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
+    }
+  ]
+}

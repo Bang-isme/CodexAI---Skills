@@ -36,6 +36,8 @@ The pack is designed for 3 outcomes:
 | Verification | 341 unit + 71 smoke = 412 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
+| GitHub Automation | GitHub CLI (`gh`) + `gh auth login` for PR/release workflows |
+| CI/CD | `.github/workflows/ci.yml` + `.github/workflows/release.yml` |
 
 ---
 
@@ -55,6 +57,30 @@ The pack is designed for 3 outcomes:
 | Fullstack prototypes start from vague prompts | `codex-spec-driven-development` forces spec-first acceptance criteria before `$plan` and implementation |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
 | Skills only work in one agent app | Dual Codex + Claude plugin metadata lets both agents load the same `skills/<name>/SKILL.md` contracts |
+
+---
+
+## GitHub CLI Prerequisite
+
+Pull request and release automation use GitHub CLI (`gh`). Install and authenticate once before using commit/PR helpers or wrapping this pack in a project CLI:
+
+```bash
+gh auth login
+gh auth status
+```
+
+Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI. Never commit tokens into plugin manifests, skill docs, generated artifacts, or source files.
+
+---
+
+## CI/CD Baseline
+
+The repository ships a senior baseline GitHub Actions setup:
+
+- `ci.yml`: plugin validators, pack health, Linux/Windows pytest, project-memory contract smoke, and GitHub CLI contract checks.
+- `release.yml`: tag/manual release packaging with metadata validation and clean ZIP artifact upload.
+
+The pack does not auto-deploy to a runtime environment. Release automation builds auditable artifacts; downstream teams choose promotion timing and installation scope.
 
 ---
 

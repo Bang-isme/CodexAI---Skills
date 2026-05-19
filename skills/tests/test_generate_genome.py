@@ -95,7 +95,7 @@ def test_generate_genome_writes_all_sections_for_sample_repo(tmp_path: Path) -> 
     genome_path = tmp_path / ".codex" / "context" / "genome.md"
     genome_text = genome_path.read_text(encoding="utf-8")
 
-    assert payload["status"] == "ok"
+    assert payload["status"] == "generated"
     assert payload["sections_scanned"] == ["architecture", "api", "data", "security", "tests", "file_map"]
     assert genome_path.exists()
     assert "# Project Genome:" in genome_text
@@ -128,7 +128,7 @@ def test_generate_genome_supports_subset_sections_and_json_output(tmp_path: Path
     payload = run_genome(tmp_path, "--sections", "api,security", "--format", "json")
     genome_text = (tmp_path / ".codex" / "context" / "genome.md").read_text(encoding="utf-8")
 
-    assert payload["status"] == "ok"
+    assert payload["status"] == "generated"
     assert payload["sections_scanned"] == ["api", "security"]
     assert set(payload["sections"].keys()) == {"api", "security"}
     assert "## 1. API Surface" in genome_text
@@ -140,6 +140,6 @@ def test_generate_genome_handles_empty_repo(tmp_path: Path) -> None:
     payload = run_genome(tmp_path, "--format", "json")
     genome_text = (tmp_path / ".codex" / "context" / "genome.md").read_text(encoding="utf-8")
 
-    assert payload["status"] == "ok"
+    assert payload["status"] == "generated"
     assert payload["total_files"] == 0
     assert "Not detected" in genome_text

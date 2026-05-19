@@ -79,6 +79,25 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path>`
 - Output:
   `.codex/knowledge/index.json`, `.codex/knowledge/INDEX.md`, `.codex/knowledge/knowledge-graph.json`, and `.codex/knowledge/index.html`.
+- Query:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path> --query "<terms>" --top-k 10`
+- Scale controls:
+  Use traversal flags such as `--max-files`, `--max-total-bytes`, `--max-file-bytes`, `--include`, and `--exclude` when building large projects.
+
+### Memory Status Validator
+
+- Windows:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path>`
+- macOS/Linux:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path>`
+- CI strict (warnings fail the gate):
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path> --strict`
+- Require standalone graph:
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path> --require-standalone-graph`
+- Output:
+  JSON status (`pass`, `warn`, or `fail`) with `policy`, artifact checks, staleness, module/file coherence, and graph/codebase index count checks.
+- See also:
+  `references/ci-readiness.md`, `references/artifact-lifecycle-policy.md`, `references/project-memory-tools.json`
 
 ### Project Genome Generator
 
@@ -87,7 +106,7 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - macOS/Linux:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_genome.py" --project-root <path>`
 - Options:
-  `--depth auto|shallow|full` (default: auto), `--force` to regenerate
+  `--depth auto|shallow|full` (default: auto), `--sections all|architecture,api,data,security,tests,file_map`, `--format md|json`, `--force` to regenerate
 - Output:
   JSON summary + `.codex/context/genome.md` and optional `.codex/context/modules/*.md`
 

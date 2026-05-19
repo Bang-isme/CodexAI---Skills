@@ -3,6 +3,14 @@
 ## [15.2.0] - 2026-04-28
 
 ### Added
+- Added `codex-project-memory` tooling v2: explicit `memory_status.py` policies (`--strict`, `--require-standalone-graph`) with `policy` metadata in stdout.
+- Added machine-readable tool manifest at `references/project-memory-tools.json` (schema 2.0) with `exit_codes`, `warning_policy`, and `required_artifact_modes`.
+- Added fixture-based contract smoke tests for `build_knowledge_index`, `build_knowledge_graph`, and `memory_status` normal/strict modes.
+- Added `references/artifact-lifecycle-policy.md` documenting hybrid commit policy for schemas vs generated `.codex/` artifacts.
+- Added `references/ci-readiness.md` documenting release gate commands, expected advisory warnings, and Windows symlink limitation.
+- Added GitHub CLI requirements to Codex/Claude plugin manifests and `skills/.system/GITHUB_CLI_INTEGRATION.md` for project-CLI wrapping.
+- Added GitHub Actions workflows: `.github/workflows/ci.yml` (plugin/pack-health/Linux+Windows test/memory tooling/GitHub CLI contract) and `.github/workflows/release.yml` (tag/manual release packaging with metadata validation and ZIP artifact upload).
+- Added `.github/dependabot.yml` and `.github/pull_request_template.md` for senior workflow hygiene.
 - Added native Codex plugin packaging with `.codex-plugin/plugin.json`.
 - Added local marketplace entry at `.agents/plugins/marketplace.json`.
 - Added Claude Code plugin packaging with `.claude-plugin/plugin.json` and `hooks/hooks.json`.
@@ -20,11 +28,15 @@
 - Added `runtime_hook.py --format prompt` for compact hook output.
 
 ### Changed
+- `memory_status.py` standalone graph defaults to optional; old or invalid schema downgrades to warning unless `--require-standalone-graph`.
+- Dashboard, knowledge index, and codebase index now report explicit truncation/cap metadata to prevent silent partial data.
 - Prefer Codex-native plugin/marketplace install over legacy global skills sync for normal users.
 - Treat `sync_global_skills.py` as a development compatibility path.
 - Rewrote skill descriptions to front-load "Use for" / "Use when" triggers for better Codex progressive disclosure.
 
 ### Fixed
+- Dashboard module/file counts no longer report zero when codebase index has data (graph + codebase merged).
+- Routes tab no longer blanks under operator precedence bug; route sources merged from graph and codebase index.
 - Avoid relying on `~/.codex/skills` as the only install target.
 - Ensure generated Codex hook commands use explicit project and skills paths.
 - Add native plugin validation coverage so packaging drift is caught by tests.

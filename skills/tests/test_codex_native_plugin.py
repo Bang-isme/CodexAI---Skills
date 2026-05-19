@@ -40,11 +40,17 @@ def test_plugin_manifest_and_marketplace_are_codex_native() -> None:
     assert plugin["name"] == "codexai-agentic-workflow"
     assert plugin["skills"] == "./skills/"
     assert plugin["version"] == (SKILLS_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    gh_tool = next(tool for tool in plugin["requirements"]["tools"] if tool["binary"] == "gh")
+    assert gh_tool["name"] == "GitHub CLI"
+    assert gh_tool["auth"]["command"] == "gh auth login"
+    assert "tokens" in gh_tool["auth"]["credentialPolicy"]
     entry = marketplace["plugins"][0]
     assert entry["name"] == plugin["name"]
     assert entry["source"]["path"].startswith("./")
     assert entry["policy"]["installation"] == "AVAILABLE"
     assert entry["policy"]["authentication"] == "ON_INSTALL"
+    assert entry["integrations"]["github"]["cli"] == "gh"
+    assert entry["integrations"]["github"]["authCommand"] == "gh auth login"
 
 
 def test_validate_codex_plugin_current_repo_has_no_blocking_failures() -> None:

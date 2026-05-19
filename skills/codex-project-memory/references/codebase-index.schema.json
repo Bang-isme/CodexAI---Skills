@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Memory Codebase Index Artifact",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "status",
+    "generated_at",
+    "project_root",
+    "stats",
+    "files",
+    "chunks",
+    "symbols",
+    "references",
+    "routes",
+    "models",
+    "risk_signals",
+    "read_order",
+    "confidence",
+    "semantic"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"const": "built"},
+    "generated_at": {"type": "string"},
+    "project_root": {"type": "string"},
+    "stats": {
+      "type": "object",
+      "required": ["files_discovered", "files_indexed", "symbols_total", "symbols_included", "chunks_total", "chunks_included", "truncated_files"],
+      "properties": {
+        "files_discovered": {"type": "integer", "minimum": 0},
+        "files_indexed": {"type": "integer", "minimum": 0},
+        "symbols_total": {"type": "integer", "minimum": 0},
+        "symbols_included": {"type": "integer", "minimum": 0},
+        "chunks_total": {"type": "integer", "minimum": 0},
+        "chunks_included": {"type": "integer", "minimum": 0},
+        "truncated_files": {"type": "integer", "minimum": 0}
+      }
+    },
+    "files": {"type": "object", "additionalProperties": {"$ref": "#/$defs/file"}},
+    "chunks": {"type": "array"},
+    "symbols": {"type": "array"},
+    "references": {"type": "array"},
+    "routes": {"type": "array"},
+    "models": {"type": "array"},
+    "risk_signals": {"type": "array"},
+    "read_order": {"type": "array"},
+    "confidence": {"type": "object"},
+    "semantic": {"type": "object"}
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "content_hash", "language", "parser", "lines", "chunks", "symbols", "risk_signals", "truncation"],
+      "properties": {
+        "path": {"type": "string"},
+        "content_hash": {"type": "string"},
+        "language": {"type": "string"},
+        "parser": {"type": "string"},
+        "lines": {"type": "integer", "minimum": 0},
+        "chunks": {"type": "array", "items": {"type": "string"}},
+        "symbols": {"type": "array", "items": {"type": "string"}},
+        "risk_signals": {"type": "array", "items": {"type": "string"}},
+        "truncation": {"type": "object"}
+      }
+    }
+  }
+}

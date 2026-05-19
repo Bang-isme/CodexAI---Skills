@@ -24,12 +24,41 @@
     "longDescription": "A Codex workflow plugin that routes requests through project profile, context, specs, role docs, planning, implementation, verification, and handoff.",
     "developerName": "Bang Isme",
     "category": "Productivity",
-    "capabilities": ["Read", "Write"],
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
     "defaultPrompt": [
       "Turn this request into a spec-first implementation plan.",
       "Run CodexAI preflight and recommend the right workflow.",
       "Verify this change with the CodexAI quality gate."
     ],
     "brandColor": "#0F172A"
+  },
+  "requirements": {
+    "tools": [
+      {
+        "name": "GitHub CLI",
+        "binary": "gh",
+        "minimumVersion": "2.0.0",
+        "requiredFor": [
+          "pull_request_automation",
+          "release_gate_handoff",
+          "future_project_cli_wrapper"
+        ],
+        "install": {
+          "windows": "winget install --id GitHub.cli -e",
+          "macos": "brew install gh",
+          "linux": "See https://github.com/cli/cli#installation"
+        },
+        "auth": {
+          "command": "gh auth login",
+          "scopes": [
+            "repo"
+          ],
+          "credentialPolicy": "Never commit tokens; use GitHub CLI credential storage or environment-provided tokens."
+        }
+      }
+    ]
   }
 }

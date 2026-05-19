@@ -1,0 +1,50 @@
+﻿name: Release Package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-package-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.13"
+  PYTHONUTF8: "1"
+
+jobs:
+  package:
+    name: Build releasable plugin archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate package metadata
+        run: |
+          python skills/.system/scripts/validate_codex_plugin.py --plugin-root . --strict --format json
+          python skills/.system/scripts/validate_claude_plugin.py --plugin-root . --format json
+          python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
+
+      - name: Build release ZIP
+        run: python skills/.system/scripts/build_release_zip.py --project-root . --apply --exclude-tests --format json
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codexai-skill-pack
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
+

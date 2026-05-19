@@ -26,6 +26,8 @@ init_spec = load_script_module("full_cycle_init_spec", "codex-spec-driven-develo
 check_spec = load_script_module("full_cycle_check_spec", "codex-spec-driven-development/scripts/check_spec.py")
 knowledge_index = load_script_module("full_cycle_knowledge_index", "codex-project-memory/scripts/build_knowledge_index.py")
 knowledge_graph = load_script_module("full_cycle_knowledge_graph", "codex-project-memory/scripts/build_knowledge_graph.py")
+codebase_indexer = load_script_module("full_cycle_codebase_indexer", "codex-project-memory/scripts/codebase_indexer.py")
+memory_status = load_script_module("full_cycle_memory_status", "codex-project-memory/scripts/memory_status.py")
 project_traversal = load_script_module("full_cycle_project_traversal", "codex-project-memory/scripts/project_traversal.py")
 sync_global = load_script_module("full_cycle_sync_global", ".system/scripts/sync_global_skills.py")
 auto_gate = load_script_module("full_cycle_auto_gate", "codex-execution-quality-gate/scripts/auto_gate.py")
@@ -378,9 +380,58 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     assert "src/routes/health.routes.js" in html
     assert "Generated " in html
     assert graph["code_index"]
+    assert graph["codebase_index"]["files"]
+    assert graph["coherence"]["graph_files"] == len(graph["code_index"])
     assert graph["stats"]["total_files"] >= 1
     assert graph["api_routes"]
     assert graph["ai_context"]["recommended_read_order"]
+    assert "const graphFiles=G.code_index||{}" in html
+    assert "const routes=mergeRoutes();" in html
+    assert "filesForModule(n)" in html
+    assert "panel.innerHTML=html+(G.api_routes||[]).length?" not in html
+    assert "Showing ${shown.length} of ${total}" in html
+
+
+def test_dashboard_uses_graph_code_index_for_module_counts_when_codebase_index_exists(tmp_path: Path) -> None:
+    index = {"project_root": tmp_path.as_posix(), "generated_at": "2026-05-18T00:00:00+00:00"}
+    graph = {
+        "stats": {"total_files": 1, "routes": 1},
+        "code_index": {
+            "src/routes/health.routes.js": {
+                "path": "src/routes/health.routes.js",
+                "module": "routes",
+                "language": "JavaScript",
+                "lines": 5,
+                "definitions": ["health"],
+                "imports": [],
+                "imported_by": [],
+            }
+        },
+        "codebase_index": {
+            "files": {
+                "src/routes/health.routes.js": {
+                    "path": "src/routes/health.routes.js",
+                    "language": "JavaScript",
+                    "content_hash": "abc",
+                }
+            },
+            "routes": [{"method": "GET", "path": "/health", "handler": "health", "file": "src/routes/health.routes.js"}],
+            "chunks": [],
+            "symbols": [],
+            "references": [],
+        },
+        "module_boundaries": {"routes": {"imports_from": [], "imported_by": []}},
+        "api_routes": [],
+        "data_models": {},
+        "risk_signals": [],
+        "ai_context": {},
+    }
+
+    html = knowledge_index.render_interactive_html(index, graph)
+
+    assert "Object.assign({path},codebaseFiles[path]||{},graphFiles[path]||{})" in html
+    assert "filesForModule(n)" in html
+    assert "routeMatches(r,q)" in html
 
 
 def test_knowledge_artifact_schema_files_require_common_metadata() -> None:
@@ -524,6 +575,123 @@ def test_knowledge_graph_warns_and_samples_large_files(tmp_path: Path) -> None:
     assert "header" in graph["code_index"]["src/large.py"]["definitions"]
 
 
+def test_knowledge_graph_marks_preview_chunks_as_truncated(tmp_path: Path) -> None:
+    body = "\n".join(f"print({index})" for index in range(520))
+    write(tmp_path / "src" / "large_preview.py", body)
+
+    graph = knowledge_graph.build_graph(tmp_path, include_tests=False)
+    stats = graph["code_index"]["src/large_preview.py"]["chunk_stats"]
+
+    assert stats["total_chunks"] > stats["included_chunks"]
+    assert stats["truncated"] is True
+    assert "graph preview limited" in stats["cap_reason"]
+
+
+def test_codebase_index_reports_chunk_and_symbol_truncation(tmp_path: Path) -> None:
+    symbols = "\n".join(f"def generated_{index}():\n    return {index}\n" for index in range(240))
+    write(tmp_path / "src" / "many_symbols.py", symbols)
+
+    index = codebase_indexer.build_codebase_index(tmp_path, output_path=tmp_path / ".codex" / "knowledge" / "codebase-index.json", rebuild=True)
+    file_meta = index["files"]["src/many_symbols.py"]
+
+    assert file_meta["truncation"]["symbols"]["total"] == 240
+    assert file_meta["truncation"]["symbols"]["included"] == codebase_indexer.MAX_SYMBOLS_PER_FILE
+    assert file_meta["truncation"]["symbols"]["truncated"] is True
+    assert index["stats"]["truncated_files"] == 1
+    assert index["stats"]["symbols_total"] == 240
+    assert index["stats"]["symbols_included"] == codebase_indexer.MAX_SYMBOLS_PER_FILE
+
+
+def test_memory_status_validates_generated_artifact_coherence(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    status = memory_status.build_status(tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24)
+
+    assert status["status"] in {"pass", "warn"}
+    assert status["policy"]["standalone_graph"] == "optional"
+    assert status["coherence"]["code_index_files"] >= 1
+    assert status["artifacts"][0]["status"] in {"pass", "warn"}
+    assert status["artifacts"][1]["status"] in {"pass", "warn"}
+
+
+def test_memory_status_optional_missing_standalone_graph_is_silent(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+
+    status = memory_status.build_status(tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24)
+
+    assert status["policy"]["standalone_graph"] == "optional"
+    assert not (tmp_path / ".codex" / "knowledge-graph.json").exists()
+    assert not any("standalone graph missing" in warning for warning in status["warnings"])
+    assert status["status"] in {"pass", "warn"}
+
+
+def test_memory_status_optional_invalid_standalone_graph_warns_not_fails(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    write(
+        tmp_path / ".codex" / "knowledge-graph.json",
+        json.dumps({"version": "1.0", "nodes": []}),
+    )
+
+    status = memory_status.build_status(tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24)
+
+    assert status["status"] == "warn"
+    assert status["policy"]["standalone_graph"] == "optional"
+    assert any("missing required field" in warning.lower() for warning in status["warnings"])
+
+
+def test_memory_status_require_standalone_graph_fails_on_invalid(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+
+    missing = memory_status.build_status(
+        tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24, require_standalone_graph=True
+    )
+    assert missing["status"] == "fail"
+    assert missing["policy"]["standalone_graph"] == "required"
+
+    graph_path = tmp_path / ".codex" / "knowledge" / "knowledge-graph.json"
+    write(tmp_path / ".codex" / "knowledge-graph.json", graph_path.read_text(encoding="utf-8"))
+    valid = memory_status.build_status(
+        tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24, require_standalone_graph=True
+    )
+    assert valid["status"] in {"pass", "warn"}
+    standalone = next(item for item in valid["artifacts"] if item["name"] == "standalone_graph")
+    assert standalone["status"] in {"pass", "warn"}
+
+
+def test_memory_status_strict_cli_exits_nonzero_on_warn(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+
+    normal = subprocess.run(
+        [sys.executable, str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"), "--project-root", str(tmp_path)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    strict = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"),
+            "--project-root",
+            str(tmp_path),
+            "--strict",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    payload = json.loads(normal.stdout)
+    if payload["status"] == "warn":
+        assert normal.returncode == 0
+        assert strict.returncode == 1
+        strict_payload = json.loads(strict.stdout)
+        assert strict_payload["policy"]["strict_warnings_exit_nonzero"] is True
+
+
 def test_project_traversal_does_not_follow_symlinks_outside_root(tmp_path: Path) -> None:
     outside = tmp_path.parent / f"{tmp_path.name}-outside"
     write(outside / "escape.py", "def escaped():\n    return True\n")
@@ -605,11 +773,127 @@ def test_contract_schema_files_are_parseable() -> None:
         SKILLS_ROOT / "codex-spec-driven-development" / "references" / "spec.schema.json",
         SKILLS_ROOT / "codex-project-memory" / "references" / "knowledge-index.schema.json",
         SKILLS_ROOT / "codex-project-memory" / "references" / "knowledge-graph.schema.json",
+        SKILLS_ROOT / "codex-project-memory" / "references" / "codebase-index.schema.json",
+        SKILLS_ROOT / "codex-project-memory" / "references" / "project-memory-tools.schema.json",
     ]
 
     for path in schema_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["schema_version"] in {"1.0", "2.0"}
+
+
+def test_project_memory_tool_manifest_has_callable_contracts() -> None:
+    manifest = json.loads((SKILLS_ROOT / "codex-project-memory" / "references" / "project-memory-tools.json").read_text(encoding="utf-8"))
+    names = {tool["name"] for tool in manifest["tools"]}
+
+    assert manifest["schema_version"] == "2.0"
+    assert {"build_knowledge_index", "build_knowledge_graph", "memory_status"}.issubset(names)
+    known_success_statuses = {
+        "build_knowledge_index": {"built", "queried"},
+        "build_knowledge_graph": {"generated"},
+        "memory_status": {"pass", "warn"},
+    }
+    for tool in manifest["tools"]:
+        assert (SKILLS_ROOT / "codex-project-memory" / tool["script"]).exists()
+        assert tool["args_schema"]["type"] == "object"
+        assert tool["args_schema"].get("required")
+        assert tool["success_statuses"]
+        if tool["name"] in known_success_statuses:
+            assert set(tool["success_statuses"]) == known_success_statuses[tool["name"]]
+        assert tool["exit_codes"]["success"] == [0]
+        assert 1 in tool["exit_codes"]["failure"]
+        assert tool["warning_policy"]["mode"] in {"none", "advisory", "strict_exit"}
+        assert tool["warning_policy"].get("description")
+        assert tool["required_artifact_modes"]
+
+    memory_tool = next(tool for tool in manifest["tools"] if tool["name"] == "memory_status")
+    assert memory_tool["args_schema"]["properties"]["strict"]["default"] is False
+    assert memory_tool["args_schema"]["properties"]["require_standalone_graph"]["default"] is False
+    assert memory_tool["required_artifact_modes"][".codex/knowledge-graph.json"] == "optional"
+    assert memory_tool["exit_codes"]["strict_warn_as_failure"] == [1]
+
+
+def test_memory_tools_fixture_smoke_stdout_and_artifacts(tmp_path: Path) -> None:
+    write(tmp_path / "package.json", json.dumps({"name": "fixture", "dependencies": {"express": "^4.19.0"}}))
+    write(
+        tmp_path / "src" / "routes" / "health.routes.js",
+        "const router = require('express').Router();\nrouter.get('/health', (req, res) => res.json({ ok: true }));\nmodule.exports = router;\n",
+    )
+
+    index_cli = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/build_knowledge_index.py"),
+            "--project-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert index_cli.returncode == 0, index_cli.stderr
+    index_payload = json.loads(index_cli.stdout)
+    assert index_payload["status"] == "built"
+    for rel in (
+        ".codex/knowledge/index.json",
+        ".codex/knowledge/knowledge-graph.json",
+        ".codex/knowledge/codebase-index.json",
+        ".codex/knowledge/index.html",
+    ):
+        assert (tmp_path / rel).exists()
+
+    graph_cli = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/build_knowledge_graph.py"),
+            "--project-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert graph_cli.returncode == 0, graph_cli.stderr
+    graph_payload = json.loads(graph_cli.stdout)
+    assert graph_payload["status"] == "generated"
+    assert (tmp_path / ".codex" / "knowledge-graph.json").exists()
+
+    status_cli = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"),
+            "--project-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert status_cli.returncode == 0, status_cli.stderr
+    status_payload = json.loads(status_cli.stdout)
+    assert status_payload["status"] in {"pass", "warn"}
+    assert status_payload["policy"]["standalone_graph"] == "optional"
+
+    strict_cli = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"),
+            "--project-root",
+            str(tmp_path),
+            "--strict",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    strict_payload = json.loads(strict_cli.stdout)
+    assert strict_payload["policy"]["strict_warnings_exit_nonzero"] is True
+    expected_strict_returncode = 1 if strict_payload["status"] == "warn" else 0
+    assert strict_cli.returncode == expected_strict_returncode
 
 
 def test_redact_artifact_preserves_dict_keys_that_would_collide() -> None:

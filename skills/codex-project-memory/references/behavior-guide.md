@@ -69,6 +69,23 @@
 2. Run `scripts/build_knowledge_graph.py`.
 3. Default output: `<project-root>/.codex/knowledge-graph.json`.
 4. Before complex refactors, read `knowledge-graph.json` first to understand boundaries and dependencies.
+5. Treat `code_index` as the structural source of truth for modules/imports and `codebase_index` as the richer symbol/chunk/search source.
+
+### Knowledge Index and Dashboard
+
+1. Trigger on `$knowledge`, "build knowledge index", or when a task needs durable project context.
+2. Run `scripts/build_knowledge_index.py --project-root <path>`.
+3. Default output directory: `<project-root>/.codex/knowledge/`.
+4. Return `index_path`, `graph_path`, `codebase_index_path`, `html_path`, `coverage`, and `warnings`.
+5. For large projects, pass traversal limits explicitly (`--max-files`, `--max-total-bytes`, `--max-file-bytes`) and report any truncation or graph/codebase file-set divergence.
+6. For direct lookup, use `--query "<terms>" --top-k <n>` and return the ranked local results.
+
+### Memory Status Validator
+
+1. Trigger before handoff, deploy, CLI migration, or when the user asks whether project memory is reliable.
+2. Run `scripts/memory_status.py --project-root <path>`; add `--strict` for CI gates that must fail on warnings; add `--require-standalone-graph` when `.codex/knowledge-graph.json` must exist and be schema v2.
+3. Treat `fail` as blocking for automation; treat `warn` as usable but requiring disclosure (unless `--strict`).
+4. Return `policy`, artifact paths, staleness, graph/codebase coherence, warnings, and failures.
 
 ### Project Genome Generator
 

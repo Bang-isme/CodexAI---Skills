@@ -17,6 +17,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set,
 
 SCHEMA_VERSION = "2.0"
 GRAPH_ARTIFACT_TYPE = "knowledge-graph"
+GRAPH_CHUNK_SIZE = 80
+GRAPH_CHUNK_LIMIT = 5
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -151,6 +153,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default="", help="Output graph path")
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
     parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
+    parser.add_argument("--print-full-json", action="store_true", help="Emit full graph JSON to stdout instead of summary envelope")
     load_traversal().add_traversal_args(parser)
     return parser.parse_args()
 
@@ -188,6 +191,7 @@ def compact_codebase_index(index: Dict[str, object]) -> Dict[str, object]:
         for key in (
             "schema_version",
             "generated_at",
+            "stats",
             "files",
             "chunks",
             "symbols",
@@ -526,7 +530,7 @@ def build_chunk_preview(lines: Sequence[str], max_lines: int = 5) -> str:
     return "\n".join(preview_lines[:max_lines])
 
 
-def build_chunks(lines: Sequence[str], chunk_size: int = 80) -> List[Dict[str, object]]:
+def build_chunks(lines: Sequence[str], chunk_size: int = GRAPH_CHUNK_SIZE, max_chunks: int = GRAPH_CHUNK_LIMIT) -> List[Dict[str, object]]:
     chunks: List[Dict[str, object]] = []
     for start in range(0, len(lines), chunk_size):
         section = lines[start : start + chunk_size]
@@ -537,9 +541,21 @@ def build_chunks(lines: Sequence[str], chunk_size: int = 80) -> List[Dict[str, o
             "end_line": start + len(section),
             "preview": build_chunk_preview(section),
         })
-        if len(chunks) >= 5:
+        if len(chunks) >= max_chunks:
             break
     return chunks
+
+
+def chunk_stats(lines: Sequence[str], chunk_size: int = GRAPH_CHUNK_SIZE, max_chunks: int = GRAPH_CHUNK_LIMIT) -> Dict[str, object]:
+    total = (len(lines) + chunk_size - 1) // chunk_size if lines else 0
+    included = min(total, max_chunks)
+    truncated = total > included
+    return {
+        "total_chunks": total,
+        "included_chunks": included,
+        "truncated": truncated,
+        "cap_reason": f"graph preview limited to {max_chunks} chunks per file" if truncated else "",
+    }
 
 
 def build_code_index(
@@ -572,6 +588,7 @@ def build_code_index(
         if "password" in content.lower() or "token" in content.lower() or "jwt" in content.lower():
             risk_signals.append({"type": "auth_or_secret_logic", "file": rel, "reason": "File contains auth, token, password, or credential-related terms."})
 
+        chunks = build_chunks(lines)
         code_index[rel] = {
             "path": rel,
             "language": (language_profile(file_path).language if language_profile(file_path) else file_path.suffix.lstrip(".") or "unknown"),
@@ -580,7 +597,8 @@ def build_code_index(
             "lines": line_count(lines),
             "definitions": definitions[:40],
             "preview": build_chunk_preview(lines),
-            "chunks": build_chunks(lines),
+            "chunks": chunks,
+            "chunk_stats": chunk_stats(lines),
             "imports": sorted(imports_map.get(rel, set())),
             "imported_by": sorted(reverse_map.get(rel, set())),
             "external_imports": externals,
@@ -1353,6 +1371,24 @@ def build_graph(
         raw_content,
         lines_cache,
     )
+    codebase_files = set()
+    if isinstance(codebase_index.get("files"), dict):
+        codebase_files = {str(path) for path in codebase_index.get("files", {}).keys()}  # type: ignore[union-attr]
+    graph_files = set(code_index.keys())
+    only_in_graph = sorted(graph_files - codebase_files)
+    only_in_codebase = sorted(codebase_files - graph_files)
+    if codebase_files and (only_in_graph or only_in_codebase):
+        warnings.append(
+            "Graph/codebase index file sets differ; "
+            f"graph_only={len(only_in_graph)}, codebase_only={len(only_in_codebase)}"
+        )
+    coherence = {
+        "graph_files": len(graph_files),
+        "codebase_index_files": len(codebase_files),
+        "graph_only": only_in_graph[:25],
+        "codebase_only": only_in_codebase[:25],
+        "truncated": len(only_in_graph) > 25 or len(only_in_codebase) > 25,
+    }
 
     graph = {
         "schema_version": SCHEMA_VERSION,
@@ -1377,9 +1413,9 @@ def build_graph(
             "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names only; source bodies are not persisted.",
         },
         "coverage": traversal_result.coverage,
+        "coherence": coherence,
         "file_dependencies": dependency_tree,
         "code_index": code_index,
-        "codebase_index": code_index,
         "entrypoints": entrypoints,
         "external_dependencies": external_dependencies,
         "module_boundaries": module_boundaries,
@@ -1439,7 +1475,17 @@ def main() -> int:
         return 1
 
     payload = {"status": "generated", "path": output_path.as_posix(), **graph}
-    emit(payload)
+    if args.print_full_json:
+        emit(payload)
+    else:
+        emit({
+            "status": "generated",
+            "path": output_path.as_posix(),
+            "schema_version": graph.get("schema_version"),
+            "stats": graph.get("stats"),
+            "warnings_count": len(graph.get("warnings", [])),
+            "redaction": graph.get("redaction"),
+        })
     return 0
 
 

@@ -12,6 +12,7 @@
     "stats",
     "warnings",
     "redaction",
+    "coherence",
     "file_dependencies",
     "code_index",
     "entrypoints",
@@ -53,6 +54,18 @@
     },
     "file_dependencies": {"type": "object"},
     "code_index": {"type": "object", "additionalProperties": {"$ref": "#/$defs/code_file"}},
+    "codebase_index": {"type": "object"},
+    "coherence": {
+      "type": "object",
+      "required": ["graph_files", "codebase_index_files", "graph_only", "codebase_only", "truncated"],
+      "properties": {
+        "graph_files": {"type": "integer", "minimum": 0},
+        "codebase_index_files": {"type": "integer", "minimum": 0},
+        "graph_only": {"type": "array", "items": {"type": "string"}},
+        "codebase_only": {"type": "array", "items": {"type": "string"}},
+        "truncated": {"type": "boolean"}
+      }
+    },
     "entrypoints": {"type": "array", "items": {"type": "string"}},
     "external_dependencies": {"type": "object"},
     "module_boundaries": {"type": "object"},
@@ -66,7 +79,7 @@
   "$defs": {
     "code_file": {
       "type": "object",
-      "required": ["path", "language", "module", "parser", "lines", "definitions", "imports", "imported_by", "external_imports", "is_test", "is_entrypoint", "risk_tags"],
+      "required": ["path", "language", "module", "parser", "lines", "definitions", "imports", "imported_by", "external_imports", "is_test", "is_entrypoint", "risk_tags", "chunk_stats"],
       "properties": {
         "path": {"type": "string"},
         "language": {"type": "string"},
@@ -79,7 +92,17 @@
         "external_imports": {"type": "array", "items": {"type": "string"}},
         "is_test": {"type": "boolean"},
         "is_entrypoint": {"type": "boolean"},
-        "risk_tags": {"type": "array", "items": {"type": "string"}}
+        "risk_tags": {"type": "array", "items": {"type": "string"}},
+        "chunk_stats": {
+          "type": "object",
+          "required": ["total_chunks", "included_chunks", "truncated", "cap_reason"],
+          "properties": {
+            "total_chunks": {"type": "integer", "minimum": 0},
+            "included_chunks": {"type": "integer", "minimum": 0},
+            "truncated": {"type": "boolean"},
+            "cap_reason": {"type": "string"}
+          }
+        }
       }
     }
   }

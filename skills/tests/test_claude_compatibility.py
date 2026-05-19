@@ -37,6 +37,9 @@ def test_claude_plugin_manifest_and_hooks_match_current_release() -> None:
 
     assert manifest["name"] == "codexai-agentic-workflow"
     assert manifest["version"] == version
+    gh_tool = next(tool for tool in manifest["requirements"]["tools"] if tool["binary"] == "gh")
+    assert gh_tool["name"] == "GitHub CLI"
+    assert gh_tool["auth"]["command"] == "gh auth login"
     command = hooks["hooks"]["SessionStart"][0]["hooks"][0]["command"]
     assert "${CLAUDE_PLUGIN_ROOT}" in command
     assert "${CLAUDE_PROJECT_DIR}" in command

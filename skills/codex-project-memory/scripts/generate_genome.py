@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
 
 def build_payload(report: Dict[str, Any], genome_path: Path, output_format: str) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
-        "status": "ok",
+        "status": "generated",
         "project": report["project"],
         "generated_at": report["generated_at"],
         "depth": report["depth"],

@@ -20,6 +20,8 @@
 | Local Marketplace | `../.agents/plugins/marketplace.json` |
 | Claude Plugin Manifest | `../.claude-plugin/plugin.json` |
 | Claude Hooks | `../hooks/hooks.json` |
+| GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
+| CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
 | Pytest | 341/341 |
 | Smoke | 71/71 |
 
