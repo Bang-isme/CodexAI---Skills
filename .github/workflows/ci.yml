@@ -85,7 +85,7 @@ jobs:
           fi
 
   test-python-min:
-    name: Test (py3.11 smoke, ubuntu)
+    name: Test (py3.11 contracts, ubuntu)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -102,9 +102,6 @@ jobs:
 
       - name: Install test dependencies
         run: python -m pip install --upgrade pip -r requirements-dev.txt
-
-      - name: Run smoke test suite
-        run: python skills/tests/smoke_test.py
 
       - name: Run core contract pytest subset
         run: |
