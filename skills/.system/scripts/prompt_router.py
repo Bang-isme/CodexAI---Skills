@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
 INJECTION_SECURITY_BOOST = 3
-DEBUG_LOG_PATH = Path(__file__).resolve().parents[3] / "debug-65cf26.log"
 
 
 ROUTES: list[dict[str, Any]] = [
@@ -99,27 +96,6 @@ def normalize_prompt(prompt: str) -> str:
     return " ".join(prompt.strip().split())
 
 
-def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: dict[str, Any]) -> None:
-    # #region agent log
-    if os.environ.get("CODEX_DEBUG_SESSION") != "65cf26":
-        return
-    payload = {
-        "sessionId": "65cf26",
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": int(time.time() * 1000),
-        "runId": os.environ.get("CODEX_DEBUG_RUN_ID", "pre-fix"),
-    }
-    try:
-        with DEBUG_LOG_PATH.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except OSError:
-        pass
-    # #endregion
-
-
 def route_prompt(prompt: str) -> dict[str, Any]:
     normalized = normalize_prompt(prompt)
     warnings: list[str] = []
@@ -143,7 +119,6 @@ def route_prompt(prompt: str) -> dict[str, Any]:
     best: dict[str, Any] | None = None
     best_matches: list[str] = []
     best_score = 0
-    route_scores: list[dict[str, Any]] = []
     for route in ROUTES:
         matches = [signal for signal in route["signals"] if signal in lowered]
         if route["workflow"] == "handoff" and ("tài liệu" in lowered or "hướng dẫn" in lowered):
@@ -155,26 +130,10 @@ def route_prompt(prompt: str) -> dict[str, Any]:
             score += INJECTION_SECURITY_BOOST
             if "prompt_injection" not in matches:
                 matches.append("prompt_injection")
-        route_scores.append(
-            {
-                "agent": route["agent"],
-                "intent": route["intent"],
-                "score": score,
-                "matches": matches,
-            }
-        )
         if score > best_score:
             best = route
             best_matches = matches
             best_score = score
-
-    if injection_detected:
-        _agent_debug_log(
-            "H1",
-            "prompt_router.py:route_prompt",
-            "route_scores_with_injection",
-            {"best_agent": best["agent"] if best else None, "best_score": best_score, "routes": route_scores},
-        )
 
     if not best:
         return {
