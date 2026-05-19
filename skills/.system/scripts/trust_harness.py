@@ -284,6 +284,11 @@ def main() -> int:
         run_setup(args.setup, project_root, skills_root, args.apply, checks)
         run_prompt_corpus(checks)
         run_json_command("pack_health", [str(SCRIPT_DIR / "check_pack_health.py"), "--skills-root", str(skills_root), "--strict"], checks)
+        run_json_command(
+            "tool_contracts",
+            [str(SCRIPT_DIR / "validate_tool_contracts.py"), "--skills-root", str(skills_root), "--strict"],
+            checks,
+        )
         run_json_command("codex_plugin", [str(SCRIPT_DIR / "validate_codex_plugin.py"), "--plugin-root", str(plugin_root), "--strict"], checks)
         run_json_command("claude_plugin", [str(SCRIPT_DIR / "validate_claude_plugin.py"), "--plugin-root", str(plugin_root), "--strict"], checks)
         run_json_command("release_dry_run", [str(SCRIPT_DIR / "build_release_zip.py"), "--project-root", str(plugin_root), "--dry-run"], checks)
