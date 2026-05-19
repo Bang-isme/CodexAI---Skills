@@ -26,6 +26,8 @@ Each tool entry includes:
 
 Skill-scoped tools (full project-memory surface) remain in `codex-project-memory/references/project-memory-tools.json`.
 
+Release promotion (staging → production, optional S3/SSH) is documented in `deploy-promotion.md` and implemented via `local_release_gate.py` / `promote_deploy.py` plus `.github/workflows/deploy.yml`.
+
 ## Wrapper consumption flow
 
 1. Read `plugin-tools.json` and validate locally or trust CI-validated artifacts.

@@ -459,6 +459,8 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-project-memory/scripts/memory_status.py",
         "codex-project-memory/scripts/generate_scale_fixture.py",
         "codex-project-memory/scripts/run_scale_gate.py",
+        ".system/scripts/local_release_gate.py",
+        ".system/scripts/promote_deploy.py",
         "codex-project-memory/references/scale-sla.md",
         "codex-logical-decision-layer/SKILL.md",
         "codex-spec-driven-development/SKILL.md",

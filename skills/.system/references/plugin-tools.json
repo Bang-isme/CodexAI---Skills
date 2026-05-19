@@ -370,6 +370,44 @@
         "description": "CI and operators only; creates many files under project_root."
       },
       "wrapper_notes": "Use tier medium for PR-sized checks; large tier is for scheduled stress runs."
+    },
+    {
+      "name": "local_release_gate",
+      "kind": "release",
+      "script": ".system/scripts/local_release_gate.py",
+      "purpose": "Run local pre-tag release gate: pack health, tool contracts, Codex plugin validate, and release ZIP dry-run or apply.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "project_root": {"type": "string"},
+          "skills_root": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "target": {"type": "string", "enum": ["none", "s3", "ssh"], "default": "none"},
+          "dry_run": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/deploy-promotion.md",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "Fails when any gate step fails."},
+      "artifact_policy": {
+        "mode": "generated_on_success",
+        "description": "Writes dist/*.zip when --apply is set.",
+        "paths": ["dist/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": false,
+        "description": "Local gate is filesystem-only; S3/SSH uses separate promote_deploy with operator env."
+      },
+      "wrapper_notes": "Run before git tag v*; pair with deploy.yml production approval on GitHub.",
+      "smoke": {
+        "argv": ["--format", "json"],
+        "expect_exit_codes": [0, 1],
+        "cwd": "repo_root"
+      }
     }
   ]
 }

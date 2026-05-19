@@ -12,6 +12,8 @@ htmlcov/
 
 dist/
 build/
+.scale-*
+scale-gate-report-*.json
 *.egg-info/
 
 *.log

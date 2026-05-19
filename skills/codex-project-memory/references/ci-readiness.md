@@ -98,3 +98,16 @@ Quick rules:
 - Raise `--max-files` above the default 1000 when indexing large trees; CI medium gate uses 5000.
 - PR CI runs synthetic **2500**-file gate; weekly workflow runs **8000** files with standalone graph build.
 - Do not treat missing `.codex/knowledge-graph.json` as failure unless `--require-standalone-graph` is set.
+
+## CI/CD checklist mapping
+
+| Capability | Workflow / job | Notes |
+|------------|----------------|-------|
+| CI pipeline | `.github/workflows/ci.yml` | PR + push `main`; 386+ tests |
+| Caching | `setup-python` `cache: pip` + `requirements-dev.txt` | All Python jobs |
+| Matrix builds | `test`: OS × Python 3.12/3.13; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
+| Deployments | `.github/workflows/deploy.yml` | Staging artifact → tag `v*` + `production` approval |
+| Plugin scale gate | `memory-at-scale-medium` / `scale-nightly.yml` | Polyglot synthetic fixtures |
+| Local release | `local_release_gate.py` | Before `git tag v*` |
+
+Supported Python: **3.11+** (3.11 verified on `main` only to limit PR matrix cost).
