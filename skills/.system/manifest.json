@@ -59,7 +59,16 @@
     "agents_bridge_script": ".system/scripts/init_agents_md.py",
     "release_packager": ".system/scripts/build_release_zip.py",
     "generic_trust_harness": ".system/scripts/trust_harness.py",
-    "prompt_router": ".system/scripts/prompt_router.py"
+    "prompt_router": ".system/scripts/prompt_router.py",
+    "github_cli": {
+      "binary": "gh",
+      "auth_command": "gh auth login",
+      "required_for": [
+        "pull_request_automation",
+        "future_project_cli_wrapper"
+      ],
+      "credential_policy": "Do not commit credentials or tokens; rely on GitHub CLI auth storage or CI secrets."
+    }
   },
   "claude_plugin": {
     "manifest": "../.claude-plugin/plugin.json",

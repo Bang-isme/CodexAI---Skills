@@ -40,6 +40,17 @@ Plugin packaging:
 - Manifest: `<PLUGIN_ROOT>/.codex-plugin/plugin.json`
 - Local marketplace: `<PLUGIN_ROOT>/.agents/plugins/marketplace.json`
 - Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_codex_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
+- GitHub CLI integration: `<SOURCE_SKILLS_ROOT>/.system/GITHUB_CLI_INTEGRATION.md`
+
+GitHub automation prerequisite:
+
+```powershell
+winget install --id GitHub.cli -e
+gh auth login
+gh auth status
+```
+
+Use GitHub CLI credential storage for local auth. Do not store tokens in plugin metadata, skill docs, generated artifacts, or source files.
 
 Claude Code packaging:
 
