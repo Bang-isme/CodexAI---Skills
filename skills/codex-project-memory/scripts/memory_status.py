@@ -159,10 +159,6 @@ def build_status(
     if not standalone_graph_path.exists():
         if require_standalone_graph:
             failures.append(f"standalone graph missing at {standalone_graph_path.as_posix()}")
-        else:
-            warnings.append(
-                f"standalone graph missing at {standalone_graph_path.as_posix()} - run build_knowledge_graph.py if needed"
-            )
     elif standalone_error:
         if require_standalone_graph:
             failures.append(f"standalone graph unreadable: {standalone_error}")

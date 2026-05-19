@@ -31,6 +31,8 @@ After a normal build, `memory_status` may report `warn` with only:
 
 This is expected: the structural graph and the codebase symbol index use different traversal scopes and caps. Treat it as disclosure, not a failed build, unless your team makes graph/codebase parity mandatory in a future phase.
 
+A missing `.codex/knowledge-graph.json` is **not** warned when standalone graph policy is optional (default). Only use `--require-standalone-graph` when CI must enforce that file exists and is schema v2.
+
 Regenerate artifacts before gating:
 
 ```bash

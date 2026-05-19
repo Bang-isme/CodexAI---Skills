@@ -615,7 +615,19 @@ def test_memory_status_validates_generated_artifact_coherence(tmp_path: Path) ->
     assert status["artifacts"][1]["status"] in {"pass", "warn"}
 
 
-def test_memory_status_optional_standalone_graph_warns_not_fails(tmp_path: Path) -> None:
+def test_memory_status_optional_missing_standalone_graph_is_silent(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+
+    status = memory_status.build_status(tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24)
+
+    assert status["policy"]["standalone_graph"] == "optional"
+    assert not (tmp_path / ".codex" / "knowledge-graph.json").exists()
+    assert not any("standalone graph missing" in warning for warning in status["warnings"])
+    assert status["status"] in {"pass", "warn"}
+
+
+def test_memory_status_optional_invalid_standalone_graph_warns_not_fails(tmp_path: Path) -> None:
     write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
     knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
     write(
@@ -627,7 +639,7 @@ def test_memory_status_optional_standalone_graph_warns_not_fails(tmp_path: Path)
 
     assert status["status"] == "warn"
     assert status["policy"]["standalone_graph"] == "optional"
-    assert any("standalone" in warning.lower() or "missing required field" in warning.lower() for warning in status["warnings"])
+    assert any("missing required field" in warning.lower() for warning in status["warnings"])
 
 
 def test_memory_status_require_standalone_graph_fails_on_invalid(tmp_path: Path) -> None:
