@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- Dependabot: scope pip updates to `requirements-dev.txt` only; remove `pdf2image` from `skills/requirements.txt` to stop failing optional-dep PRs; group pytest/PyYAML bumps.
 - `run_scale_gate.py` no longer calls `shutil.rmtree` on arbitrary `--project-root` paths; only `.scale-gate-*` / `codex-scale-gate-*` dirs or trees marked with `.scale-gate-fixture`. Default fixture root uses `tempfile.mkdtemp`.
 
 ### Added

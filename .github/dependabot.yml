@@ -1,22 +1,30 @@
 version: 2
 updates:
+  # CI test deps only (root requirements-dev.txt)
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - python
     commit-message:
       prefix: "chore(pip)"
+    groups:
+      ci-dev-deps:
+        patterns:
+          - "pytest"
+          - "pyyaml"
+
+  # Only .github/workflows/*.yml
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - github-actions

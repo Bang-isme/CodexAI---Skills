@@ -1,3 +1,4 @@
-# Core skill pack: no external dependencies required
-# The following are OPTIONAL - only needed for codex-doc-renderer
-pdf2image>=1.16.0  # render_docx.py - also requires poppler system binaries
+# Core skill pack: no external dependencies required for CI.
+# Optional doc-renderer extra (not managed by root dependabot — install manually):
+#   pip install "pdf2image>=1.16.0"
+# Also requires Poppler system binaries; see codex-doc-renderer/SKILL.md
