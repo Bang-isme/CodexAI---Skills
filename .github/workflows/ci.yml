@@ -150,36 +150,21 @@ jobs:
       - name: Run medium scale gate
         id: scale_gate
         run: |
+          set -euo pipefail
           python skills/codex-project-memory/scripts/run_scale_gate.py \
             --tier medium \
             --file-count 2500 \
             --max-files 5000 \
             --budget-seconds 420 \
             --report-path scale-gate-report-medium.json \
-            --format json | tee scale-gate-stdout.json
+            --format json
 
       - name: Scale gate summary
         if: always()
-        shell: bash
         run: |
-          if [[ -f scale-gate-report-medium.json ]]; then
-            echo "## Memory scale gate (medium)" >> "$GITHUB_STEP_SUMMARY"
-            python -c "
-          import json
-          from pathlib import Path
-          r = json.loads(Path('scale-gate-report-medium.json').read_text(encoding='utf-8'))
-          lines = [
-            f\"- status: {r.get('status')}\",
-            f\"- duration_seconds: {r.get('duration_seconds')}\",
-            f\"- within_budget: {r.get('within_budget')}\",
-            f\"- incremental_reused: {r.get('incremental_reused')}\",
-            f\"- files_indexed: {r.get('files_indexed')}\",
-          ]
-          Path('$GITHUB_STEP_SUMMARY').write_text(
-            Path('$GITHUB_STEP_SUMMARY').read_text(encoding='utf-8') + '\\n'.join(lines) + '\\n',
-            encoding='utf-8',
-          )
-          "
+          python skills/codex-project-memory/scripts/write_scale_gate_summary.py \
+            --report-path scale-gate-report-medium.json \
+            --title "Memory scale gate (medium)"
 
       - name: Upload scale gate report
         uses: actions/upload-artifact@v4
@@ -231,12 +216,11 @@ jobs:
             exit 1
           fi
 
-  quality-gate-deploy:
-    name: Quality gate (deploy mode)
+  plugin-pack-release-smoke:
+    name: Plugin pack release smoke
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    continue-on-error: true
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -248,11 +232,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
 
-      - name: Install test dependencies
-        run: python -m pip install --upgrade pip -r requirements-dev.txt
-
-      - name: Run auto_gate deploy mode (advisory)
-        run: python skills/codex-execution-quality-gate/scripts/auto_gate.py --project-root . --mode deploy --human
+      - name: Run local release gate (dry-run)
+        run: python skills/.system/scripts/local_release_gate.py --format json
 
   security-advisory:
     name: Security scan (advisory)

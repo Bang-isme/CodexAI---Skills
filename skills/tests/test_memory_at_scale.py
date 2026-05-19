@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
@@ -127,6 +129,10 @@ def test_scale_gate_refuses_unsafe_project_root_deletion(tmp_path: Path) -> None
     assert any("refusing to delete" in item for item in report.get("failures", []))
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 12),
+    reason="Full scale-gate integration runs on Python 3.12+ matrix jobs.",
+)
 def test_scale_gate_allows_named_fixture_root(tmp_path: Path) -> None:
     gate = load_scale_gate_module()
     fixture = tmp_path / ".scale-gate-test"
