@@ -1,4 +1,4 @@
-﻿# Production releases are handled by deploy.yml on tag push v*.
+# Production releases are handled by deploy.yml on tag push v*.
 # This workflow remains for manual packaging without creating a GitHub Release.
 
 name: Release Package (manual)
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
