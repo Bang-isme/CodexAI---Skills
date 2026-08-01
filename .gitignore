@@ -24,5 +24,6 @@ scale-gate-report-*.json
 skills/.codex/
 skills/.analytics/
 .codexai-backups/
+.worktrees/
 cache/
 state/
