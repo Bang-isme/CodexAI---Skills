@@ -58,6 +58,12 @@
     "validator": ".system/scripts/validate_tool_contracts.py",
     "skill_level_memory_tools": "codex-project-memory/references/project-memory-tools.json"
   },
+  "skill_capability_contract": {
+    "matrix": ".system/skill-capabilities.json",
+    "schema": ".system/references/skill-capabilities.schema.json",
+    "audit": ".system/scripts/audit_skill_pack.py",
+    "scorecard": ".codex/quality/skill-scorecard.html"
+  },
   "codex_plugin": {
     "manifest": "../.codex-plugin/plugin.json",
     "marketplace": "../.agents/plugins/marketplace.json",

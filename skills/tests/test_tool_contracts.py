@@ -58,6 +58,7 @@ def test_plugin_tool_registry_schema_version_and_tools() -> None:
         "memory_build_index",
         "memory_scale_gate",
         "local_release_gate",
+        "skill_capability_audit",
     }
     for tool in registry["tools"]:
         for field in (
@@ -77,11 +78,15 @@ def test_plugin_tool_registry_schema_version_and_tools() -> None:
 def test_manifest_references_plugin_tool_contract() -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     contract = manifest["plugin_tool_contract"]
+    capabilities = manifest["skill_capability_contract"]
 
     assert contract["registry"].endswith("plugin-tools.json")
     assert contract["validator"].endswith("validate_tool_contracts.py")
     assert (SKILLS_ROOT / contract["registry"]).exists()
     assert (SKILLS_ROOT / contract["validator"]).exists()
+    assert (SKILLS_ROOT / capabilities["matrix"]).exists()
+    assert (SKILLS_ROOT / capabilities["schema"]).exists()
+    assert (SKILLS_ROOT / capabilities["audit"]).exists()
 
 
 def test_validate_tool_contracts_strict_passes_on_repo() -> None:

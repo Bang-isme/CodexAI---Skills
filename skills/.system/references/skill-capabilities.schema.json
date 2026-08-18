@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0",
+  "title": "Skill capability matrix",
+  "type": "object",
+  "required": ["schema_version", "capabilities", "shared_components"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "capabilities": {"type": "array", "items": {"$ref": "#/$defs/capability"}},
+    "shared_components": {"type": "array", "items": {"$ref": "#/$defs/component"}}
+  },
+  "$defs": {
+    "resources": {
+      "type": "object",
+      "properties": {
+        "scripts": {"type": "array", "items": {"type": "string"}},
+        "references": {"type": "array", "items": {"type": "string"}},
+        "assets": {"type": "array", "items": {"type": "string"}},
+        "agents": {"type": "array", "items": {"type": "string"}},
+        "templates": {"type": "array", "items": {"type": "string"}},
+        "starters": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["network", "path_scope", "redact_outputs", "notes"],
+      "properties": {
+        "network": {"type": "string"},
+        "path_scope": {"type": "string"},
+        "redact_outputs": {"type": "boolean"},
+        "notes": {"type": "string"}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["owner", "command"],
+      "properties": {"owner": {"type": "string"}, "command": {"type": "string"}}
+    },
+    "capability": {
+      "type": "object",
+      "required": ["skill", "domain", "objective", "triggers", "resources", "output_artifacts", "tool_classes", "risk_tier", "security_policy", "verification", "handoff"],
+      "properties": {
+        "skill": {"type": "string"}, "domain": {"type": "string"}, "objective": {"type": "string"},
+        "triggers": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "resources": {"$ref": "#/$defs/resources"},
+        "output_artifacts": {"type": "array", "items": {"type": "string"}},
+        "tool_classes": {"type": "array", "items": {"enum": ["read_only", "project_write", "code_generation", "shell_execution", "network", "git_remote", "secret_sensitive"]}},
+        "risk_tier": {"enum": ["advisory", "enforced"]}, "security_policy": {"$ref": "#/$defs/policy"},
+        "verification": {"$ref": "#/$defs/verification"}, "handoff": {"type": "string"}
+      }
+    },
+    "component": {
+      "type": "object",
+      "required": ["name", "resources", "tool_classes", "risk_tier", "security_policy", "verification"],
+      "properties": {"name": {"type": "string"}, "resources": {"$ref": "#/$defs/resources"}, "tool_classes": {"type": "array"}, "risk_tier": {"enum": ["advisory", "enforced"]}, "security_policy": {"$ref": "#/$defs/policy"}, "verification": {"$ref": "#/$defs/verification"}}
+    }
+  }
+}

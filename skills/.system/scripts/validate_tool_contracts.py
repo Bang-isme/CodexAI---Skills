@@ -35,7 +35,7 @@ REQUIRED_POLICY_FIELDS = {
     "artifact_policy": ("mode", "description"),
     "safety_policy": ("network", "writes_artifacts", "reads_secrets", "smoke_allowed", "description"),
 }
-ALLOWED_KINDS = {"validator", "health", "router", "harness", "memory", "release", "packaging"}
+ALLOWED_KINDS = {"validator", "health", "router", "harness", "memory", "release", "packaging", "audit"}
 ALLOWED_WARNING_MODES = {"none", "advisory", "strict_exit"}
 ALLOWED_ARTIFACT_MODES = {"none", "read_only", "generated_on_success", "optional_outputs"}
 ALLOWED_NETWORK = {"none", "optional_external", "github_api"}
@@ -140,6 +140,7 @@ def validate_registry_shape(registry: Any, checks: list[dict[str, Any]]) -> list
             "memory_status",
             "memory_build_index",
             "memory_scale_gate",
+            "skill_capability_audit",
         }:
             if not isinstance(required_args, list) or not required_args:
                 failures.append(f"{prefix}: args_schema.required must list required wrapper inputs")

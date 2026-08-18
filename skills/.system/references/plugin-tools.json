@@ -42,6 +42,47 @@
       }
     },
     {
+      "name": "skill_capability_audit",
+      "kind": "audit",
+      "script": ".system/scripts/audit_skill_pack.py",
+      "purpose": "Validate the versioned skill capability matrix and render an offline scorecard.",
+      "args_schema": {
+        "type": "object",
+        "required": ["skills_root"],
+        "properties": {
+          "skills_root": {"type": "string"},
+          "output_dir": {"type": "string"},
+          "no_write": {"type": "boolean", "default": false},
+          "strict": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#skill-capability-audit-output",
+      "exit_codes": {"success": [0], "failure": [1], "strict_warn_as_failure": [1]},
+      "warning_policy": {
+        "mode": "strict_exit",
+        "description": "Advisory ownership or registry findings fail when --strict is set."
+      },
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes JSON, Markdown, and self-contained HTML only when --no-write is omitted.",
+        "paths": [".codex/quality/skill-scorecard.json", ".codex/quality/SKILL-SCORECARD.md", ".codex/quality/skill-scorecard.html"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Static local audit with path containment and redacted scorecard fields."
+      },
+      "wrapper_notes": "Use --no-write in CI; use the default only after selecting a project-local output directory.",
+      "smoke": {
+        "argv": ["--skills-root", "{skills_root}", "--no-write", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
       "name": "codex_plugin_validate",
       "kind": "validator",
       "script": ".system/scripts/validate_codex_plugin.py",

@@ -84,6 +84,18 @@ def main() -> int:
             cwd=project_root,
         ),
         run_step(
+            "skill_capabilities",
+            [
+                str(SCRIPT_DIR / "audit_skill_pack.py"),
+                "--skills-root",
+                rel_skills,
+                "--strict",
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
             "codex_plugin",
             [
                 str(SCRIPT_DIR / "validate_codex_plugin.py"),

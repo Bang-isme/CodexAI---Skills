@@ -43,6 +43,9 @@ jobs:
       - name: Check pack health
         run: python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
 
+      - name: Audit skill capabilities
+        run: python skills/.system/scripts/audit_skill_pack.py --skills-root skills --strict --no-write --format json
+
       - name: Validate plugin tool-call contracts
         run: python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --strict --format json
 

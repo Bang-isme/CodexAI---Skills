@@ -36,6 +36,7 @@ load_priority: on-demand
 23. Activate on `$check-full` or "run full gate".
 24. Activate on `$check-deploy` or "run deploy gate".
 25. Activate on `$health` or "check skill pack health".
+26. Activate on `$skill-audit`, "audit skill capability", "plugin release readiness", or "capability scorecard".
 
 ## Decision Tree Routing
 
@@ -65,6 +66,7 @@ Task type -> Pre-flight/setup?
 - Advisory mode is the default: the AI must decide which gate scripts to run and report fresh evidence before completion.
 - `auto_gate.py` is the single orchestration entry point when the user wants quick, full, or deploy-focused checks without remembering individual script names. Full and deploy modes include role-doc, spec, and knowledge-index checks as advisory warnings only.
 - `check_pack_health.py` is the pack-level integrity check for manifest, registry, aliases, dot directories, global sync, and markdown encoding drift.
+- `audit_skill_pack.py` is the release-readiness control plane for skill ownership, tool classification, security policy, test ownership, and the offline scorecard. Run it with `--strict --no-write` in CI and without `--no-write` when a local scorecard is required.
 - Runtime enforcement is available through `install_hooks.py`, which installs a managed `pre-commit` hook that runs `security_scan.py` and `pre_commit_check.py` automatically before commit.
 - Use `--with-lint-test` only when the team wants heavier local enforcement that also runs `run_gate.py`.
 - Use `install_ci_gate.py` to generate CI enforcement for GitHub Actions or GitLab CI when the project should block pushes and pull requests in automation as well as locally.

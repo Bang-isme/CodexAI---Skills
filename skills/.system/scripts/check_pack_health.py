@@ -251,6 +251,7 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         "codex-project-memory/references/codebase-index.schema.json",
         "codex-project-memory/references/project-memory-tools.schema.json",
         ".system/references/plugin-tools.schema.json",
+        ".system/references/skill-capabilities.schema.json",
     ]
     schema_failures: list[str] = []
     for rel in schema_paths:
@@ -336,6 +337,34 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         f"{len(plugin_tools)} plugin tool contract(s) checked" if not plugin_tool_failures else "; ".join(plugin_tool_failures[:5]),
         failures=plugin_tool_failures,
         total=len(plugin_tools) if isinstance(plugin_tools, list) else 0,
+    )
+
+    matrix_path = skills_root / ".system" / "skill-capabilities.json"
+    matrix_failures: list[str] = []
+    try:
+        matrix = json.loads(read_text(matrix_path))
+    except Exception as exc:
+        matrix = {}
+        matrix_failures.append(f"skill-capabilities.json: invalid JSON ({exc})")
+    capabilities = matrix.get("capabilities", []) if isinstance(matrix, dict) else []
+    if matrix.get("schema_version") != "1.0":
+        matrix_failures.append("skill-capabilities.json: schema_version must be 1.0")
+    if not isinstance(capabilities, list):
+        matrix_failures.append("skill-capabilities.json: capabilities must be an array")
+        capabilities = []
+    matrix_names = [item.get("skill") for item in capabilities if isinstance(item, dict)]
+    manifest_names = manifest.get("skills", []) if isinstance(manifest, dict) else []
+    if len(matrix_names) != len(set(matrix_names)):
+        matrix_failures.append("skill-capabilities.json: duplicate skill entries")
+    if set(matrix_names) != set(manifest_names):
+        matrix_failures.append("skill-capabilities.json: entries must match manifest skills")
+    add(
+        checks,
+        "skill_capability_matrix",
+        "pass" if not matrix_failures else "fail",
+        f"{len(matrix_names)} capability record(s) match the manifest" if not matrix_failures else "; ".join(matrix_failures),
+        failures=matrix_failures,
+        total=len(matrix_names),
     )
 
     master_path = skills_root / "codex-master-instructions" / "SKILL.md"
@@ -454,8 +483,11 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-project-memory/references/project-memory-tools.json",
         ".system/references/plugin-tools.schema.json",
         ".system/references/plugin-tools.json",
+        ".system/references/skill-capabilities.schema.json",
+        ".system/skill-capabilities.json",
         ".system/references/tool-call-contract.md",
         ".system/scripts/validate_tool_contracts.py",
+        ".system/scripts/audit_skill_pack.py",
         "codex-project-memory/scripts/memory_status.py",
         "codex-project-memory/scripts/generate_scale_fixture.py",
         "codex-project-memory/scripts/run_scale_gate.py",

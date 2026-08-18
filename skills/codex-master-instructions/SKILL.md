@@ -52,6 +52,7 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$prototype`, `$revi
 | `$hook` | `runtime_hook.py` | codex-runtime-hook |
 | `$preflight` | `runtime_hook.py` | codex-runtime-hook |
 | `$health` | `check_pack_health.py` | .system |
+| `$skill-audit` | `audit_skill_pack.py` | .system |
 | `$init-profile` | `init_profile.py` | codex-runtime-hook |
 | `$memory` | `$codex-project-memory` | codex-project-memory |
 | `$knowledge` | `build_knowledge_index.py` | codex-project-memory |
@@ -170,6 +171,12 @@ If the user asks whether the pack is installed correctly or behaving consistentl
 
 ```bash
 python "<SKILLS_ROOT>/.system/scripts/check_pack_health.py" --skills-root "<SKILLS_ROOT>" --global-root "<GLOBAL_SKILLS_ROOT>" --format text
+```
+
+For plugin release readiness, routing coverage, tool ownership, or an offline capability scorecard, run `$skill-audit` before release packaging:
+
+```bash
+python "<SKILLS_ROOT>/.system/scripts/audit_skill_pack.py" --skills-root "<SKILLS_ROOT>" --strict --format text
 ```
 
 ### Auto-Commit Rule

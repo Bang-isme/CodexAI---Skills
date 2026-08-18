@@ -42,6 +42,8 @@ Plugin packaging:
 - Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_codex_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
 - Tool-call contract registry: `<SOURCE_SKILLS_ROOT>/.system/references/plugin-tools.json`
 - Contract validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_tool_contracts.py" --skills-root "<SOURCE_SKILLS_ROOT>" --strict --format json`
+- Capability matrix: `<SOURCE_SKILLS_ROOT>/.system/skill-capabilities.json`
+- Capability audit: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\audit_skill_pack.py" --skills-root "<SOURCE_SKILLS_ROOT>" --strict --format json`
 - Contract docs: `<SOURCE_SKILLS_ROOT>/.system/references/tool-call-contract.md`
 - GitHub CLI integration: `<SOURCE_SKILLS_ROOT>/.system/GITHUB_CLI_INTEGRATION.md`
 
@@ -111,6 +113,7 @@ Immediately verify:
 
 ```powershell
 python "$env:USERPROFILE\.codex\skills\.system\scripts\check_pack_health.py" --skills-root "<SOURCE_SKILLS_ROOT>" --global-root "$env:USERPROFILE\.codex\skills" --format text
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\audit_skill_pack.py" --skills-root "<SOURCE_SKILLS_ROOT>" --strict --format text
 ```
 
 Pass criteria:
@@ -120,6 +123,7 @@ Pass criteria:
 - `.system/REGISTRY.md` exists globally.
 - `.agents/` and `.workflows/` exist globally.
 - `codex-runtime-hook` and `codex-logical-decision-layer` exist globally.
+- Every managed `SKILL.md` has one capability entry, every declared resource exists, and high-risk scripts have enforced policy plus a verification owner.
 
 ## 3. Start Work On Any Project
 

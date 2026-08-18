@@ -74,6 +74,7 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
         "codex-project-memory/references/codebase-index.schema.json",
         "codex-project-memory/references/project-memory-tools.schema.json",
         ".system/references/plugin-tools.schema.json",
+        ".system/references/skill-capabilities.schema.json",
     ]:
         write(skills_root / schema, json.dumps({"schema_version": "1.0"}))
     write(
@@ -103,6 +104,7 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
             }
         ),
     )
+    write(skills_root / ".system" / "skill-capabilities.json", json.dumps({"schema_version": "1.0", "capabilities": [], "shared_components": []}))
     write(skills_root / ".system" / "scripts" / "check_pack_health.py", "print('stub')\n")
     write(
         skills_root / "codex-project-memory" / "references" / "project-memory-tools.json",
@@ -125,6 +127,9 @@ def test_pack_health_current_source_is_operationally_clean() -> None:
     assert "critical_aliases" in names
     assert "markdown_mojibake" in names
     assert "plugin_tool_contracts" in names
+    assert "skill_capability_matrix" in names
+    capability_matrix = next(item for item in payload["checks"] if item["name"] == "skill_capability_matrix")
+    assert capability_matrix["status"] == "pass"
 
 
 def test_pack_health_reports_missing_manifest_skill(tmp_path: Path) -> None:

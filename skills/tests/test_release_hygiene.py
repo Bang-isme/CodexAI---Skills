@@ -157,6 +157,7 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "validate_codex_plugin.py" in ci
     assert "validate_claude_plugin.py" in ci
     assert "check_pack_health.py" in ci
+    assert "audit_skill_pack.py" in ci
     assert "memory_status.py" in ci
     assert "windows-latest" in ci
     assert "test_project_traversal_does_not_follow_symlinks_outside_root" in ci
@@ -168,6 +169,7 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert not (REPO_ROOT / ".github" / "workflows" / "deploy.yml").exists()
 
     assert "local_release_gate.py" in release
+    assert "skill_capabilities" in (REPO_ROOT / "skills" / ".system" / "scripts" / "local_release_gate.py").read_text(encoding="utf-8")
     assert "actions/checkout@v5" in release
     assert "actions/setup-python@v6" in release
     assert "actions/upload-artifact" in release

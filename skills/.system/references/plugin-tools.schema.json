@@ -27,7 +27,7 @@
         "properties": {
           "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
           "kind": {
-            "enum": ["validator", "health", "router", "harness", "memory", "release", "packaging"]
+            "enum": ["validator", "health", "router", "harness", "memory", "release", "packaging", "audit"]
           },
           "script": {"type": "string"},
           "purpose": {"type": "string", "minLength": 8},
