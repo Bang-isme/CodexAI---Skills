@@ -155,6 +155,35 @@ def setup_claude(project_root: Path, skills_root: Path, apply: bool) -> dict[str
     return {"adapter": "claude", "target": str(target), "install": payload}
 
 
+def setup_antigravity(project_root: Path, skills_root: Path, apply: bool) -> dict[str, Any]:
+    plugin_root = plugin_root_from_skills(skills_root)
+    installer = SCRIPT_DIR / "install_antigravity_native.py"
+    args = [
+        sys.executable,
+        str(installer),
+        "--plugin-root",
+        str(plugin_root),
+        "--project-root",
+        str(project_root),
+        "--scope",
+        "workspace",
+        "--surface",
+        "both",
+        "--format",
+        "json",
+    ]
+    if apply:
+        args.append("--apply")
+    result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=240, check=False)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        payload = {"status": "fail", "stdout": result.stdout[-2000:], "stderr": result.stderr[-2000:]}
+    payload["adapter"] = "antigravity"
+    payload["exit_code"] = result.returncode
+    return payload
+
+
 def run_setup(setup: str, project_root: Path, skills_root: Path, apply: bool, checks: list[dict[str, Any]]) -> None:
     if setup == "none":
         add_check(checks, "setup", "pass", "setup skipped")
@@ -166,6 +195,8 @@ def run_setup(setup: str, project_root: Path, skills_root: Path, apply: bool, ch
         payloads.append(setup_codex(project_root, skills_root, apply))
     if setup in {"claude", "all"}:
         payloads.append(setup_claude(project_root, skills_root, apply))
+    if setup in {"antigravity", "all"}:
+        payloads.append(setup_antigravity(project_root, skills_root, apply))
     status = "pass" if payloads else "fail"
     add_check(checks, f"{setup}_adapter", status, f"{len(payloads)} adapter setup payload(s)", payloads=payloads)
 
@@ -247,7 +278,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run CodexAI portable trust harness and optional setup.")
     parser.add_argument("--project-root", default="", help="Target project root for generic CLI/IDE adapter setup")
     parser.add_argument("--skills-root", default="", help="Source skills root")
-    parser.add_argument("--setup", choices=("none", "generic", "codex", "claude", "all"), default="none")
+    parser.add_argument("--setup", choices=("none", "generic", "codex", "claude", "antigravity", "all"), default="none")
     parser.add_argument("--apply", action="store_true", help="Apply setup changes. Default is dry-run.")
     parser.add_argument("--skip-tests", action="store_true", help="Skip pytest and smoke checks")
     parser.add_argument("--evidence", default="", help="Optional JSON evidence output path")
@@ -280,6 +311,11 @@ def main() -> int:
         )
         run_json_command("codex_plugin", [str(SCRIPT_DIR / "validate_codex_plugin.py"), "--plugin-root", str(plugin_root), "--strict"], checks)
         run_json_command("claude_plugin", [str(SCRIPT_DIR / "validate_claude_plugin.py"), "--plugin-root", str(plugin_root), "--strict"], checks)
+        run_json_command(
+            "antigravity_build_dry_run",
+            [str(SCRIPT_DIR / "build_antigravity_plugin.py"), "--plugin-root", str(plugin_root), "--format", "json"],
+            checks,
+        )
         run_json_command("release_dry_run", [str(SCRIPT_DIR / "build_release_zip.py"), "--project-root", str(plugin_root), "--dry-run"], checks)
         run_tests(skills_root, checks, skip_tests=args.skip_tests)
 

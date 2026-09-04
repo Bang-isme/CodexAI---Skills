@@ -6,24 +6,25 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `15.2.0` |
-| Core Skills | 28 |
-| Entry-point Scripts | 69 |
+| Version | `16.0.0` |
+| Core Skills | 31 |
+| Entry-point Scripts | 74 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 188+ |
+| References | 190+ |
 | Starters | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 8 |
+| Agent Personas | 12 |
 | Workflow Aliases | 8 |
 | Short Aliases | 25+ |
 | Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
 | Local Marketplace | `../.agents/plugins/marketplace.json` |
 | Claude Plugin Manifest | `../.claude-plugin/plugin.json` |
 | Claude Hooks | `../hooks/hooks.json` |
+| Antigravity templates | `../antigravity/` (native package candidate) |
 | GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 341/341 |
-| Smoke | 71/71 |
+| Pytest | 409/409 |
+| Smoke | 78/78 |
 
 ---
 

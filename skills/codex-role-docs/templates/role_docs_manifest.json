@@ -16,21 +16,21 @@
           "file": "FE-01-ui-ux.md",
           "title": "UI/UX Flow",
           "purpose": "Capture user journeys, screen states, interaction rules, empty states, and UX constraints.",
-          "owner_agents": ["frontend-specialist"]
+          "owner_agents": ["frontend-specialist", "ui-ux-designer"]
         },
         {
           "id": "FE-02",
           "file": "FE-02-design-system.md",
           "title": "Design System",
           "purpose": "Capture reusable design decisions, component standards, visual language, and design-system boundaries.",
-          "owner_agents": ["frontend-specialist"]
+          "owner_agents": ["frontend-specialist", "creative-designer"]
         },
         {
           "id": "FE-03",
           "file": "FE-03-design-tokens.md",
           "title": "Design Tokens",
           "purpose": "Capture color, typography, spacing, radius, shadow, motion, and theme token decisions.",
-          "owner_agents": ["frontend-specialist"]
+          "owner_agents": ["frontend-specialist", "creative-designer"]
         },
         {
           "id": "FE-04",

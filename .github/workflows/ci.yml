@@ -52,6 +52,9 @@ jobs:
       - name: Validate prompt router corpus
         run: python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
 
+      - name: Build Antigravity plugin (dry-run)
+        run: python skills/.system/scripts/build_antigravity_plugin.py --plugin-root . --format json
+
       - name: Validate release archive plan
         run: python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format json
 

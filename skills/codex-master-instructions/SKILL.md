@@ -65,6 +65,9 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$prototype`, `$revi
 | `$check-docs` | `check_role_docs.py` | codex-role-docs |
 | `$spec` | `init_spec.py` / `check_spec.py` | codex-spec-driven-development |
 | `$design` | `$codex-design-system` | codex-design-system |
+| `$ux` | `$codex-ui-ux-design` | codex-ui-ux-design |
+| `$direction` | `$codex-creative-direction` | codex-creative-direction |
+| `$visual-gate` | `$codex-visual-quality-gate` | codex-visual-quality-gate |
 | `$design-md` | `$codex-design-md` | codex-design-md |
 | `$genome` | `$codex-genome` | codex-project-memory |
 | `$doctor` | `$codex-doctor` | codex-execution-quality-gate |

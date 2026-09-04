@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `15.2.0` | Cập nhật: 2026-04-28
+> Phiên bản: `16.0.0` | Cập nhật: 2026-09-04
 
 ## 1. Giới Thiệu
 
@@ -14,15 +14,15 @@ Luồng chuẩn của pack:
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Core skills | 28 |
-| Entry-point scripts | 69 |
+| Core skills | 31 |
+| Entry-point scripts | 74 |
 | Shared helpers | 2 |
-| References | 188+ |
+| References | 190+ |
 | Starters | 29 |
 | Artifact templates | 9 |
-| Agent personas | 8 |
+| Agent personas | 12 |
 | Workflow aliases | 8 |
-| Kiểm thử | 341 unit + 71 smoke = 412 bài test |
+| Kiểm thử | 409 unit + 78 smoke = 487 bài test |
 
 ## 2. Điểm mạnh chính
 
@@ -33,8 +33,8 @@ Luồng chuẩn của pack:
 | Tri thức ngầm nằm trong đầu người làm | `$knowledge` tạo `.codex/knowledge/INDEX.md` từ genome, role docs, decisions, commit history, và config |
 | Prototype fullstack bắt đầu quá mơ hồ | `$prototype` ép chạy spec-first: `$hook -> $init-profile -> $genome -> $init-docs -> $spec -> $plan -> implement -> $check-full` |
 | Output generic, thiếu bằng chứng | `codex-reasoning-rigor`, `output_guard.py`, và `editorial_review.py` ép file, command, risk, next step |
-| UI đẹp nhưng UX khó dùng | `frontend-specialist`, `codex-design-system`, và UX golden rules kiểm tra feedback, accessibility, hierarchy |
-| Không có gate trước khi kết luận | `auto_gate.py` gom preflight, security, lint/test, role docs, spec, knowledge, bundle, và improvement advisory |
+| UI đẹp nhưng UX khó dùng | `creative-director`, `ui-ux-designer`, `frontend-specialist`, grammar design, và visual mechanical gate |
+| Không có gate trước khi kết luận | `auto_gate.py` gom preflight, security, lint/test, role docs, spec, knowledge, visual mechanical, bundle |
 
 ## 3. Cài Đặt Hoặc Sync Global Skills
 

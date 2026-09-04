@@ -92,4 +92,7 @@ def test_plugin_tool_registry_covers_trust_harness_commands() -> None:
         "release_zip_dry_run",
         "prompt_route",
         "trust_harness",
+        "antigravity_build",
+        "antigravity_validate",
+        "antigravity_install",
     }.issubset(names)

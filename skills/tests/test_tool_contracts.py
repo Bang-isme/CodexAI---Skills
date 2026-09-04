@@ -59,6 +59,11 @@ def test_plugin_tool_registry_schema_version_and_tools() -> None:
         "memory_scale_gate",
         "local_release_gate",
         "skill_capability_audit",
+        "antigravity_build",
+        "antigravity_validate",
+        "antigravity_install",
+        "design_context",
+        "visual_quality_gate",
     }
     for tool in registry["tools"]:
         for field in (

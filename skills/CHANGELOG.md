@@ -2,20 +2,40 @@
 
 ## [Unreleased]
 
-### Fixed
-- Dependabot: scope pip updates to `requirements-dev.txt` only; remove `pdf2image` from `skills/requirements.txt` to stop failing optional-dep PRs; group pytest/PyYAML bumps.
-- `run_scale_gate.py` no longer calls `shutil.rmtree` on arbitrary `--project-root` paths; only `.scale-gate-*` / `codex-scale-gate-*` dirs or trees marked with `.scale-gate-fixture`. Default fixture root uses `tempfile.mkdtemp`.
+## [16.0.0] - 2026-09-04
 
 ### Added
+- Frontend creative-native studio: `creative-director`, `ui-ux-designer`, `creative-designer`, and independent `visual-quality-reviewer`.
+- Skills `codex-ui-ux-design`, `codex-creative-direction`, and `codex-visual-quality-gate` with grammar-based design references.
+- Design intent routing fields: `design_operation`, `surface_mode`, `supporting_agents`, `ambiguity_reasons`, `required_evidence`.
+- Expanded prompt-router corpus to 40+ EN/VI cases; prototype `build/create` no longer steals frontend tasks.
+- Python `design_context.py` and `visual_quality_gate.py` with dry-run default, path confinement, and optional local Node detector.
+- Antigravity native package candidate: templates, builder, installer (IDE/CLI), hooks, and validator.
+- Provenance docs and `THIRD_PARTY_NOTICES.md`.
+
+### Infrastructure
+- Bumped version: `15.2.0` -> `16.0.0`
+- Verified suite target: `409` unit tests + `78` smoke checks.
+
+### Changed
+- Major version `15.2.0` -> `16.0.0` for routing, agent model, quality gates, and packaging.
+- `codex-design-system` is visual-craft grammar; palettes and micro-interactions are optional, not mandatory.
+- Sparse prompts ask 2–3 material questions; narrow tasks skip the long interview.
+- Visual mechanical failures can block `auto_gate` full/deploy when UI files change; visual judgment still needs evidence.
+
+### Notes
+- Antigravity packaging is a **native package candidate** until live IDE and CLI smoke is recorded. Missing `agy` is `skipped: binary unavailable`, not a fake pass.
+
+### Fixed
+- Dependabot: scope pip updates to `requirements-dev.txt` only; remove `pdf2image` from `skills/requirements.txt` to stop failing optional-dep PRs; group pytest/PyYAML bumps; ignore pytest majors and GitHub Actions major bumps so they are not reopened as extra PRs.
+- `run_scale_gate.py` no longer calls `shutil.rmtree` on arbitrary `--project-root` paths; only `.scale-gate-*` / `codex-scale-gate-*` dirs or trees marked with `.scale-gate-fixture`. Default fixture root uses `tempfile.mkdtemp`.
+
+### Also in this major
 - CI/CD maturity: pip cache on all Python jobs, `requirements-dev.txt`, Python 3.12–3.13 OS matrix, Python 3.11 gate on `main`, trust harness smoke, advisory pip-audit, deploy-mode `auto_gate` on `main`.
 - Removed `.github/workflows/deploy.yml` — CI validates the plugin pack only; no staging/production CD in GitHub Actions.
 - Documented CI/CD as **local capability surface** for external Project CLI (`deploy-promotion.md`, README).
 - Added `local_release_gate.py`, `promote_deploy.py`, `deploy-promotion.md`, and `deploy-targets.schema.json`.
-- Added plugin tool `local_release_gate` in `plugin-tools.json`.
-- Dependabot pip updates for `requirements-dev.txt`.
-
-### Changed
-- `release.yml` is manual ZIP-only; production releases use `deploy.yml` on tag push.
+- `release.yml` is manual ZIP-only.
 
 ## [15.2.0] - 2026-04-28
 

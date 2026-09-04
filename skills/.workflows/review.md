@@ -13,10 +13,11 @@ Use for audits, code reviews, technical risk assessment, or release-readiness in
 ## Step Outline
 
 1. Load `workflow-review.md` and gather debt, trend, and security signals.
-2. Aggregate findings across functionality, maintainability, and security.
-3. Separate blockers from advisory items and order them by severity.
-4. Run `output_guard` and `editorial_review` on the final written review.
-5. Publish a concise action matrix with owners, urgency, and verification steps.
+2. For UI, require independent visual review with desktop and mobile evidence, or disclose `DEGRADED`.
+3. Aggregate findings across functionality, maintainability, and security.
+4. Separate blockers from advisory items and order them by severity.
+5. Run `output_guard` and `editorial_review` on the final written review.
+6. Publish a concise action matrix with owners, urgency, and verification steps.
 
 ## Exit Criteria
 

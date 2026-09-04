@@ -449,6 +449,187 @@
         "expect_exit_codes": [0, 1],
         "cwd": "repo_root"
       }
+    },
+    {
+      "name": "antigravity_build",
+      "kind": "packaging",
+      "script": ".system/scripts/build_antigravity_plugin.py",
+      "purpose": "Build a native Antigravity plugin package from canonical skills without emitting deprecated workflows.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "plugin_root": {"type": "string"},
+          "output": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "Fails when templates or skills source are missing."},
+      "artifact_policy": {
+        "mode": "generated_on_success",
+        "description": "Writes dist/antigravity-plugin when --apply is set.",
+        "paths": ["dist/antigravity-plugin/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Filesystem-only transform of canonical skills; skips tests and sidecars."
+      },
+      "wrapper_notes": "Default is dry-run. Status remains native package candidate until live IDE/CLI smoke.",
+      "smoke": {
+        "argv": ["--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "antigravity_validate",
+      "kind": "validator",
+      "script": ".system/scripts/validate_antigravity_plugin.py",
+      "purpose": "Validate Antigravity plugin schema, strict skill frontmatter, documented agent tools, rule size, and hooks.",
+      "args_schema": {
+        "type": "object",
+        "required": ["package_dir"],
+        "properties": {
+          "package_dir": {"type": "string"},
+          "strict": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "Fails on schema or frontmatter drift."},
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads a built package directory only.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": false,
+        "description": "Requires a built package; optional agy binary smoke records skipped when missing."
+      },
+      "wrapper_notes": "Run after antigravity_build --apply. Missing agy is skipped, not a fake pass."
+    },
+    {
+      "name": "antigravity_install",
+      "kind": "packaging",
+      "script": ".system/scripts/install_antigravity_native.py",
+      "purpose": "Install the Antigravity native package into workspace or user IDE/CLI plugin directories.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "plugin_root": {"type": "string"},
+          "project_root": {"type": "string"},
+          "scope": {"type": "string", "enum": ["workspace", "user"], "default": "workspace"},
+          "surface": {"type": "string", "enum": ["ide", "cli", "both"], "default": "both"},
+          "apply": {"type": "boolean", "default": false},
+          "uninstall": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "Fails when HOME/USERPROFILE is missing for user scope."},
+      "artifact_policy": {
+        "mode": "generated_on_success",
+        "description": "Copies plugin files into workspace or user Gemini plugin directories when --apply is set.",
+        "paths": [".agents/plugins/codexai-agentic-workflow/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Dry-run default. Resolves hook Python paths at install time."
+      },
+      "wrapper_notes": "Keep IDE and CLI targets separate. Do not invent a shared global skills path.",
+      "smoke": {
+        "argv": ["--scope", "workspace", "--surface", "both", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "design_context",
+      "kind": "harness",
+      "script": "codex-design-md/scripts/design_context.py",
+      "purpose": "Scaffold or validate project-local PRODUCT.md and surface UX contracts without writing unless --apply.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "command": {"type": "string", "enum": ["doctor", "dump", "scaffold", "validate"], "default": "dump"},
+          "slug": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Validate may warn when optional surfaces are missing."},
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes .codex/design files only with --apply.",
+        "paths": [".codex/design/PRODUCT.md", ".codex/design/surfaces/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Path-confined to project root; dry-run default."
+      },
+      "wrapper_notes": "Use doctor for presence checks; scaffold requires --apply to write.",
+      "smoke": {
+        "argv": ["--project-root", "{repo_root}", "--command", "doctor", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "visual_quality_gate",
+      "kind": "audit",
+      "script": "codex-visual-quality-gate/scripts/visual_quality_gate.py",
+      "purpose": "Run mechanical visual source checks and optional local detector without installing packages.",
+      "args_schema": {
+        "type": "object",
+        "required": ["project_root"],
+        "properties": {
+          "project_root": {"type": "string"},
+          "files": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Non-blocking clichés are warnings; determinate mechanical issues can fail."},
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes .codex/design/reviews only with --apply.",
+        "paths": [".codex/design/reviews/"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Never auto-installs Node; detector is available, skipped, or failed."
+      },
+      "wrapper_notes": "Not an aesthetic score. Independent rendered review is host-owned.",
+      "smoke": {
+        "argv": ["--project-root", "{repo_root}", "--files", "README.md", "--format", "json"],
+        "expect_exit_codes": [0, 1],
+        "cwd": "repo_root"
+      }
     }
   ]
 }

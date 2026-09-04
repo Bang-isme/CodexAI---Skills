@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-15.2.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-341%2F341%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-71%2F71%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-16.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-409%2F409%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-78%2F78%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,17 +25,18 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 28 |
-| Entry-point Scripts | 69 |
+| Core Skills | 31 |
+| Entry-point Scripts | 74 |
 | Shared Helpers | 2 |
-| Reference Docs | 188+ |
+| Reference Docs | 190+ |
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 8 |
+| Agent Personas | 12 |
 | Workflow Aliases | 8 |
-| Verification | 341 unit + 71 smoke = 412 tests |
+| Verification | 409 unit + 78 smoke = 487 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
+| Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
 | GitHub Automation | GitHub CLI (`gh`) + `gh auth login` for PR/release workflows |
 | CI/CD | `.github/workflows/ci.yml` + `.github/workflows/release.yml` |
 
@@ -47,7 +48,8 @@ The pack is designed for 3 outcomes:
 | --- | --- |
 | Vague task interpretation | `codex-intent-context-analyzer` locks goal, scope, and ambiguity before code |
 | Plans that sound good but do not guide execution | `codex-plan-writer` creates verifiable, dependency-aware task breakdowns |
-| Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into reusable vocabulary and a lintable `DESIGN.md` contract |
+| Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into grammar and a lintable `DESIGN.md`; product/surface context lives under `.codex/design/` |
+| Vague “make it look great” UI prompts | Creative director → UI/UX → creative designer → frontend → visual gate, without fake balance scores |
 | Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
 | Documents that make readers infer too much | `codex-document-writer` forces purpose, audience, structure, complete sentences, and reliability wording |
@@ -56,7 +58,7 @@ The pack is designed for 3 outcomes:
 | Tacit knowledge stays invisible | `build_knowledge_index.py` turns genome, role docs, decisions, commits, and configs into `.codex/knowledge/INDEX.md` |
 | Fullstack prototypes start from vague prompts | `codex-spec-driven-development` forces spec-first acceptance criteria before `$plan` and implementation |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
-| Skills only work in one agent app | Dual Codex + Claude plugin metadata lets both agents load the same `skills/<name>/SKILL.md` contracts |
+| Skills only work in one agent app | Dual Codex + Claude plugin metadata plus an Antigravity **native package candidate** (`agy plugin install` when the binary exists) |
 
 ---
 
@@ -262,6 +264,22 @@ claude --plugin-dir .
 ```
 
 Claude Code uses `.claude-plugin/plugin.json`, `skills/<skill>/SKILL.md`, and `hooks/hooks.json`. In plugin mode, skills are namespaced as `/codexai-agentic-workflow:<skill-name>`.
+
+**Three runtime levels**
+
+1. Python-only core: routers, design context, mechanical visual gate, quality gates. No Node required.
+2. Python + local Impeccable detector: optional, never auto-installed. Doctor reports `available|skipped|failed`.
+3. Antigravity IDE/CLI native package **candidate**:
+
+```powershell
+python ".\skills\.system\scripts\build_antigravity_plugin.py" --plugin-root "." --apply --format json
+python ".\skills\.system\scripts\install_antigravity_native.py" --plugin-root "." --scope workspace --surface both --apply --format json
+python ".\skills\.system\scripts\validate_antigravity_plugin.py" --package-dir ".\dist\antigravity-plugin" --format json
+```
+
+Workspace install lands in `.agents/plugins/codexai-agentic-workflow/`. User IDE uses `%USERPROFILE%\.gemini\config\plugins\`. User CLI uses `%USERPROFILE%\.gemini\antigravity-cli\plugins\`. If `agy` is missing, smoke records `skipped: binary unavailable`. Do not call this fully native until live IDE and CLI smoke exists.
+
+See `docs/design-knowledge-provenance.md` and `THIRD_PARTY_NOTICES.md`.
 
 **Windows (PowerShell)**
 

@@ -17,8 +17,9 @@ Use for MVP, fullstack prototype, "from scratch", "build whole app", or multi-do
 3. If context is missing, run `$genome`; if role docs are missing, run `$init-docs`.
 4. Run `$spec` and create `.codex/specs/<slug>/SPEC.md` before implementation.
 5. Run `$plan` and split work into FE/BE/data/QA/DevOps slices with acceptance criteria.
-6. Execute with `$sdd` for independent tasks or inline for tightly coupled tasks, using TDD.
-7. Update role docs, rebuild knowledge index, and run `$check-full`.
+6. For substantial UI, run creative direction then UX then visual execution before frontend implementation; skip that chain for backend-only slices.
+7. Execute with `$sdd` for independent tasks or inline for tightly coupled tasks, using TDD.
+8. Update role docs, rebuild knowledge index, and run `$check-full`.
 
 ## Exit Criteria
 

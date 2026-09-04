@@ -57,13 +57,26 @@ gh auth status
 
 Use GitHub CLI credential storage for local auth. Do not store tokens in plugin metadata, skill docs, generated artifacts, or source files.
 
-Claude Code packaging:
-
+- Claude Code packaging:
 - Manifest: `<PLUGIN_ROOT>/.claude-plugin/plugin.json`
 - Hooks: `<PLUGIN_ROOT>/hooks/hooks.json`
 - Validator: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_claude_plugin.py" --plugin-root "<PLUGIN_ROOT>" --format text`
 - Standalone install: `python "<SOURCE_SKILLS_ROOT>\.system\scripts\install_claude_native.py" --source "<SOURCE_SKILLS_ROOT>" --scope user --dry-run --format text`
 - Plugin test: `claude --plugin-dir "<PLUGIN_ROOT>"`
+
+Antigravity native package candidate (IDE + CLI, not fully native until live smoke):
+
+```powershell
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_antigravity_plugin.py" --plugin-root "<PLUGIN_ROOT>" --apply --format json
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\install_antigravity_native.py" --plugin-root "<PLUGIN_ROOT>" --project-root "<PROJECT_ROOT>" --scope workspace --surface both --apply --format json
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\validate_antigravity_plugin.py" --package-dir "<PLUGIN_ROOT>\dist\antigravity-plugin" --format json
+```
+
+User IDE: `%USERPROFILE%\.gemini\config\plugins\codexai-agentic-workflow\`
+User CLI: `%USERPROFILE%\.gemini\antigravity-cli\plugins\codexai-agentic-workflow\`
+If `agy` is missing, record `skipped: binary unavailable`.
+
+Three usage levels: Python-only core; Python + local Impeccable detector; Antigravity native package candidate. See `docs/design-knowledge-provenance.md`.
 
 Clean release archive:
 

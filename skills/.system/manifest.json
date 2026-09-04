@@ -1,5 +1,5 @@
 {
-  "version": "15.2.0",
+  "version": "16.0.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -12,6 +12,9 @@
     "codex-spec-driven-development",
     "codex-design-system",
     "codex-design-md",
+    "codex-ui-ux-design",
+    "codex-creative-direction",
+    "codex-visual-quality-gate",
     "codex-domain-specialist",
     "codex-security-specialist",
     "codex-execution-quality-gate",
@@ -32,6 +35,10 @@
   ],
   "agents": [
     "frontend-specialist",
+    "ui-ux-designer",
+    "creative-director",
+    "creative-designer",
+    "visual-quality-reviewer",
     "backend-specialist",
     "security-auditor",
     "debugger",
@@ -89,6 +96,13 @@
     "native_install_script": ".system/scripts/install_claude_native.py",
     "plugin_validator": ".system/scripts/validate_claude_plugin.py"
   },
+  "antigravity_plugin": {
+    "templates": "../antigravity/",
+    "builder": ".system/scripts/build_antigravity_plugin.py",
+    "native_install_script": ".system/scripts/install_antigravity_native.py",
+    "plugin_validator": ".system/scripts/validate_antigravity_plugin.py",
+    "native_status": "native package candidate"
+  },
   "generic_adapter": {
     "trust_harness": ".system/scripts/trust_harness.py",
     "prompt_router": ".system/scripts/prompt_router.py",
@@ -110,6 +124,9 @@
       "codex-spec-driven-development",
       "codex-design-system",
       "codex-design-md",
+      "codex-ui-ux-design",
+      "codex-creative-direction",
+      "codex-visual-quality-gate",
       "codex-domain-specialist",
       "codex-security-specialist",
       "codex-execution-quality-gate",

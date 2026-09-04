@@ -34,6 +34,7 @@ REQUIRED_PLUGIN_ROOT_PATHS = [
     ".claude-plugin/plugin.json",
     ".agents/plugins/marketplace.json",
     "hooks/hooks.json",
+    "antigravity/plugin.json",
 ]
 SCHEMA_VERSION_PATTERN = re.compile(r"^\d+\.\d+$")
 

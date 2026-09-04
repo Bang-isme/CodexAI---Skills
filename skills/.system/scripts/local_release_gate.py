@@ -108,6 +108,17 @@ def main() -> int:
             cwd=project_root,
         ),
         run_step(
+            "antigravity_build",
+            [
+                str(SCRIPT_DIR / "build_antigravity_plugin.py"),
+                "--plugin-root",
+                str(project_root),
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
             "release_zip",
             [
                 str(SCRIPT_DIR / "build_release_zip.py"),

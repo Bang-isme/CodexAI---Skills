@@ -24,6 +24,9 @@ SCRIPTS: List[Tuple[str, str]] = [
     (".system", "scripts/sync_global_skills.py"),
     (".system", "scripts/validate_codex_plugin.py"),
     (".system", "scripts/validate_claude_plugin.py"),
+    (".system", "scripts/build_antigravity_plugin.py"),
+    (".system", "scripts/install_antigravity_native.py"),
+    (".system", "scripts/validate_antigravity_plugin.py"),
     (".system", "scripts/build_release_zip.py"),
     ("codex-docs-change-sync", "scripts/map_changes_to_docs.py"),
     ("codex-runtime-hook", "scripts/runtime_hook.py"),
@@ -76,6 +79,8 @@ SCRIPTS: List[Tuple[str, str]] = [
     ("codex-workflow-autopilot", "scripts/explain_code.py"),
     ("codex-doc-renderer", "scripts/render_docx.py"),
     ("codex-design-md", "scripts/design_contract.py"),
+    ("codex-design-md", "scripts/design_context.py"),
+    ("codex-visual-quality-gate", "scripts/visual_quality_gate.py"),
 ]
 JSON_CHECKS: List[Tuple[str, List[str]]] = [
     (
@@ -83,6 +88,18 @@ JSON_CHECKS: List[Tuple[str, List[str]]] = [
         [
             "codex-design-md/scripts/design_contract.py",
             "doctor",
+        ],
+    ),
+    (
+        "design_context_doctor",
+        [
+            "codex-design-md/scripts/design_context.py",
+            "--project-root",
+            str(SKILLS_ROOT.parent),
+            "--command",
+            "doctor",
+            "--format",
+            "json",
         ],
     ),
     (
@@ -228,7 +245,23 @@ def run_json_check(script_path: Path, args: List[str], cwd: Path, env: Dict[str,
     except json.JSONDecodeError as exc:
         return False, f"invalid json: {exc}"
 
-    if payload.get("status") not in {"ok", "pass", "scaffold", "installed", "updated", "up_to_date", "diff", "report_ready", "recorded", "checked"}:
+    if payload.get("status") not in {
+        "ok",
+        "pass",
+        "scaffold",
+        "installed",
+        "updated",
+        "up_to_date",
+        "diff",
+        "report_ready",
+        "recorded",
+        "checked",
+        "dry_run",
+        "generated",
+        "warn",
+        "skipped",
+        "audited",
+    }:
         return False, f"unexpected status: {payload.get('status')}"
     return True, ""
 

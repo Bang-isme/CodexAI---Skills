@@ -1,42 +1,45 @@
 ---
 name: codex-design-system
-description: Use for UI, frontend, styling, landing page, or component creation; injects palettes, typography, layouts, motion, and anti-generic design rules.
+description: Use for UI, frontend, styling, landing page, or component work; applies grammar (surface mode, change mode, composition, motion) instead of mandatory palettes.
 load_priority: on-demand
 ---
 
 ## TL;DR
-Load before any UI/frontend task. This skill brings 30 palettes, 21 free font pairings, 20 layout patterns, 15 micro-interactions, composition rules, current trends, and developer-UI anti-pattern fixes. Anti-generic rules: no default blue, no plain white card stacks, no bootstrap look.
+Load before substantial UI work. Brief, incumbent system, and visitor/surface mode win over catalogs. Palettes and font pairings are optional after a color strategy and composition thesis exist. Do not add two micro-interactions by default.
 
 ## Activation
-1. Activate when task involves UI, frontend, styling, component work, or landing-page creation.
-2. Activate on `$design` or "make it look premium/modern/creative".
-3. Auto-load when `frontend-specialist` agent is active.
-4. Pair with `codex-design-md` when the project needs a durable `DESIGN.md` contract or token export.
+1. Activate for UI, frontend, styling, component, or marketing-surface work.
+2. Activate on `$design` or when the user asks for a distinctive or balanced visual result.
+3. Auto-load with `creative-director`, `creative-designer`, `ui-ux-designer`, or `frontend-specialist` when the task is visual.
+4. Pair with `codex-design-md` for `DESIGN.md`. Pair with `codex-ui-ux-design` for flows. Pair with `codex-creative-direction` when the prompt is a new or redesign surface.
 
-## Anti-Generic Rules (HARD)
-- NEVER use default blue (`#007bff`, `#2196F3`, `#3B82F6`) or default purple (`#6C63FF`, `#7C3AED`) unless the chosen palette in `references/palettes.md` explicitly uses it.
-- NEVER ship plain white cards with `border-radius: 8px` and `box-shadow: 0 2px 4px rgba(0,0,0,0.1)`.
-- NEVER use system fonts or unnamed "sans-serif"; specify exact font families and fallbacks.
-- NEVER build a fully symmetrical layout without hierarchy through size, spacing, color, or motion.
-- ALWAYS choose a palette from `references/palettes.md` before writing UI code.
-- ALWAYS choose a font pair from `references/typography.md`.
-- ALWAYS apply at least one composition principle from `references/composition.md`.
-- ALWAYS add at least two micro-interactions from `references/micro-interactions.md`.
+Skip the full studio when the change is a one-line CSS fix, copy tweak, or backend-only work.
 
-## Design Decision Flow
-1. Decide the mood: premium, bold, calm, editorial, playful, technical, or luxury.
-2. Pick one palette from `references/palettes.md`.
-3. Pick one font pair from `references/typography.md`.
-4. Pick one or two layout patterns from `references/patterns.md`.
-5. Pick two or three micro-interactions from `references/micro-interactions.md`.
-6. Check `references/anti-patterns.md` before finalizing.
-7. Then write UI code with explicit values for color, type, spacing, radius, and shadow.
+## Decision order
+1. Read product facts and visual authority (`PRODUCT.md`, `DESIGN.md`, incumbent tokens).
+2. Choose surface mode and change mode from `references/grammar.md`.
+3. Write a one-sentence composition thesis.
+4. Only then choose type, color strategy, imagery, and motion purpose.
+5. Optional: consult `palettes.md` / `typography.md` if no incumbent tokens exist.
+6. Check `references/anti-slop.md` and `references/composition.md` before code.
+
+## Hard rules
+- Do not always pick a palette preset or always add two micro-interactions.
+- Do not use default bootstrap blue/purple or generic white card stacks unless the incumbent system already does.
+- Do not invent product claims to fill a layout.
+- Substantial UI work needs desktop and mobile evidence in one review pass.
 
 ## Reference Files
-- `references/palettes.md` — 30 curated palettes with exact hex tokens, mood, app fit, and contrast ratios.
-- `references/typography.md` — 21 free font pairings with imports, weights, style tags, and fallback stacks.
-- `references/patterns.md` — 20 layout patterns with structure, responsive CSS, and usage boundaries.
-- `references/micro-interactions.md` — 15 production-ready motion patterns with CSS or JS code.
-- `references/composition.md` — Visual hierarchy, spacing, grids, storytelling flow, and emphasis rules.
-- `references/trends.md` — Current design trends for 2025-2026 with code signatures and fit guidance.
-- `references/anti-patterns.md` — 15 developer-UI mistakes with wrong/right code and violated principles.
+- `references/grammar.md` — surface mode, change mode, color strategy, originality.
+- `references/composition.md` — hierarchy, grouping, rhythm, optical alignment, density, reflow, focus, contrast, states, reduced motion.
+- `references/color-material.md` — strategy before hex; one material model.
+- `references/typography.md` — optional pairings after strategy is chosen.
+- `references/palettes.md` — optional catalogs after color strategy is chosen.
+- `references/patterns.md` — optional layout primitives.
+- `references/motion.md` — purpose-first motion.
+- `references/layout-adaptation.md` — desktop plus mobile in one pass.
+- `references/imagery.md` — asset provenance and icon grammar.
+- `references/anti-slop.md` — mechanical slop categories.
+- `references/anti-patterns.md` — additional developer-UI mistakes.
+- `references/micro-interactions.md` — optional snippets after purpose is chosen.
+- `references/trends.md` — fit heuristics, not year-dated fashion.

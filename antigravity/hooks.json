@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "replace_file_content|write_to_file|write_file|edit_file",
+        "command": [
+          "{{PYTHON}}",
+          "{{HOOK_SCRIPT}}"
+        ]
+      }
+    ]
+  }
+}

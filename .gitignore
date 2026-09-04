@@ -27,3 +27,8 @@ skills/.analytics/
 .worktrees/
 cache/
 state/
+
+.cursor/
+.commandcode/
+.ci-log.zip
+scale-artifact.zip

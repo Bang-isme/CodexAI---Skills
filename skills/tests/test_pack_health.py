@@ -65,6 +65,7 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
     write(skills_root.parent / ".claude-plugin" / "plugin.json", json.dumps({"version": version}))
     write(skills_root.parent / ".agents" / "plugins" / "marketplace.json", "{}\n")
     write(skills_root.parent / "hooks" / "hooks.json", json.dumps({"hooks": {}}))
+    write(skills_root.parent / "antigravity" / "plugin.json", json.dumps({"name": "demo", "description": "demo"}))
     for schema in [
         "codex-runtime-hook/references/profile.schema.json",
         "codex-runtime-hook/references/runtime-hook-output.schema.json",

@@ -5,7 +5,7 @@ load_priority: always
 ---
 
 ## TL;DR
-Parse user request into structured intent JSON (goal, constraints, complexity). Trigger Socratic Gate for complex or ambiguous scope. Suggest an agent route after classification. Wait for explicit confirmation before implementation. For large repos: read index files first, max 20 files deep-read per task.
+Parse user request into structured intent JSON (goal, constraints, complexity). Sparse prompts ask 2–3 material questions only. Narrow tasks skip the long interview. Suggest an agent route after classification. Wait for explicit confirmation before implementation. For large repos: read index files first, max 20 files deep-read per task.
 
 # Intent and Context Analyzer
 
@@ -29,11 +29,16 @@ Always return a fenced JSON block in conversation:
   "normalized_prompt": "Clean rewrite of the user request",
   "complexity": "simple | complex",
   "needs_confirmation": true,
-  "suggested_agent": "frontend-specialist | backend-specialist | security-auditor | debugger | test-engineer | devops-engineer | planner | scrum-master | null"
+  "suggested_agent": "creative-director | ui-ux-designer | creative-designer | frontend-specialist | visual-quality-reviewer | backend-specialist | security-auditor | debugger | test-engineer | devops-engineer | planner | scrum-master | null",
+  "design_operation": "extend | refine | redesign | new | null",
+  "surface_mode": "persuade | operate | read | experience | null",
+  "supporting_agents": [],
+  "ambiguity_reasons": [],
+  "required_evidence": []
 }
 ```
 
-Keep every existing field exactly as-is. The only additive extension is `suggested_agent`.
+Keep every existing field exactly as-is. Additive fields are `suggested_agent`, `design_operation`, `surface_mode`, `supporting_agents`, `ambiguity_reasons`, and `required_evidence`.
 
 ## Auto-Agent Routing
 
@@ -43,19 +48,27 @@ After classifying intent, select the best primary agent from `skills/.agents/` a
 
 | Intent | Primary Agent | Secondary |
 | --- | --- | --- |
-| build (frontend) | `frontend-specialist` | `test-engineer` |
+| build (vague new/redesign UI) | `creative-director` | `ui-ux-designer`, `creative-designer`, `frontend-specialist` |
+| build (flow/usability) | `ui-ux-designer` | `frontend-specialist` |
+| build (visual execution of a chosen direction) | `creative-designer` | `frontend-specialist` |
+| build (implementation-only frontend) | `frontend-specialist` | `visual-quality-reviewer` |
 | build (backend) | `backend-specialist` | `test-engineer` |
+| review (visual) | `visual-quality-reviewer` | — |
 | fix or debug | `debugger` | — |
 | review or audit | `security-auditor` | — |
 | deploy | `devops-engineer` | `security-auditor` |
 | plan | `planner` | — |
 | scrum | `scrum-master` | — |
 
+Security, debug, and deploy routing still beat design routing.
+
 ### Routing Notes
 
 - Keep the existing `intent` enum unchanged. `plan` and `scrum` are routing overlays, not new required JSON intent literals.
 - For build requests, use domain signals to choose frontend vs backend primary ownership.
-- When a strong secondary fit exists, mention it in prose after the routing line instead of adding another JSON field.
+- Vague new/redesign UI loads the studio chain. Implementation-only and CSS refine do not load `creative-director`.
+- Separate product facts, visual authority, and art-direction choices. Do not treat missing accent color as missing product truth.
+- When a strong secondary fit exists, list it in `supporting_agents` and mention it in prose after the routing line.
 - If no confident route exists, set `suggested_agent` to `null` and continue with the normal clarification flow.
 
 ### Discipline Skill Notes
@@ -66,6 +79,10 @@ After routing to an agent, the following discipline skills activate automaticall
 | --- | --- |
 | `debugger` | `codex-systematic-debugging` (`$root-cause`) + `codex-test-driven-development` (`$tdd`) |
 | `test-engineer` | `codex-test-driven-development` (`$tdd`) |
+| `creative-director` | `codex-creative-direction` then `codex-ui-ux-design` |
+| `ui-ux-designer` | `codex-ui-ux-design` |
+| `creative-designer` | `codex-design-system` + `codex-design-md` |
+| `visual-quality-reviewer` | `codex-visual-quality-gate` (must not approve its own implementation) |
 | `frontend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |
 | `backend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |
 | `planner` | `codex-subagent-execution` (`$sdd`) available for execution handoff |
@@ -77,17 +94,17 @@ For all `build` intents: TDD (RED-GREEN-REFACTOR) activates as a behavioral cons
 
 Trigger Socratic Gate for `complexity: complex` or ambiguous scope.
 
-### HARD-GATE: Design Before Implementation
+### HARD-GATE: Design Before Implementation (substantial UI or new systems)
 
 ```
-Do NOT write any code, scaffold any project, or take any implementation
-action until you have presented a design and the user has approved it.
-This applies to EVERY project regardless of perceived simplicity.
+Do NOT write substantial UI or new-system code until a design contract
+exists: product facts, visual authority, and (for new/redesign) a chosen
+direction. Narrow implementation-only work may skip the studio chain.
 ```
 
-### Anti-Pattern: "This Is Too Simple To Need A Design"
+### Anti-Pattern: Over-interviewing a narrow task
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+A one-line CSS refine, an approved-design implementation, or a backend-only fix must not be forced through a long Socratic interview. Ask zero or one boundary question, then execute.
 
 ### Trigger Conditions
 
@@ -95,18 +112,21 @@ Every project goes through this process. A todo list, a single-function utility,
 - Multi-file or architecture-level work.
 - Requests with missing constraints or success criteria.
 - "Just do it" requests with unclear scope.
+- Vague new/redesign UI with no audience, proof, or visual authority.
 
 ### Mandatory Questions
 
-Ask questions **one at a time** — do not overwhelm with multiple questions per message.
+For sparse *material* ambiguity, ask **2–3 questions in one round**, not an endless one-at-a-time interview. Each question must change the design or implementation.
 
-Ask at least 3 questions covering:
+Cover only what is missing:
 
-1. Purpose: what problem is being solved.
-2. Users: who is affected.
-3. Scope: must-have vs nice-to-have.
+1. Product facts: who it is for and what it claims.
+2. Visual authority: incumbent UI, references, or freedom to invent.
+3. Change mode: extend, refine, redesign, or new.
 
 Prefer **multiple choice** questions when possible — easier to answer than open-ended.
+
+Do not ask accent-color trivia when the user already named a framework and an approved mock.
 
 ### Question Quality Rules
 

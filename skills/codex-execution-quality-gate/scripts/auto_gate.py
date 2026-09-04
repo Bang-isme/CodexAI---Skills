@@ -26,9 +26,22 @@ Runner = Callable[[Path], RunnerResult]
 
 MODE_CHECKS: Dict[str, List[str]] = {
     "quick": ["runtime_hook", "security", "pre_commit"],
-    "full": ["runtime_hook", "security", "gate", "tech_debt", "role_docs", "specs", "knowledge"],
-    "deploy": ["runtime_hook", "security", "gate", "tech_debt", "role_docs", "specs", "knowledge", "bundle", "suggestions"],
+    "full": ["runtime_hook", "security", "gate", "tech_debt", "role_docs", "specs", "knowledge", "visual_quality"],
+    "deploy": [
+        "runtime_hook",
+        "security",
+        "gate",
+        "tech_debt",
+        "role_docs",
+        "specs",
+        "knowledge",
+        "bundle",
+        "suggestions",
+        "visual_quality",
+    ],
 }
+
+UI_SUFFIXES = {".jsx", ".tsx", ".vue", ".css", ".scss", ".html"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -464,6 +477,90 @@ def run_knowledge(project_root: Path) -> RunnerResult:
     return make_runner_result(payload, warnings=warnings)
 
 
+def changed_ui_files(project_root: Path) -> List[str]:
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if result.returncode != 0:
+        return []
+    files: List[str] = []
+    for line in result.stdout.splitlines():
+        rel = line.strip().replace("\\", "/")
+        suffix = Path(rel).suffix.lower()
+        if suffix in UI_SUFFIXES:
+            files.append(rel)
+    return files
+
+
+def run_visual_quality(project_root: Path) -> RunnerResult:
+    script_path = SCRIPT_DIR.parent.parent / "codex-visual-quality-gate" / "scripts" / "visual_quality_gate.py"
+    ui_files = changed_ui_files(project_root)
+    if not script_path.exists():
+        payload = {"status": "skip", "overall": "skip", "summary": "Visual quality script is not installed."}
+        return make_runner_result(payload)
+    if not ui_files:
+        payload = {
+            "status": "skip",
+            "overall": "skip",
+            "summary": "Visual quality skipped because no changed UI files were detected.",
+            "files": [],
+        }
+        return make_runner_result(payload)
+    command = [
+        sys.executable,
+        str(script_path),
+        "--project-root",
+        str(project_root),
+        "--files",
+        ",".join(ui_files),
+        "--format",
+        "json",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=90,
+        )
+        raw = json.loads(completed.stdout) if completed.stdout.strip() else {}
+    except (json.JSONDecodeError, OSError, subprocess.TimeoutExpired) as exc:
+        payload = {"status": "warn", "overall": "warn", "summary": "Visual quality advisory unavailable."}
+        return make_runner_result(payload, warnings=[f"Visual quality unavailable: {exc}"])
+
+    blocking_count = int(raw.get("blocking_count") or 0)
+    status = "fail" if blocking_count else str(raw.get("status", "pass"))
+    if status not in {"pass", "fail", "warn", "skip"}:
+        status = "warn"
+    payload = {
+        "status": status,
+        "overall": status,
+        "blocking_count": blocking_count,
+        "files": ui_files,
+        "optional_detector": (raw.get("optional_detector") or {}).get("status"),
+        "summary": "Mechanical visual evidence completed.",
+    }
+    blocking = [f"{blocking_count} determinate visual mechanical issue(s)."] if blocking_count else []
+    warnings: List[str] = []
+    if (raw.get("independent_review") or {}).get("status") == "DEGRADED":
+        warnings.append("Visual review DEGRADED: " + str((raw.get("independent_review") or {}).get("reason")))
+    return make_runner_result(payload, blocking_issues=blocking, warnings=warnings)
+
+
 def run_runtime_hook(project_root: Path) -> RunnerResult:
     script_path = SCRIPT_DIR.parent.parent / "codex-runtime-hook" / "scripts" / "runtime_hook.py"
     if not script_path.exists():
@@ -545,6 +642,7 @@ CHECK_RUNNERS: Dict[str, Runner] = {
     "knowledge": run_knowledge,
     "bundle": run_bundle,
     "suggestions": run_suggestions,
+    "visual_quality": run_visual_quality,
 }
 
 
@@ -587,6 +685,8 @@ def describe_check(name: str, payload: Dict[str, Any]) -> str:
         return f"Bundle: {status} ({payload.get('warnings', 0)} warnings)"
     if name == "suggestions":
         return f"Suggestions: {status} ({payload.get('suggestions', 0)} suggestions)"
+    if name == "visual_quality":
+        return f"Visual quality: {status} ({payload.get('blocking_count', 0)} determinate mechanical)"
     return f"{name}: {status}"
 
 
@@ -649,7 +749,7 @@ def run_auto_gate(project_root: Path, mode: str) -> Tuple[Dict[str, Any], int]:
         result_blocking = [str(item) for item in result.get("blocking_issues", []) if str(item).strip()]
         result_warnings = [str(item) for item in result.get("warnings", []) if str(item).strip()]
 
-        if check_name in {"security", "pre_commit", "gate"}:
+        if check_name in {"security", "pre_commit", "gate", "visual_quality"}:
             blocking_issues.extend(result_blocking)
         else:
             warnings.extend(result_blocking)
