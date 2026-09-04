@@ -23,7 +23,7 @@
 | Antigravity templates | `../antigravity/` (native package candidate) |
 | GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 409/409 |
+| Pytest | 411/411 |
 | Smoke | 78/78 |
 
 ---

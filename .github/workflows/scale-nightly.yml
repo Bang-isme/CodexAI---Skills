@@ -42,6 +42,13 @@ jobs:
             --report-path scale-gate-report-large.json \
             --format json
 
+      - name: Scale gate summary
+        if: always()
+        run: |
+          python skills/codex-project-memory/scripts/write_scale_gate_summary.py \
+            --report-path scale-gate-report-large.json \
+            --title "Memory scale gate (large)"
+
       - name: Upload scale gate report
         uses: actions/upload-artifact@v4
         if: always()

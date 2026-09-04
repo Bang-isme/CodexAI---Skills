@@ -15,7 +15,7 @@
 
 ### Infrastructure
 - Bumped version: `15.2.0` -> `16.0.0`
-- Verified suite target: `409` unit tests + `78` smoke checks.
+- Verified suite target: `411` unit tests + `78` smoke checks.
 
 ### Changed
 - Major version `15.2.0` -> `16.0.0` for routing, agent model, quality gates, and packaging.
@@ -29,6 +29,8 @@
 ### Fixed
 - Dependabot: scope pip updates to `requirements-dev.txt` only; remove `pdf2image` from `skills/requirements.txt` to stop failing optional-dep PRs; group pytest/PyYAML bumps; ignore pytest majors and GitHub Actions major bumps so they are not reopened as extra PRs.
 - `run_scale_gate.py` no longer calls `shutil.rmtree` on arbitrary `--project-root` paths; only `.scale-gate-*` / `codex-scale-gate-*` dirs or trees marked with `.scale-gate-fixture`. Default fixture root uses `tempfile.mkdtemp`.
+- Python 3.11 contract CI: rewrite f-strings that 3.11 cannot parse, strip a UTF-8 BOM from `build_knowledge_index.py`, and keep capability audit classification aligned so `skill_capability_audit` no longer fails only on 3.11.
+- Large scale nightly: `build_knowledge_graph.py` accepts `--format json` so the large-tier gate no longer dies with argparse exit 2.
 
 ### Also in this major
 - CI/CD maturity: pip cache on all Python jobs, `requirements-dev.txt`, Python 3.12–3.13 OS matrix, Python 3.11 gate on `main`, trust harness smoke, advisory pip-audit, deploy-mode `auto_gate` on `main`.

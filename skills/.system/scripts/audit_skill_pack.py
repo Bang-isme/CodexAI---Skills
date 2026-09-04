@@ -119,10 +119,17 @@ def target_names(node: ast.AST) -> list[str]:
     return []
 
 
+def is_sensitive_identifier(value: str) -> bool:
+    lowered = value.lower()
+    if lowered in {"api_key", "apikey", "access_token", "token", "secret", "password", "private_key"}:
+        return True
+    return any(marker in lowered for marker in ("api_key", "apikey", "access_token", "secret", "password", "private_key"))
+
+
 def classify_script_text(text: str) -> list[str]:
     """Return risk classes backed by executable Python syntax when available."""
     try:
-        tree = ast.parse(text)
+        tree = ast.parse(text.lstrip("\ufeff"))
     except SyntaxError:
         source = text.lower()
         classes = set()
@@ -139,7 +146,6 @@ def classify_script_text(text: str) -> list[str]:
         return sorted(classes or {"read_only"})
 
     classes: set[str] = set()
-    sensitive_names = {"api_key", "apikey", "access_token", "token", "secret", "password", "private_key"}
     write_calls = {"write", "write_text", "write_bytes", "writelines", "mkdir", "replace", "rename", "unlink", "rmtree", "copy", "copy2", "copytree", "move", "dump"}
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -155,7 +161,7 @@ def classify_script_text(text: str) -> list[str]:
             value = node.value
             if value is not None and literal_strings(value):
                 names = {name.lower() for target in targets for name in target_names(target)}
-                if names & sensitive_names:
+                if any(is_sensitive_identifier(name) for name in names):
                     classes.add("secret_sensitive")
         if not isinstance(node, ast.Call):
             continue
@@ -172,7 +178,9 @@ def classify_script_text(text: str) -> list[str]:
             classes.add("project_write")
         if call == "open" and len(node.args) >= 2 and any(mode[:1] in {"w", "a", "x"} for mode in literal_strings(node.args[1])):
             classes.add("project_write")
-        if call in {"os.getenv", "os.environ.get"} and any(value.lower() in sensitive_names for argument in node.args for value in literal_strings(argument)):
+        if call in {"os.getenv", "os.environ.get"} and any(
+            is_sensitive_identifier(value) for argument in node.args for value in literal_strings(argument)
+        ):
             classes.add("secret_sensitive")
         if call.endswith((".render", ".render_template")):
             classes.add("code_generation")

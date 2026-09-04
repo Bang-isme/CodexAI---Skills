@@ -216,9 +216,9 @@
       "triggers": ["quality gate", "CI validation", "accessibility", "security scan"],
       "resources": {"scripts": ["scripts"], "references": ["references"], "assets": [], "agents": ["agents"], "templates": [], "starters": []},
       "output_artifacts": ["quality report", "security findings", "impact report"],
-      "tool_classes": ["network", "project_write", "read_only", "shell_execution"],
+      "tool_classes": ["network", "project_write", "read_only", "shell_execution", "secret_sensitive"],
       "risk_tier": "enforced",
-      "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "External/browser checks are opt-in; local writes use explicit output paths and all logs redact secret-like values."},
+      "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "External/browser checks are opt-in; local writes use explicit output paths; LLM judge reads CODEX_JUDGE_API_KEY/OPENAI_API_KEY and all logs redact secret-like values."},
       "verification": {"owner": "tests/test_auto_gate.py", "command": "python -m pytest tests/test_auto_gate.py"},
       "handoff": "Return blocking failures, advisory findings, selected tests, and artifact paths."
     },
@@ -229,9 +229,9 @@
       "triggers": ["knowledge graph", "codebase index", "project memory", "interactive dashboard"],
       "resources": {"scripts": ["scripts"], "references": ["references"], "assets": [], "agents": ["agents"], "templates": [], "starters": []},
       "output_artifacts": [".codex/knowledge/index.json", ".codex/knowledge/knowledge-graph.json", ".codex/knowledge/dashboard.html", "compact context"],
-      "tool_classes": ["code_generation", "project_write", "read_only", "shell_execution"],
+      "tool_classes": ["code_generation", "project_write", "read_only", "shell_execution", "network"],
       "risk_tier": "enforced",
-      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Artifacts are self-contained and offline; traversal does not escape project root and redaction runs before persistence."},
+      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Artifacts are self-contained and offline; traversal does not escape project root and redaction runs before persistence. Optional localhost dashboard HTTP in build_knowledge_index.py is not an outbound client."},
       "verification": {"owner": "tests/test_memory_at_scale.py", "command": "python -m pytest tests/test_memory_at_scale.py"},
       "handoff": "Return compact context for AI plus dashboard and provenance paths for human review."
     },

@@ -155,6 +155,42 @@ def test_scale_gate_allows_named_fixture_root(tmp_path: Path) -> None:
     assert not (fixture / "old.txt").exists()
 
 
+def test_scale_gate_large_tier_builds_graph(tmp_path: Path) -> None:
+    fixture = tmp_path / ".scale-gate-large-tiny"
+    report_path = tmp_path / "scale-gate-report-large.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCALE_GATE),
+            "--project-root",
+            str(fixture),
+            "--tier",
+            "large",
+            "--file-count",
+            "12",
+            "--max-files",
+            "50",
+            "--budget-seconds",
+            "120",
+            "--report-path",
+            str(report_path),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=180,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["graph_status"] == "generated"
+    assert report["incremental_reused"] > 0
+
+
 def test_run_scale_gate_small_fixture(tmp_path: Path) -> None:
     if os.environ.get("RUN_SCALE_GATE") != "1":
         import pytest

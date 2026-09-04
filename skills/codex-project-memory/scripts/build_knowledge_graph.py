@@ -154,6 +154,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-tests", action="store_true", help="Include test files in graph")
     parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
     parser.add_argument("--print-full-json", action="store_true", help="Emit full graph JSON to stdout instead of summary envelope")
+    parser.add_argument("--format", choices=("json", "text"), default="json", help="Stdout envelope format")
     load_traversal().add_traversal_args(parser)
     return parser.parse_args()
 
@@ -1475,17 +1476,22 @@ def main() -> int:
         return 1
 
     payload = {"status": "generated", "path": output_path.as_posix(), **graph}
-    if args.print_full_json:
-        emit(payload)
-    else:
-        emit({
+    envelope = (
+        payload
+        if args.print_full_json
+        else {
             "status": "generated",
             "path": output_path.as_posix(),
             "schema_version": graph.get("schema_version"),
             "stats": graph.get("stats"),
             "warnings_count": len(graph.get("warnings", [])),
             "redaction": graph.get("redaction"),
-        })
+        }
+    )
+    if args.format == "text":
+        print(f"status={envelope.get('status')} path={envelope.get('path', '')}")
+    else:
+        emit(envelope)
     return 0
 
 

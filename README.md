@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-16.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-409%2F409%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-78%2F78%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-16.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-411%2F411%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-78%2F78%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -33,7 +33,7 @@ The pack is designed for 3 outcomes:
 | Artifact Templates | 9 |
 | Agent Personas | 12 |
 | Workflow Aliases | 8 |
-| Verification | 409 unit + 78 smoke = 487 tests |
+| Verification | 411 unit + 78 smoke = 489 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 | Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |

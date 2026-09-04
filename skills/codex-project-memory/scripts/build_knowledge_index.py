@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Build a compact project knowledge index from docs, commits, and config files."""
 from __future__ import annotations
 

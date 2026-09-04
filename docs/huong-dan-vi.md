@@ -22,7 +22,7 @@ Luồng chuẩn của pack:
 | Artifact templates | 9 |
 | Agent personas | 12 |
 | Workflow aliases | 8 |
-| Kiểm thử | 409 unit + 78 smoke = 487 bài test |
+| Kiểm thử | 411 unit + 78 smoke = 489 bài test |
 
 ## 2. Điểm mạnh chính
 

@@ -181,14 +181,16 @@ def run_gate(
 
     graph_status = "skipped"
     if require_graph:
-        graph_code, graph_payload, _ = run_script(
+        graph_code, graph_payload, graph_stderr = run_script(
             "build_knowledge_graph.py",
             ["--project-root", str(project_root), "--format", "json"],
             timeout=max(budget_seconds // 2, 120),
         )
         graph_status = str(graph_payload.get("status", "error"))
         if graph_code != 0 or graph_status != "generated":
-            failures.append(f"build_knowledge_graph failed: status={graph_status} code={graph_code}")
+            extra = graph_payload.get("stderr") or graph_stderr
+            suffix = f" stderr={str(extra)[-400:]}" if extra else ""
+            failures.append(f"build_knowledge_graph failed: status={graph_status} code={graph_code}{suffix}")
 
     status_code, status_payload, _ = run_script(
         "memory_status.py",

@@ -247,7 +247,8 @@ def load_corpus_cases(corpus_dir: Path) -> List[Dict[str, object]]:
 
 def needle_matches(text: str, needle: str) -> bool:
     if re.fullmatch(r"[A-Za-z0-9 _-]+", needle):
-        pattern = re.compile(rf"\b{re.escape(needle).replace(r'\ ', r'\s+')}\b", re.IGNORECASE)
+        escaped = re.escape(needle).replace(r"\ ", r"\s+")
+        pattern = re.compile(rf"\b{escaped}\b", re.IGNORECASE)
         return bool(pattern.search(text))
     return needle.lower() in text.lower()
 

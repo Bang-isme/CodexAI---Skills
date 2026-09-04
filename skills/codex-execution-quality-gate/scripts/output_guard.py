@@ -128,15 +128,13 @@ INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
 FILE_PATTERN = re.compile(r"\b(?:[A-Za-z]:[\\/][^\s`]+|[\w./-]+\.(?:py|js|jsx|ts|tsx|md|json|yaml|yml|toml|ini))\b")
 NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
 PATH_SUFFIXES = {".py", ".js", ".jsx", ".ts", ".tsx", ".md", ".json", ".yaml", ".yml", ".toml", ".ini"}
+def _generic_phrase_pattern(phrase: str) -> re.Pattern[str]:
+    escaped = re.escape(phrase).replace(r"\ ", r"\s+")
+    return re.compile(rf"(?<!\w){escaped}(?!\w)", re.IGNORECASE)
+
+
 GENERIC_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = tuple(
-    (
-        phrase,
-        re.compile(
-            rf"(?<!\w){re.escape(phrase).replace(r'\ ', r'\s+')}(?!\w)",
-            re.IGNORECASE,
-        ),
-    )
-    for phrase in sorted(GENERIC_PHRASES, key=len, reverse=True)
+    (phrase, _generic_phrase_pattern(phrase)) for phrase in sorted(GENERIC_PHRASES, key=len, reverse=True)
 )
 JUDGE_PROMPT = """You are an output quality judge. Evaluate the following deliverable on a scale of 0-100.
 Criteria:

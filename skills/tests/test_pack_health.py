@@ -133,6 +133,21 @@ def test_pack_health_current_source_is_operationally_clean() -> None:
     assert capability_matrix["status"] == "pass"
 
 
+def test_runtime_scripts_parse_on_supported_python() -> None:
+    import ast
+
+    failures: list[str] = []
+    for path in SKILLS_ROOT.rglob("*.py"):
+        if "__pycache__" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        try:
+            ast.parse(text)
+        except SyntaxError as exc:
+            failures.append(f"{path.relative_to(SKILLS_ROOT).as_posix()}:{exc.lineno}: {exc.msg}")
+    assert not failures, "Python syntax must parse on the CI minimum (3.11+):\n" + "\n".join(failures)
+
+
 def test_pack_health_reports_missing_manifest_skill(tmp_path: Path) -> None:
     write(tmp_path / "VERSION", "1.0.0\n")
     write(
