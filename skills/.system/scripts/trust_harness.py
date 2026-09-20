@@ -87,7 +87,7 @@ def write_generic_manifest(project_root: Path, skills_target: Path, apply: bool)
             "trust_harness": "python .codexai/skills/.system/scripts/trust_harness.py --project-root . --setup generic --format json",
             "quality_gate": "python .codexai/skills/codex-execution-quality-gate/scripts/auto_gate.py --project-root . --mode quick",
         },
-        "adapters": ["generic-cli-ide", "codex-native", "claude-code"],
+        "adapters": ["generic-cli-ide", "codex-native", "claude-code", "antigravity"],
         "security_policy": {
             "project_docs_untrusted": True,
             "symlinks_skipped_during_install_and_release": True,
@@ -107,7 +107,7 @@ def write_pre_prompt_hook(project_root: Path, skills_target: Path, apply: bool) 
         "schema_version": "1.0",
         "hook": "pre_prompt",
         "description": "Route each user prompt before agent execution and return workflow, agent, skills, confidence, and warnings.",
-        "command": ["python", str(router_script), "--prompt", "{{prompt}}", "--format", "json"],
+        "command": [sys.executable, str(router_script), "--prompt", "{{prompt}}", "--format", "json"],
         "inputs": {
             "prompt": "Raw user prompt text from the host IDE or CLI.",
             "project_root": "Optional current project root supplied by the host.",
@@ -184,6 +184,19 @@ def setup_antigravity(project_root: Path, skills_root: Path, apply: bool) -> dic
     return payload
 
 
+def adapter_setup_ok(payload: dict[str, Any]) -> bool:
+    if int(payload.get("exit_code", 0) or 0) != 0:
+        return False
+    status = str(payload.get("status") or "").lower()
+    if status in {"error", "fail"}:
+        return False
+    for key in ("install", "sync"):
+        nested = payload.get(key)
+        if isinstance(nested, dict) and str(nested.get("status") or "").lower() in {"error", "fail"}:
+            return False
+    return True
+
+
 def run_setup(setup: str, project_root: Path, skills_root: Path, apply: bool, checks: list[dict[str, Any]]) -> None:
     if setup == "none":
         add_check(checks, "setup", "pass", "setup skipped")
@@ -197,8 +210,14 @@ def run_setup(setup: str, project_root: Path, skills_root: Path, apply: bool, ch
         payloads.append(setup_claude(project_root, skills_root, apply))
     if setup in {"antigravity", "all"}:
         payloads.append(setup_antigravity(project_root, skills_root, apply))
-    status = "pass" if payloads else "fail"
-    add_check(checks, f"{setup}_adapter", status, f"{len(payloads)} adapter setup payload(s)", payloads=payloads)
+    ok = bool(payloads) and all(adapter_setup_ok(item) for item in payloads)
+    add_check(
+        checks,
+        f"{setup}_adapter",
+        "pass" if ok else "fail",
+        f"{len(payloads)} adapter setup payload(s)",
+        payloads=payloads,
+    )
 
 
 def run_prompt_corpus(checks: list[dict[str, Any]], corpus_path: Path | None = None) -> None:

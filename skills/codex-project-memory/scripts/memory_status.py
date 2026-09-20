@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Treat missing or invalid standalone .codex/knowledge-graph.json as failures instead of warnings",
     )
-    parser.add_argument("--format", choices=("json",), default="json")
+    parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args()
 
 
@@ -215,6 +215,21 @@ def build_status(
     }
 
 
+def render_text(payload: dict[str, Any]) -> str:
+    lines = [
+        f"status={payload.get('status')}",
+        f"project_root={payload.get('project_root')}",
+        f"knowledge_dir={payload.get('knowledge_dir')}",
+        f"warnings={len(payload.get('warnings') or [])}",
+        f"failures={len(payload.get('failures') or [])}",
+    ]
+    for warning in payload.get("warnings") or []:
+        lines.append(f"warning: {warning}")
+    for failure in payload.get("failures") or []:
+        lines.append(f"failure: {failure}")
+    return "\n".join(lines)
+
+
 def main() -> int:
     args = parse_args()
     project_root = Path(args.project_root).expanduser().resolve()
@@ -231,7 +246,10 @@ def main() -> int:
         require_standalone_graph=args.require_standalone_graph,
         strict_warnings=args.strict,
     )
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    if args.format == "text":
+        print(render_text(payload))
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     if args.strict and payload["status"] == "warn":
         return 1
     return 0 if payload["status"] in {"pass", "warn"} else 1

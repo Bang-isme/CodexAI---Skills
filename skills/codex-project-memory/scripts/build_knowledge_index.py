@@ -578,6 +578,7 @@ def write_knowledge_artifacts(
             output_path=output_dir / "codebase-index.json",
             incremental=incremental,
             rebuild=rebuild,
+            traversal_config=traversal_config,
         )
 
         progress.update("dependency_graph", current_file="knowledge-graph.json", files_done=max(1, min(files_total, files_total // 2)) if files_total else 0, files_total=files_total)
@@ -587,6 +588,7 @@ def write_knowledge_artifacts(
             include_tests=True,
             traversal_config=traversal_config,
             redaction_enabled=redaction_enabled,
+            codebase_index=codebase_index,
         )
         graph["codebase_index"] = {
             key: codebase_index.get(key)

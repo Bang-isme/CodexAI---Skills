@@ -1339,6 +1339,7 @@ def build_graph(
     include_tests: bool,
     traversal_config=None,
     redaction_enabled: bool = True,
+    codebase_index: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     traversal_result = collect_code_file_entries(project_root, include_tests=include_tests, traversal_config=traversal_config)
     files = [entry.path for entry in traversal_result.files]
@@ -1349,17 +1350,19 @@ def build_graph(
     module_boundaries_raw, module_cycles = build_module_boundaries(imports_map)
     routes = build_api_route_map(project_root, files, imports_map, raw_content)
     models = build_data_model_map(project_root, files, raw_content)
-    codebase_index: Dict[str, object] = {}
-    try:
-        indexer = load_codebase_indexer()
-        codebase_index = indexer.build_codebase_index(
-            project_root,
-            output_path=project_root / ".codex" / "knowledge" / "codebase-index.json",
-            incremental=True,
-            rebuild=False,
-        )
-    except Exception as exc:
-        warnings.append(f"Codebase index unavailable: {exc}")
+    if codebase_index is None:
+        codebase_index = {}
+        try:
+            indexer = load_codebase_indexer()
+            codebase_index = indexer.build_codebase_index(
+                project_root,
+                output_path=project_root / ".codex" / "knowledge" / "codebase-index.json",
+                incremental=True,
+                rebuild=False,
+                traversal_config=traversal_config,
+            )
+        except Exception as exc:
+            warnings.append(f"Codebase index unavailable: {exc}")
 
     edges = sum(len(values) for values in imports_map.values())
     module_boundaries = to_module_boundary_output(module_boundaries_raw)
@@ -1376,8 +1379,13 @@ def build_graph(
     if isinstance(codebase_index.get("files"), dict):
         codebase_files = {str(path) for path in codebase_index.get("files", {}).keys()}  # type: ignore[union-attr]
     graph_files = set(code_index.keys())
-    only_in_graph = sorted(graph_files - codebase_files)
-    only_in_codebase = sorted(codebase_files - graph_files)
+    comparable_index_files = {
+        path
+        for path in codebase_files
+        if Path(path).suffix.lower() in LANGUAGE_REGISTRY and (include_tests or not is_test_file(path))
+    }
+    only_in_graph = sorted(graph_files - comparable_index_files)
+    only_in_codebase = sorted(comparable_index_files - graph_files)
     if codebase_files and (only_in_graph or only_in_codebase):
         warnings.append(
             "Graph/codebase index file sets differ; "
@@ -1409,9 +1417,9 @@ def build_graph(
         },
         "warnings": normalize_warning_messages(warnings),
         "redaction": {
-            "enabled": False,
-            "strategy": "none",
-            "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names only; source bodies are not persisted.",
+            "enabled": bool(redaction_enabled),
+            "strategy": "shared-redaction" if redaction_enabled else "none",
+            "description": "Knowledge graph stores paths, symbols, imports, routes, and model field names; secret-like values are redacted with the shared redaction module.",
         },
         "coverage": traversal_result.coverage,
         "coherence": coherence,

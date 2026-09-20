@@ -246,7 +246,7 @@
         "properties": {
           "project_root": {"type": "string"},
           "skills_root": {"type": "string"},
-          "setup": {"type": "string", "enum": ["none", "generic", "codex", "claude", "all"], "default": "none"},
+          "setup": {"type": "string", "enum": ["none", "generic", "codex", "claude", "antigravity", "all"], "default": "none"},
           "apply": {"type": "boolean", "default": false},
           "skip_tests": {"type": "boolean", "default": false},
           "evidence": {"type": "string"},
@@ -423,6 +423,7 @@
           "project_root": {"type": "string"},
           "skills_root": {"type": "string"},
           "apply": {"type": "boolean", "default": false},
+          "no_write": {"type": "boolean", "default": true},
           "target": {"type": "string", "enum": ["none", "s3", "ssh"], "default": "none"},
           "dry_run": {"type": "boolean", "default": false},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}

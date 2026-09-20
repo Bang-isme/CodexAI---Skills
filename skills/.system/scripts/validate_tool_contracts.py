@@ -7,6 +7,7 @@ tool executor or user-facing CLI product.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -219,27 +220,194 @@ def validate_script_paths(skills_root: Path, tools: list[dict[str, Any]], checks
     )
 
 
-def validate_schema_file(skills_root: Path, checks: list[dict[str, Any]]) -> None:
+def json_instance_type(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, dict):
+        return "object"
+    return type(value).__name__
+
+
+def validate_against_schema(instance: Any, schema: dict[str, Any], path: str = "$") -> list[str]:
+    """Minimal JSON Schema checker covering the plugin-tools schema dialect."""
+    errors: list[str] = []
+    expected_type = schema.get("type")
+    if expected_type:
+        types = expected_type if isinstance(expected_type, list) else [expected_type]
+        actual = json_instance_type(instance)
+        if actual not in types and not (actual == "integer" and "number" in types):
+            errors.append(f"{path}: expected {expected_type}, got {actual}")
+            return errors
+    if "const" in schema and instance != schema["const"]:
+        errors.append(f"{path}: expected const {schema['const']!r}")
+    if "enum" in schema and instance not in schema["enum"]:
+        errors.append(f"{path}: {instance!r} is not in enum")
+    if isinstance(instance, str):
+        pattern = schema.get("pattern")
+        if pattern and re.search(pattern, instance) is None:
+            errors.append(f"{path}: does not match pattern {pattern}")
+        min_length = schema.get("minLength")
+        if min_length is not None and len(instance) < int(min_length):
+            errors.append(f"{path}: shorter than minLength {min_length}")
+    if isinstance(instance, list):
+        min_items = schema.get("minItems")
+        if min_items is not None and len(instance) < int(min_items):
+            errors.append(f"{path}: fewer than minItems {min_items}")
+        item_schema = schema.get("items")
+        if isinstance(item_schema, dict):
+            for index, item in enumerate(instance):
+                errors.extend(validate_against_schema(item, item_schema, f"{path}[{index}]"))
+    if isinstance(instance, dict):
+        for key in schema.get("required") or []:
+            if key not in instance:
+                errors.append(f"{path}: missing required {key}")
+        properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+        additional = schema.get("additionalProperties", True)
+        for key, value in instance.items():
+            if key in properties:
+                errors.extend(validate_against_schema(value, properties[key], f"{path}.{key}"))
+            elif additional is False:
+                errors.append(f"{path}: additional property {key!r} is not allowed")
+            elif isinstance(additional, dict):
+                errors.extend(validate_against_schema(value, additional, f"{path}.{key}"))
+    return errors
+
+
+def ast_literal(node: ast.AST | None) -> Any:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.List):
+        return [ast_literal(item) for item in node.elts]
+    if isinstance(node, ast.Tuple):
+        return tuple(ast_literal(item) for item in node.elts)
+    if isinstance(node, ast.Set):
+        return {ast_literal(item) for item in node.elts}
+    return None
+
+
+def extract_argparse_specs(script_path: Path) -> dict[str, dict[str, Any]]:
+    try:
+        tree = ast.parse(script_path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return {}
+    specs: dict[str, dict[str, Any]] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not (isinstance(func, ast.Attribute) and func.attr == "add_argument"):
+            continue
+        flags = [
+            arg.value
+            for arg in node.args
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+        ]
+        names = [flag[2:].replace("-", "_") for flag in flags if flag.startswith("--")]
+        if not names:
+            continue
+        info: dict[str, Any] = {"required": False, "choices": None}
+        for keyword in node.keywords:
+            if keyword.arg == "required" and isinstance(keyword.value, ast.Constant):
+                info["required"] = bool(keyword.value.value)
+            if keyword.arg == "choices":
+                info["choices"] = ast_literal(keyword.value)
+        specs[names[0]] = info
+    return specs
+
+
+def validate_schema_file(skills_root: Path, checks: list[dict[str, Any]]) -> dict[str, Any] | None:
     schema_path = skills_root / ".system" / "references" / "plugin-tools.schema.json"
     registry_path = skills_root / ".system" / "references" / "plugin-tools.json"
     failures: list[str] = []
+    schema: dict[str, Any] | None = None
+    registry: dict[str, Any] | None = None
     if not schema_path.exists():
         failures.append("plugin-tools.schema.json missing")
     else:
         try:
-            schema = read_json(schema_path)
-            if schema.get("schema_version") != SCHEMA_VERSION:
+            loaded = read_json(schema_path)
+            if not isinstance(loaded, dict) or loaded.get("schema_version") != SCHEMA_VERSION:
                 failures.append("schema file schema_version mismatch")
+            else:
+                schema = loaded
         except Exception as exc:
             failures.append(f"schema parse error: {exc}")
     if not registry_path.exists():
         failures.append("plugin-tools.json missing")
+    else:
+        try:
+            loaded_registry = read_json(registry_path)
+            if isinstance(loaded_registry, dict):
+                registry = loaded_registry
+        except Exception as exc:
+            failures.append(f"registry parse error: {exc}")
+    if schema and registry:
+        schema_errors = validate_against_schema(registry, schema)
+        failures.extend(schema_errors[:20])
     add(
         checks,
         "schema_file",
         "pass" if not failures else "fail",
-        "plugin tool schema present" if not failures else "; ".join(failures),
+        "plugin tool schema present" if not failures else "; ".join(failures[:5]),
         failures=failures,
+    )
+    return registry
+
+
+def validate_cli_contracts(skills_root: Path, tools: list[dict[str, Any]], checks: list[dict[str, Any]]) -> None:
+    failures: list[str] = []
+    compared = 0
+    for tool in tools:
+        name = str(tool.get("name", "<unknown>"))
+        script = tool.get("script")
+        if not isinstance(script, str) or not script:
+            continue
+        try:
+            path = resolve_script_path(skills_root, script)
+        except ValueError:
+            continue
+        if not path.exists():
+            continue
+        specs = extract_argparse_specs(path)
+        args_schema = tool.get("args_schema") if isinstance(tool.get("args_schema"), dict) else {}
+        properties = args_schema.get("properties") if isinstance(args_schema.get("properties"), dict) else {}
+        required = args_schema.get("required") if isinstance(args_schema.get("required"), list) else []
+        for field, spec in specs.items():
+            compared += 1
+            prop = properties.get(field) if isinstance(properties.get(field), dict) else {}
+            cli_choices = spec.get("choices")
+            if isinstance(cli_choices, (list, tuple, set)):
+                schema_enum = prop.get("enum") if isinstance(prop, dict) else None
+                if not isinstance(schema_enum, list):
+                    failures.append(f"{name}: --{field.replace('_', '-')} has CLI choices but args_schema.{field} has no enum")
+                    continue
+                missing = sorted(str(item) for item in cli_choices if item not in schema_enum)
+                extra = sorted(str(item) for item in schema_enum if item not in cli_choices)
+                if missing or extra:
+                    failures.append(
+                        f"{name}: --{field.replace('_', '-')} choices drift (cli_only={missing} schema_only={extra})"
+                    )
+            if spec.get("required") and field not in required:
+                failures.append(f"{name}: --{field.replace('_', '-')} is required in CLI but missing from args_schema.required")
+    add(
+        checks,
+        "cli_contract",
+        "pass" if not failures else "fail",
+        f"{compared} CLI argument(s) compared" if not failures else failures[0],
+        failures=failures[:20],
+        total=compared,
     )
 
 
@@ -426,6 +594,7 @@ def validate(
     tools = validate_registry_shape(registry, checks)
     if tools:
         validate_script_paths(root, tools, checks)
+        validate_cli_contracts(root, tools, checks)
     if run_smokes and tools:
         run_smoke(root, repo_root, tools, checks, include_memory_fixture=include_memory_fixture)
     return summarize(checks, strict)

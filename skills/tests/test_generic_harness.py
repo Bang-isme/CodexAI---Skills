@@ -203,5 +203,25 @@ def test_trust_harness_generic_setup_writes_adapter_and_evidence(tmp_path: Path)
     hook = json.loads((project / ".codexai" / "hooks" / "pre_prompt.json").read_text(encoding="utf-8"))
     assert hook["schema_version"] == "1.0"
     assert hook["hook"] == "pre_prompt"
+    assert hook["command"][0] == sys.executable
     assert hook["command"][1].endswith("prompt_router.py")
     assert any(check["name"] == "generic_adapter" and check["status"] == "pass" for check in saved["checks"])
+
+
+def test_trust_harness_adapter_failure_fails_harness(tmp_path: Path) -> None:
+    harness = load_script_module("trust_harness_adapter_fail", ".system/scripts/trust_harness.py")
+    checks: list[dict] = []
+    harness.run_setup = harness.run_setup  # keep bound
+    original_generic = harness.setup_generic
+
+    def failing_generic(project_root, skills_root, apply):
+        payload = original_generic(project_root, skills_root, apply)
+        payload["status"] = "fail"
+        payload["exit_code"] = 1
+        return payload
+
+    harness.setup_generic = failing_generic
+    harness.run_setup("generic", tmp_path, SKILLS_ROOT, False, checks)
+    assert checks
+    assert checks[0]["name"] == "generic_adapter"
+    assert checks[0]["status"] == "fail"

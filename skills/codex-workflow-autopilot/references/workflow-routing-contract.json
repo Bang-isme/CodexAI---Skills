@@ -18,8 +18,16 @@
     "docs",
     "refactor",
     "deploy",
-    "handoff"
+    "handoff",
+    "plan",
+    "create",
+    "prototype"
   ],
+  "workflow_aliases": {
+    "build": "create",
+    "fix": "debug",
+    "docs": "handoff"
+  },
   "overlays": {
     "scrum": {
       "signals": [

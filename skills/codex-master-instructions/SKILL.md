@@ -74,6 +74,8 @@ Workflow-rich aliases such as `$plan`, `$debug`, `$create`, `$prototype`, `$revi
 | `$check` | `auto_gate.py --mode quick` | codex-execution-quality-gate |
 | `$check-full` | `auto_gate.py --mode full` | codex-execution-quality-gate |
 | `$check-deploy` | `auto_gate.py --mode deploy` | codex-execution-quality-gate |
+| `$today` | `codex-project-pulse` daily brief | codex-project-pulse |
+| `$pulse` | `codex-project-pulse` daily brief | codex-project-pulse |
 | `$install-hooks` | `install_hooks.py` | codex-execution-quality-gate |
 | `$install-ci` | `install_ci_gate.py` | codex-execution-quality-gate |
 | `$commit` | `auto_commit.py` | codex-git-autopilot |
@@ -124,10 +126,13 @@ Workflow aliases are shortcuts. They run alongside the legacy triggers and do no
 | `$plan` | `.workflows/plan.md` | `$codex-plan-writer` + BMAD Phase 1-2 |
 | `$debug` | `.workflows/debug.md` | `$codex-systematic-debugging` + 4-phase root cause |
 | `$create` | `.workflows/create.md` | `workflow-create.md` + TDD |
+| `$build` | `.workflows/build.md` | alias of `$create` |
 | `$prototype` | `.workflows/prototype.md` | `$spec` + `$plan` + role docs + full gate |
 | `$review` | `.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `.workflows/handoff.md` | `workflow-handoff.md` + session summary |
+| `$fix` | `.workflows/fix.md` | alias of `$debug` |
+| `$docs` | `.workflows/docs.md` | alias of `$handoff` for documentation |
 
 Rules:
 

@@ -50,6 +50,7 @@ DEFAULT_ALLOWED_TOP_LEVEL = {
     ".gitignore",
     "LICENSE",
     "README.md",
+    "docs",
 }
 
 

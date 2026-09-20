@@ -102,6 +102,13 @@ class TraversalWarning:
 
 
 @dataclass(frozen=True)
+class ListedFile:
+    path: Path
+    rel_path: str
+    size_bytes: int
+
+
+@dataclass(frozen=True)
 class TraversedFile:
     path: Path
     rel_path: str
@@ -121,6 +128,14 @@ class TraversalConfig:
     max_total_bytes: int = 20 * 1024 * 1024
     follow_symlinks: bool = False
     hard_skip_dirs: set[str] = field(default_factory=lambda: set(HARD_CODED_SKIP_DIRS))
+
+
+@dataclass
+class ListingResult:
+    files: list[ListedFile]
+    warnings: list[dict[str, str]]
+    coverage: dict[str, object]
+    skipped_reasons: dict[str, int]
 
 
 @dataclass
@@ -297,18 +312,18 @@ def sample_for_index(path: Path, max_bytes: int) -> tuple[str, int, bool]:
     return text, min(size, max_bytes), True
 
 
-def traverse_project(
+def list_project_files(
     project_root: Path,
     config: TraversalConfig | None = None,
     file_filter: Callable[[str, Path], bool] | None = None,
-) -> TraversalResult:
+) -> ListingResult:
+    """Discover files with shared ignore rules, then sort and cap. Does not read contents."""
     root = project_root.expanduser().resolve()
     cfg = config or TraversalConfig()
     ignore_patterns = load_ignore_patterns(root)
     warnings: list[dict[str, str]] = []
-    files: list[TraversedFile] = []
     skipped_reasons: dict[str, int] = {}
-    total_bytes = 0
+    candidates: list[ListedFile] = []
     candidate_files = 0
 
     def skip(reason: str, rel: str, warning_type: str = "skipped", severity: str = "info") -> None:
@@ -361,9 +376,6 @@ def traverse_project(
                 continue
             if file_filter and not file_filter(rel, path):
                 continue
-            if len(files) >= cfg.max_files:
-                skip("max-files limit", rel, "limit_exceeded", "warning")
-                continue
             try:
                 if not path.is_file():
                     continue
@@ -371,39 +383,93 @@ def traverse_project(
                 if is_binary_file(path):
                     skip("binary file", rel, "binary_skipped", "warning")
                     continue
-                if total_bytes >= cfg.max_total_bytes:
-                    skip("max-total-bytes limit", rel, "limit_exceeded", "warning")
-                    continue
-                remaining = max(cfg.max_total_bytes - total_bytes, 0)
-                per_file_budget = max(min(cfg.max_file_bytes, remaining), 0)
-                if per_file_budget <= 0:
-                    skip("max-total-bytes limit", rel, "limit_exceeded", "warning")
-                    continue
-                content, bytes_read, large = sample_for_index(path, per_file_budget)
             except OSError as exc:
                 skip(f"read error: {exc}", rel, "read_error", "warning")
                 continue
-            total_bytes += bytes_read
-            if large:
-                warnings.append(structured_warning("large_file_sampled", rel, f"sampled {bytes_read} of {size} bytes", "warning"))
-            files.append(
-                TraversedFile(
-                    path=path.resolve(),
-                    rel_path=rel,
-                    size_bytes=size,
-                    bytes_read=bytes_read,
-                    content=content,
-                    lines=content.splitlines(),
-                    large_file=large,
+            candidates.append(ListedFile(path=path.resolve(), rel_path=rel, size_bytes=size))
+
+    candidates.sort(key=lambda item: item.rel_path)
+    kept = candidates[: cfg.max_files]
+    for extra in candidates[cfg.max_files :]:
+        skip("max-files limit", extra.rel_path, "limit_exceeded", "warning")
+
+    warnings.sort(key=lambda item: (item["severity"], item["type"], item["path"], item["reason"]))
+    coverage = {
+        "files_scanned": len(kept),
+        "files_skipped": sum(skipped_reasons.values()),
+        "candidate_files": candidate_files,
+        "bytes_scanned": 0,
+        "skipped_reasons": dict(sorted(skipped_reasons.items())),
+        "warnings": len(warnings),
+        "limits": {
+            "max_files": cfg.max_files,
+            "max_file_bytes": cfg.max_file_bytes,
+            "max_total_bytes": cfg.max_total_bytes,
+            "follow_symlinks": cfg.follow_symlinks,
+        },
+    }
+    return ListingResult(files=kept, warnings=warnings, coverage=coverage, skipped_reasons=skipped_reasons)
+
+
+def traverse_project(
+    project_root: Path,
+    config: TraversalConfig | None = None,
+    file_filter: Callable[[str, Path], bool] | None = None,
+) -> TraversalResult:
+    cfg = config or TraversalConfig()
+    listing = list_project_files(project_root, cfg, file_filter=file_filter)
+    warnings = list(listing.warnings)
+    skipped_reasons = dict(listing.skipped_reasons)
+    files: list[TraversedFile] = []
+    total_bytes = 0
+
+    def skip(reason: str, rel: str, warning_type: str = "skipped", severity: str = "info") -> None:
+        skipped_reasons[reason] = skipped_reasons.get(reason, 0) + 1
+        if warning_type != "ignored":
+            warnings.append(structured_warning(warning_type, rel, reason, severity))
+
+    for entry in listing.files:
+        if total_bytes >= cfg.max_total_bytes:
+            skip("max-total-bytes limit", entry.rel_path, "limit_exceeded", "warning")
+            continue
+        remaining = max(cfg.max_total_bytes - total_bytes, 0)
+        per_file_budget = max(min(cfg.max_file_bytes, remaining), 0)
+        if per_file_budget <= 0:
+            skip("max-total-bytes limit", entry.rel_path, "limit_exceeded", "warning")
+            continue
+        try:
+            content, bytes_read, large = sample_for_index(entry.path, per_file_budget)
+        except OSError as exc:
+            skip(f"read error: {exc}", entry.rel_path, "read_error", "warning")
+            continue
+        total_bytes += bytes_read
+        if large:
+            warnings.append(
+                structured_warning(
+                    "large_file_sampled",
+                    entry.rel_path,
+                    f"sampled {bytes_read} of {entry.size_bytes} bytes",
+                    "warning",
                 )
             )
+        files.append(
+            TraversedFile(
+                path=entry.path,
+                rel_path=entry.rel_path,
+                size_bytes=entry.size_bytes,
+                bytes_read=bytes_read,
+                content=content,
+                lines=content.splitlines(),
+                large_file=large,
+            )
+        )
 
     files.sort(key=lambda item: item.rel_path)
     warnings.sort(key=lambda item: (item["severity"], item["type"], item["path"], item["reason"]))
     coverage = {
         "files_scanned": len(files),
         "files_skipped": sum(skipped_reasons.values()),
-        "candidate_files": candidate_files,
+        "candidate_files": listing.coverage.get("candidate_files", 0),
         "bytes_scanned": total_bytes,
         "skipped_reasons": dict(sorted(skipped_reasons.items())),
         "warnings": len(warnings),

@@ -6,6 +6,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", default="", help="Plugin repo root (default: parent of skills/)")
     parser.add_argument("--skills-root", default="", help="Skills root (default: skills/ under project root)")
     parser.add_argument("--apply", action="store_true", help="Build release ZIP (default: dry-run only)")
+    parser.add_argument("--no-write", action="store_true", help="Keep validators read-only (implied when --apply is omitted)")
     parser.add_argument("--target", choices=("none", "s3", "ssh"), default="none", help="Optional deploy target preview")
     parser.add_argument("--dry-run", action="store_true", help="For s3/ssh: print promotion commands only")
     parser.add_argument("--format", choices=("json", "text"), default="json")
@@ -57,6 +59,21 @@ def main() -> int:
     project_root = Path(args.project_root).expanduser().resolve() if args.project_root else PLUGIN_ROOT
     skills_root = Path(args.skills_root).expanduser().resolve() if args.skills_root else project_root / "skills"
     rel_skills = skills_root.relative_to(project_root).as_posix() if skills_root.is_relative_to(project_root) else str(skills_root)
+
+    write_allowed = bool(args.apply) and not args.no_write
+    audit_args = [
+        str(SCRIPT_DIR / "audit_skill_pack.py"),
+        "--skills-root",
+        rel_skills,
+        "--strict",
+        "--format",
+        "json",
+    ]
+    if not write_allowed:
+        audit_args.append("--no-write")
+
+    antigravity_tmp = tempfile.TemporaryDirectory()
+    antigravity_out = Path(antigravity_tmp.name) / "antigravity-plugin"
 
     steps = [
         run_step(
@@ -85,11 +102,15 @@ def main() -> int:
         ),
         run_step(
             "skill_capabilities",
+            audit_args,
+            cwd=project_root,
+        ),
+        run_step(
+            "prompt_router_corpus",
             [
-                str(SCRIPT_DIR / "audit_skill_pack.py"),
-                "--skills-root",
-                rel_skills,
-                "--strict",
+                str(SCRIPT_DIR / "prompt_router.py"),
+                "--corpus",
+                str((skills_root / ".system" / "references" / "prompt-router.corpus.json")),
                 "--format",
                 "json",
             ],
@@ -108,11 +129,36 @@ def main() -> int:
             cwd=project_root,
         ),
         run_step(
+            "claude_plugin",
+            [
+                str(SCRIPT_DIR / "validate_claude_plugin.py"),
+                "--plugin-root",
+                str(project_root),
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
             "antigravity_build",
             [
                 str(SCRIPT_DIR / "build_antigravity_plugin.py"),
                 "--plugin-root",
                 str(project_root),
+                "--output",
+                str(antigravity_out),
+                "--apply",
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
+            "antigravity_validate",
+            [
+                str(SCRIPT_DIR / "validate_antigravity_plugin.py"),
+                "--package-dir",
+                str(antigravity_out),
                 "--format",
                 "json",
             ],
@@ -125,13 +171,15 @@ def main() -> int:
                 "--project-root",
                 str(project_root),
                 "--exclude-tests",
-                *(["--apply"] if args.apply else ["--dry-run"]),
+                *(["--apply"] if write_allowed else ["--dry-run"]),
                 "--format",
                 "json",
             ],
             cwd=project_root,
         ),
     ]
+
+    antigravity_tmp.cleanup()
 
     failures = [s for s in steps if not s["ok"]]
     zip_path = ""
@@ -167,6 +215,7 @@ def main() -> int:
         "steps": steps,
         "deploy_preview": deploy_preview,
         "ready_for_tag": not failures,
+        "read_only": not write_allowed,
         "next": "git tag vX.Y.Z && git push origin vX.Y.Z" if not failures else "fix failing steps before tagging",
     }
 

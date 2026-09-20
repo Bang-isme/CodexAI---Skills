@@ -22,7 +22,7 @@ TIER_DEFAULTS = {
 }
 
 
-def run_script(script: str, args: list[str], timeout: int = 600) -> tuple[int, dict[str, Any], str]:
+def run_script(script: str, args: list[str], timeout: int = 600) -> tuple[int, dict[str, Any], str, str]:
     cmd = [sys.executable, str(SCRIPT_DIR / script), *args]
     result = subprocess.run(
         cmd,
@@ -44,7 +44,7 @@ def run_script(script: str, args: list[str], timeout: int = 600) -> tuple[int, d
         payload.setdefault("status", "error")
         if stderr:
             payload.setdefault("stderr", stderr[-2000:])
-    return result.returncode, payload, stderr
+    return result.returncode, payload, stderr, " ".join(cmd)
 
 
 def read_codebase_index_summary(project_root: Path) -> dict[str, Any]:
@@ -99,18 +99,31 @@ def default_fixture_root(tier: str) -> Path:
     return Path(tempfile.mkdtemp(prefix=f"codex-scale-gate-{tier}-"))
 
 
-def read_codebase_incremental(project_root: Path) -> int:
+def read_codebase_incremental(project_root: Path) -> dict[str, Any]:
     path = project_root / ".codex" / "knowledge" / "codebase-index.json"
+    empty = {"reused_files": 0, "indexed_files": 0, "reuse_ratio": 0.0}
     if not path.exists():
-        return 0
+        return empty
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return 0
+        return empty
     incremental = payload.get("incremental", {})
-    if isinstance(incremental, dict):
-        return int(incremental.get("reused_files", 0) or 0)
-    return 0
+    if not isinstance(incremental, dict):
+        return empty
+    reused = int(incremental.get("reused_files", 0) or 0)
+    parsed = int(incremental.get("indexed_files", 0) or 0)
+    files = payload.get("files", {})
+    files_indexed = len(files) if isinstance(files, dict) else 0
+    ratio = incremental.get("reuse_ratio")
+    if ratio is None and files_indexed:
+        ratio = round(reused / files_indexed, 4)
+    return {
+        "reused_files": reused,
+        "indexed_files": parsed,
+        "files_indexed": files_indexed,
+        "reuse_ratio": float(ratio or 0),
+    }
 
 
 def run_gate(
@@ -125,8 +138,22 @@ def run_gate(
     keep_fixture: bool,
 ) -> dict[str, Any]:
     failures: list[str] = []
+    phases: list[dict[str, Any]] = []
     started = time.monotonic()
     project_root = project_root.expanduser().resolve()
+
+    def record_phase(name: str, command: str, exit_code: int, stderr: str, elapsed: float, status: str) -> None:
+        phases.append(
+            {
+                "phase": name,
+                "command": command[-500:],
+                "exit_code": exit_code,
+                "elapsed_seconds": round(elapsed, 2),
+                "status": status,
+                "stderr": (stderr or "")[-400:],
+            }
+        )
+
     try:
         safe_reset_fixture_root(project_root, keep_fixture=keep_fixture)
     except ValueError as exc:
@@ -135,10 +162,12 @@ def run_gate(
             "tier": tier,
             "project_root": str(project_root),
             "failures": [str(exc)],
+            "phases": phases,
         }
     project_root.mkdir(parents=True, exist_ok=True)
 
-    gen_code, gen_payload, _ = run_script(
+    phase_started = time.monotonic()
+    gen_code, gen_payload, gen_stderr, gen_cmd = run_script(
         "generate_scale_fixture.py",
         [
             "--output-dir",
@@ -150,11 +179,16 @@ def run_gate(
             "--include-package-json",
         ],
     )
+    record_phase("fixture", gen_cmd, gen_code, gen_stderr, time.monotonic() - phase_started, str(gen_payload.get("status", "error")))
     if gen_code != 0 or gen_payload.get("status") != "generated":
-        failures.append(f"fixture generation failed: {gen_payload}")
+        failures.append(
+            f"fixture generation failed: phase=fixture command={gen_cmd[-180:]} exit={gen_code} "
+            f"stderr={gen_stderr[-200:]}"
+        )
     extension_counts = gen_payload.get("extension_counts", {}) if isinstance(gen_payload, dict) else {}
 
-    index_code, index_payload, _ = run_script(
+    phase_started = time.monotonic()
+    index_code, index_payload, index_stderr, index_cmd = run_script(
         "build_knowledge_index.py",
         [
             "--project-root",
@@ -167,9 +201,14 @@ def run_gate(
         ],
         timeout=max(budget_seconds, 120),
     )
+    initial_seconds = time.monotonic() - phase_started
     index_status = index_payload.get("status", "error")
+    record_phase("initial_index", index_cmd, index_code, index_stderr, initial_seconds, str(index_status))
     if index_code != 0 or index_status != "built":
-        failures.append(f"initial build_knowledge_index failed: status={index_status} code={index_code}")
+        failures.append(
+            f"initial build_knowledge_index failed: phase=initial_index status={index_status} "
+            f"code={index_code} stderr={index_stderr[-200:]}"
+        )
 
     index_summary = read_codebase_index_summary(project_root)
     parsers = index_summary.get("parsers", {})
@@ -180,25 +219,33 @@ def run_gate(
             failures.append(f"polyglot index missing python or js/ts parsers: {parsers}")
 
     graph_status = "skipped"
+    graph_seconds = 0.0
     if require_graph:
-        graph_code, graph_payload, graph_stderr = run_script(
+        phase_started = time.monotonic()
+        graph_code, graph_payload, graph_stderr, graph_cmd = run_script(
             "build_knowledge_graph.py",
-            ["--project-root", str(project_root), "--format", "json"],
+            ["--project-root", str(project_root), "--format", "json", "--max-files", str(max_files)],
             timeout=max(budget_seconds // 2, 120),
         )
+        graph_seconds = time.monotonic() - phase_started
         graph_status = str(graph_payload.get("status", "error"))
+        record_phase("graph", graph_cmd, graph_code, graph_stderr, graph_seconds, graph_status)
         if graph_code != 0 or graph_status != "generated":
             extra = graph_payload.get("stderr") or graph_stderr
-            suffix = f" stderr={str(extra)[-400:]}" if extra else ""
-            failures.append(f"build_knowledge_graph failed: status={graph_status} code={graph_code}{suffix}")
+            failures.append(
+                f"build_knowledge_graph failed: phase=graph status={graph_status} code={graph_code} "
+                f"stderr={str(extra)[-400:]}"
+            )
 
-    status_code, status_payload, _ = run_script(
+    phase_started = time.monotonic()
+    status_code, status_payload, status_stderr, status_cmd = run_script(
         "memory_status.py",
         ["--project-root", str(project_root), "--format", "json"],
     )
     memory_status = str(status_payload.get("status", "error"))
+    record_phase("memory_status", status_cmd, status_code, status_stderr, time.monotonic() - phase_started, memory_status)
     if status_code != 0 or memory_status == "fail":
-        failures.append(f"memory_status failed: status={memory_status} code={status_code}")
+        failures.append(f"memory_status failed: phase=memory_status status={memory_status} code={status_code}")
     elif memory_status not in {"pass", "warn"}:
         failures.append(f"unexpected memory_status: {memory_status}")
 
@@ -211,7 +258,8 @@ def run_gate(
         touch_target.write_text(touch_target.read_text(encoding="utf-8") + "\n# scale-gate touch\n", encoding="utf-8")
     else:
         failures.append("incremental touch file not found in polyglot fixture")
-    inc_code, inc_payload, _ = run_script(
+    phase_started = time.monotonic()
+    inc_code, inc_payload, inc_stderr, inc_cmd = run_script(
         "build_knowledge_index.py",
         [
             "--project-root",
@@ -224,11 +272,29 @@ def run_gate(
         ],
         timeout=max(budget_seconds, 120),
     )
-    incremental_reused = read_codebase_incremental(project_root)
+    incremental_seconds = time.monotonic() - phase_started
+    incremental = read_codebase_incremental(project_root)
+    incremental_reused = int(incremental.get("reused_files", 0) or 0)
+    reuse_ratio = float(incremental.get("reuse_ratio", 0) or 0)
+    record_phase("incremental_index", inc_cmd, inc_code, inc_stderr, incremental_seconds, str(inc_payload.get("status", "error")))
     if inc_code != 0 or inc_payload.get("status") != "built":
-        failures.append(f"incremental build_knowledge_index failed: {inc_payload.get('status')} code={inc_code}")
-    elif incremental_reused <= 0:
-        failures.append("incremental reuse expected reused_files > 0")
+        failures.append(
+            f"incremental build_knowledge_index failed: phase=incremental_index "
+            f"status={inc_payload.get('status')} code={inc_code} stderr={inc_stderr[-200:]}"
+        )
+    else:
+        files_indexed = int(index_summary.get("files_indexed", 0) or incremental.get("files_indexed", 0) or 0)
+        expected_min = max(1, files_indexed - 2) if files_indexed else 1
+        if incremental_reused < expected_min:
+            failures.append(
+                f"incremental reuse too low: reused={incremental_reused} expected>={expected_min} "
+                f"ratio={reuse_ratio}"
+            )
+        if files_indexed >= 200 and incremental_seconds > max(initial_seconds * 2.5, 5):
+            failures.append(
+                f"incremental slower than expected: phase=incremental_index "
+                f"{round(incremental_seconds, 2)}s vs initial {round(initial_seconds, 2)}s"
+            )
 
     duration_seconds = round(time.monotonic() - started, 2)
     within_budget = duration_seconds <= budget_seconds
@@ -248,6 +314,13 @@ def run_gate(
         "graph_status": graph_status,
         "memory_status": memory_status,
         "incremental_reused": incremental_reused,
+        "incremental_reuse_ratio": reuse_ratio,
+        "phases": phases,
+        "phase_seconds": {
+            "initial_index": round(initial_seconds, 2),
+            "graph": round(graph_seconds, 2),
+            "incremental_index": round(incremental_seconds, 2),
+        },
         "fixture_extension_counts": extension_counts,
         "index_parsers": index_summary.get("parsers", {}),
         "index_languages": index_summary.get("languages", {}),

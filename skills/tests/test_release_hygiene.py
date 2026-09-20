@@ -86,6 +86,9 @@ def test_release_zip_excludes_repository_and_runtime_artifacts(tmp_path: Path) -
     (project / ".pytest_cache" / "state").write_text("cache", encoding="utf-8")
     (project / ".codexai-backups" / "backup.txt").write_text("backup", encoding="utf-8")
     (project / "skills" / ".system" / "scripts" / "tool.py").write_text("print('ok')\n", encoding="utf-8")
+    (project / "docs").mkdir()
+    (project / "docs" / "huong-dan-vi.md").write_text("# Guide\n", encoding="utf-8")
+    (project / "not-allowed.txt").write_text("skip\n", encoding="utf-8")
 
     output = tmp_path / "release.zip"
     payload = release_zip.build_zip(project, output, include_tests=True, dry_run=False)
@@ -100,6 +103,8 @@ def test_release_zip_excludes_repository_and_runtime_artifacts(tmp_path: Path) -
     assert ".claude-plugin/plugin.json" in entries
     assert "hooks/hooks.json" in entries
     assert "skills/.system/scripts/tool.py" in entries
+    assert "docs/huong-dan-vi.md" in entries
+    assert "not-allowed.txt" not in entries
     assert not any("/.git/" in f"/{entry}" for entry in entries)
     assert not any("__pycache__" in entry or entry.endswith(".pyc") for entry in entries)
     assert not any(".pytest_cache" in entry for entry in entries)
@@ -164,7 +169,9 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "gh --version" in ci
     assert "actions/checkout@v5" in ci
     assert "actions/setup-python@v6" in ci
-    assert "requirements-dev.txt" in ci
+    assert "validate_antigravity_plugin.py" in ci
+    assert "3.11" in ci
+    assert "if: github.event_name == 'push' && github.ref == 'refs/heads/main'" not in ci.split("test-python-min")[1].split("trust-harness-smoke")[0]
 
     assert not (REPO_ROOT / ".github" / "workflows" / "deploy.yml").exists()
 

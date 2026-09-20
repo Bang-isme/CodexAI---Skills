@@ -190,6 +190,77 @@ ROUTES: list[dict[str, Any]] = [
         "negative_signals": ["giao diện", "landing page", "react dashboard"],
     },
     {
+        "intent": "test",
+        "agent": "test-engineer",
+        "workflow": "create",
+        "skills": ["codex-test-driven-development", "codex-execution-quality-gate"],
+        "priority": 72,
+        "signals": [
+            "tdd",
+            "unit test",
+            "unit tests",
+            "write tests",
+            "test coverage",
+            "pytest",
+            "jest",
+            "vitest",
+            "playwright",
+            "regression test",
+            "viết test",
+            "phủ test",
+            "kiểm thử",
+            "$tdd",
+            "$red-green",
+        ],
+        "negative_signals": ["deploy", "production", "lỗ hổng", "traceback"],
+    },
+    {
+        "intent": "scrum",
+        "agent": "scrum-master",
+        "workflow": "plan",
+        "skills": ["codex-scrum-subagents", "codex-workflow-autopilot"],
+        "priority": 70,
+        "signals": [
+            "sprint planning",
+            "daily scrum",
+            "standup",
+            "retrospective",
+            "sprint review",
+            "backlog refinement",
+            "user story",
+            "scrum master",
+            "sprint goal",
+            "lập kế hoạch sprint",
+            "họp daily",
+            "retrospect",
+            "$sprint-plan",
+            "$retro",
+            "$scrum-install",
+        ],
+        "negative_signals": ["traceback", "vulnerability"],
+    },
+    {
+        "intent": "pulse",
+        "agent": "planner",
+        "workflow": "plan",
+        "skills": ["codex-project-pulse", "codex-workflow-autopilot"],
+        "priority": 68,
+        "signals": [
+            "$today",
+            "$pulse",
+            "$daily",
+            "$status",
+            "$brief",
+            "hôm nay thế nào",
+            "what's next",
+            "what should i work on",
+            "project status",
+            "project pulse",
+            "daily brief",
+        ],
+        "negative_signals": ["traceback", "vulnerability", "deploy to production"],
+    },
+    {
         "intent": "docs",
         "agent": "planner",
         "workflow": "handoff",
@@ -303,7 +374,14 @@ def ambiguity_reasons(normalized: str, design_operation: str | None) -> list[str
 
 
 def supporting_agents_for(agent: str, design_operation: str | None, implementation_only: bool) -> list[str]:
-    if implementation_only or agent in {"debugger", "security-auditor", "backend-specialist", "devops-engineer"}:
+    if implementation_only or agent in {
+        "debugger",
+        "security-auditor",
+        "backend-specialist",
+        "devops-engineer",
+        "test-engineer",
+        "scrum-master",
+    }:
         return []
     if agent == "creative-director":
         return ["ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"]
@@ -465,6 +543,31 @@ def route_prompt(prompt: str) -> dict[str, Any]:
         "ambiguity_reasons": ambiguity_reasons(normalized, design_operation),
         "required_evidence": required_evidence_for(best["agent"], design_operation),
     }
+
+
+def merge_routing(prompt_route: dict[str, Any], repo_report: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Prompt-router user intent wins; runtime-hook repo state fills gaps only."""
+    merged = dict(prompt_route)
+    repo = repo_report if isinstance(repo_report, dict) else {}
+    repo_agent = repo.get("suggested_agent")
+    repo_workflow = repo.get("workflow_recommendation") if isinstance(repo.get("workflow_recommendation"), dict) else {}
+    merged["repo_suggested_agent"] = repo_agent
+    merged["repo_workflow"] = repo_workflow.get("workflow")
+    intent = merged.get("intent")
+    agent = merged.get("suggested_agent")
+    if intent not in {None, "other"} and agent:
+        merged["precedence"] = "prompt_router"
+        return merged
+    if repo_agent:
+        merged["suggested_agent"] = repo_agent
+        if not merged.get("workflow") and repo_workflow.get("alias"):
+            alias = str(repo_workflow.get("alias", "")).lstrip("$")
+            merged["workflow"] = alias or merged.get("workflow")
+        merged["precedence"] = "runtime_hook"
+        merged["warnings"] = list(merged.get("warnings") or []) + ["repo_state_fallback"]
+        return merged
+    merged["precedence"] = "prompt_router"
+    return merged
 
 
 def load_corpus(path: Path) -> list[dict[str, Any]]:

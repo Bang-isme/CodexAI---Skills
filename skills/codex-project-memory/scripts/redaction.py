@@ -5,16 +5,18 @@ import copy
 import re
 from typing import Any
 
-REDACTION_PATTERNS_VERSION = "2026-05-18.1"
+REDACTION_PATTERNS_VERSION = "2026-09-04.1"
 REDACTION_TOKEN = "[REDACTED]"
+# Preserve git SHAs (40 hex) and SHA-256 digests (64 hex) so content hashes and
+# commit ids stay queryable. Shorter/longer hex runs still redact.
+PRESERVED_HEX_LENGTHS = frozenset({40, 64})
+HEX_PATTERN = re.compile(r"\b[A-Fa-f0-9]{32,}\b")
 SECRET_PATTERNS = [
     re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s]{6,}"),
-    re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\b"),
-    re.compile(r"\b[A-Fa-f0-9]{32,}\b"),
     re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
 ]
 
@@ -31,6 +33,16 @@ def redact_text_with_count(value: str) -> tuple[str, int]:
     for pattern in SECRET_PATTERNS:
         redacted, replacements = pattern.subn(REDACTION_TOKEN, redacted)
         count += replacements
+
+    def _hex_sub(match: re.Match[str]) -> str:
+        nonlocal count
+        token = match.group(0)
+        if len(token) in PRESERVED_HEX_LENGTHS:
+            return token
+        count += 1
+        return REDACTION_TOKEN
+
+    redacted = HEX_PATTERN.sub(_hex_sub, redacted)
     return redacted, count
 
 

@@ -516,18 +516,26 @@ def parse_json_from_output(stdout: str) -> Optional[Dict[str, Any]]:
 
 
 def run_pre_commit_gate(project_root: Path, skip_tests: bool = False) -> Dict[str, Any]:
-    gate_script = (
-        Path(__file__).parent.parent.parent
-        / "codex-execution-quality-gate"
-        / "scripts"
-        / "pre_commit_check.py"
-    )
-    if not gate_script.exists():
-        return {"passed": True, "warnings": ["pre_commit_check.py not found, skipping gate"]}
-
-    cmd = [sys.executable, str(gate_script), "--project-root", str(project_root)]
     if skip_tests:
-        cmd.append("--skip-tests")
+        gate_script = (
+            Path(__file__).parent.parent.parent
+            / "codex-execution-quality-gate"
+            / "scripts"
+            / "pre_commit_check.py"
+        )
+        if not gate_script.exists():
+            return {"passed": True, "warnings": ["pre_commit_check.py not found, skipping gate"]}
+        cmd = [sys.executable, str(gate_script), "--project-root", str(project_root), "--skip-tests"]
+    else:
+        gate_script = (
+            Path(__file__).parent.parent.parent
+            / "codex-execution-quality-gate"
+            / "scripts"
+            / "auto_gate.py"
+        )
+        if not gate_script.exists():
+            return {"passed": True, "warnings": ["auto_gate.py not found, skipping gate"]}
+        cmd = [sys.executable, str(gate_script), "--project-root", str(project_root), "--mode", "quick"]
 
     try:
         result = subprocess.run(
@@ -546,9 +554,21 @@ def run_pre_commit_gate(project_root: Path, skip_tests: bool = False) -> Dict[st
 
     payload = parse_json_from_output(result.stdout)
     if payload is not None:
-        return payload
+        blocking = payload.get("blocking_issues") or payload.get("blocking") or []
+        if not isinstance(blocking, list):
+            blocking = [str(blocking)]
+        passed = payload.get("overall") == "pass" or payload.get("status") in {"pass", "warn"} or payload.get("passed") is True
+        if blocking:
+            passed = False
+        return {
+            "passed": passed,
+            "blocking": blocking,
+            "warnings": payload.get("warnings", []),
+            "gate_command": cmd,
+            "mode": "quick" if not skip_tests else "pre_commit_skip_tests",
+        }
 
-    return {"passed": result.returncode == 0, "warnings": ["Could not parse gate output"]}
+    return {"passed": result.returncode == 0, "warnings": ["Could not parse gate output"], "gate_command": cmd}
 
 
 def run_security_scan(project_root: Path) -> Dict[str, Any]:

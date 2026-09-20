@@ -2,15 +2,23 @@
 """Offline codebase indexer with metadata, structural chunks, and lexical search."""
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import json
 import math
 import re
+import sys
 from collections import Counter, defaultdict
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from project_traversal import TraversalConfig, list_project_files, sample_for_index
+from redaction import redact_text as shared_redact_text
 
 SCHEMA_VERSION = "1.0"
 DEFAULT_INDEX_PATH = Path(".codex/knowledge/codebase-index.json")
@@ -23,9 +31,11 @@ SKIP_DIRS = {
     ".git", ".next", ".pytest_cache", "__pycache__", "build", "coverage", "dist",
     "node_modules", "vendor", ".venv", "venv", ".codex", ".codexai", ".idea", ".vscode",
 }
+MAX_CHUNK_TEXT = 24000
 CODE_EXTENSIONS = {
     ".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".json", ".toml", ".yaml", ".yml",
-    ".md", ".css", ".scss", ".html", ".sql", ".sh", ".rs", ".go", ".java", ".kt", ".php", ".rb",
+    ".md", ".css", ".scss", ".html", ".sql", ".sh", ".rs", ".go", ".java", ".kt", ".kts", ".php", ".rb",
+    ".cs", ".swift", ".vue", ".svelte", ".tf",
 }
 CONFIG_NAMES = {
     "package.json", "pyproject.toml", "requirements.txt", "Dockerfile", "docker-compose.yml",
@@ -37,17 +47,10 @@ LANGUAGE_BY_EXTENSION = {
     ".tsx": "React TSX", ".mjs": "JavaScript ESM", ".cjs": "JavaScript CJS",
     ".json": "JSON", ".toml": "TOML", ".yaml": "YAML", ".yml": "YAML", ".md": "Markdown",
     ".css": "CSS", ".scss": "SCSS", ".html": "HTML", ".sql": "SQL", ".sh": "Shell",
-    ".rs": "Rust", ".go": "Go", ".java": "Java", ".kt": "Kotlin", ".php": "PHP", ".rb": "Ruby",
+    ".rs": "Rust", ".go": "Go", ".java": "Java", ".kt": "Kotlin", ".kts": "Kotlin Script",
+    ".php": "PHP", ".rb": "Ruby", ".cs": "C#", ".swift": "Swift", ".vue": "Vue",
+    ".svelte": "Svelte", ".tf": "Terraform",
 }
-SECRET_PATTERNS = [
-    re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s]{6,}"),
-    re.compile(r"\b[A-Fa-f0-9]{32,}\b"),
-    re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
-]
 TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]{1,}")
 PY_SYMBOL_PATTERN = re.compile(r"^(?P<indent>\s*)(?:async\s+def|def|class)\s+(?P<name>[A-Za-z_]\w*)\b", re.MULTILINE)
 JS_SYMBOL_PATTERN = re.compile(
@@ -73,27 +76,12 @@ def utc_now() -> str:
 
 
 def redact_text(value: str) -> str:
-    redacted = value
-    for pattern in SECRET_PATTERNS:
-        redacted = pattern.sub("[REDACTED]", redacted)
-    return redacted
+    return shared_redact_text(value)
 
 
-def load_codexignore(project_root: Path) -> list[str]:
-    path = project_root / ".codexignore"
-    if not path.exists():
-        return []
-    return [line.strip().replace("\\", "/") for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip() and not line.strip().startswith("#")]
-
-
-def ignored_by_patterns(relative_path: str, patterns: list[str]) -> bool:
-    for pattern in patterns:
-        normalized = pattern.strip("/")
-        if fnmatch.fnmatch(relative_path, normalized) or fnmatch.fnmatch(Path(relative_path).name, normalized):
-            return True
-        if relative_path.startswith(normalized.rstrip("/") + "/"):
-            return True
-    return False
+def indexable_file_filter(rel: str, path: Path) -> bool:
+    del rel
+    return path.suffix.lower() in CODE_EXTENSIONS or path.name in CONFIG_NAMES
 
 
 def language_for(path: Path) -> str:
@@ -119,28 +107,15 @@ def content_hash(path: Path) -> str:
     return digest.hexdigest()
 
 
-def discover_files(project_root: Path, max_files: int = 5000) -> list[Path]:
-    ignores = load_codexignore(project_root)
-    files: list[Path] = []
-    for path in project_root.rglob("*"):
-        rel = path.relative_to(project_root).as_posix()
-        if any(part in SKIP_DIRS for part in path.relative_to(project_root).parts):
-            continue
-        if ignored_by_patterns(rel, ignores):
-            continue
-        if not path.is_file():
-            continue
-        if path.suffix.lower() not in CODE_EXTENSIONS and path.name not in CONFIG_NAMES:
-            continue
-        try:
-            if path.stat().st_size > 1_500_000:
-                continue
-        except OSError:
-            continue
-        files.append(path)
-        if len(files) >= max_files:
-            break
-    return sorted(files)
+def discover_files(
+    project_root: Path,
+    max_files: int = 5000,
+    traversal_config: TraversalConfig | None = None,
+    file_filter=indexable_file_filter,
+) -> list[Path]:
+    cfg = replace(traversal_config, max_files=max_files) if traversal_config is not None else TraversalConfig(max_files=max_files)
+    listing = list_project_files(project_root, cfg, file_filter=file_filter)
+    return [entry.path for entry in listing.files]
 
 
 def line_number_for_offset(text: str, offset: int) -> int:
@@ -208,7 +183,8 @@ def chunk_text(rel_path: str, text: str, symbols: list[dict[str, Any]], max_line
 
 
 def make_chunk(rel_path: str, start: int, end: int, symbol: str, body: str, strategy: str) -> dict[str, Any]:
-    preview = redact_text("\n".join(body.splitlines()[:20]))[:900]
+    redacted = redact_text(body)
+    preview = "\n".join(redacted.splitlines()[:20])[:900]
     chunk_id = hashlib.sha1(f"{rel_path}:{start}:{end}:{symbol}".encode("utf-8")).hexdigest()[:16]
     return {
         "id": chunk_id,
@@ -218,6 +194,7 @@ def make_chunk(rel_path: str, start: int, end: int, symbol: str, body: str, stra
         "symbol": symbol,
         "strategy": strategy,
         "text_preview": preview,
+        "text": redacted[:MAX_CHUNK_TEXT],
         "token_estimate": max(1, math.ceil(len(body) / 4)),
         "confidence": 0.86 if strategy == "symbol" else 0.62,
         "provenance": {"extractor": "codebase_indexer.py", "redacted": True},
@@ -271,11 +248,19 @@ def risk_signals(rel_path: str, text: str) -> list[dict[str, Any]]:
     return risks
 
 
+def chunk_index_text(chunk: dict[str, Any]) -> str:
+    text = chunk.get("text")
+    if isinstance(text, str) and text:
+        return text
+    preview = chunk.get("text_preview")
+    return preview if isinstance(preview, str) else ""
+
+
 def build_inverted_index(chunks: list[dict[str, Any]], symbols: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     postings: dict[str, Counter[str]] = defaultdict(Counter)
     for chunk in chunks:
         source = f"chunk:{chunk['id']}"
-        for token in TOKEN_PATTERN.findall((chunk.get("text_preview") or "").lower()):
+        for token in TOKEN_PATTERN.findall(chunk_index_text(chunk).lower()):
             postings[token][source] += 1
     for symbol in symbols:
         source = f"symbol:{symbol['id']}"
@@ -303,6 +288,16 @@ def compute_read_order(files: dict[str, Any], imports: list[dict[str, Any]], rou
     return [{"path": path, "rank": rank + 1, "score": score, "reason": "entry/config/model/dependency relevance"} for rank, (path, score) in enumerate(scores.most_common(30))]
 
 
+def group_by_file_field(items: Any, field: str) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    if not isinstance(items, list):
+        return grouped
+    for item in items:
+        if isinstance(item, dict) and item.get(field):
+            grouped[str(item[field])].append(item)
+    return grouped
+
+
 def load_existing(index_path: Path) -> dict[str, Any]:
     if not index_path.exists():
         return {}
@@ -313,12 +308,61 @@ def load_existing(index_path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def build_codebase_index(project_root: Path, output_path: Path | None = None, incremental: bool = True, rebuild: bool = False) -> dict[str, Any]:
+def parse_file(
+    rel: str,
+    text: str,
+    metadata: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    all_file_symbols = collect_symbols(rel, text, metadata["language"])
+    symbols = all_file_symbols[:MAX_SYMBOLS_PER_FILE]
+    all_file_chunks = collect_chunks(rel, text, all_file_symbols)
+    chunks = all_file_chunks[:MAX_CHUNKS_PER_FILE]
+    imports = extract_imports(rel, text)
+    routes = extract_routes(rel, text)
+    models = extract_models(rel, text)
+    risks = risk_signals(rel, text)
+    metadata.update({
+        "lines": len(text.splitlines()),
+        "chunks": [chunk["id"] for chunk in chunks],
+        "symbols": [symbol["id"] for symbol in symbols],
+        "risk_signals": [risk["type"] for risk in risks],
+        "truncation": {
+            "symbols": {
+                "total": len(all_file_symbols),
+                "included": len(symbols),
+                "truncated": len(all_file_symbols) > len(symbols),
+                "cap": MAX_SYMBOLS_PER_FILE,
+            },
+            "chunks": {
+                "total": len(all_file_chunks),
+                "included": len(chunks),
+                "truncated": len(all_file_chunks) > len(chunks),
+                "cap": MAX_CHUNKS_PER_FILE,
+            },
+        },
+    })
+    return metadata, chunks, symbols, imports, routes, models, risks
+
+
+def build_codebase_index(
+    project_root: Path,
+    output_path: Path | None = None,
+    incremental: bool = True,
+    rebuild: bool = False,
+    traversal_config: TraversalConfig | None = None,
+    max_files: int | None = None,
+) -> dict[str, Any]:
     project_root = project_root.expanduser().resolve()
     index_path = output_path or (project_root / DEFAULT_INDEX_PATH)
     previous = {} if rebuild else load_existing(index_path)
     previous_files = previous.get("files", {}) if isinstance(previous.get("files"), dict) else {}
     previous_by_hash = {path: meta.get("content_hash") for path, meta in previous_files.items() if isinstance(meta, dict)}
+    previous_chunks = group_by_file_field(previous.get("chunks"), "path")
+    previous_symbols = group_by_file_field(previous.get("symbols"), "path")
+    previous_imports = group_by_file_field(previous.get("imports"), "source")
+    previous_routes = group_by_file_field(previous.get("routes"), "file")
+    previous_models = group_by_file_field(previous.get("models"), "file")
+    previous_risks = group_by_file_field(previous.get("risk_signals"), "file")
     indexed_at = utc_now()
     files: dict[str, Any] = {}
     all_chunks: list[dict[str, Any]] = []
@@ -328,65 +372,67 @@ def build_codebase_index(project_root: Path, output_path: Path | None = None, in
     all_models: list[dict[str, Any]] = []
     all_risks: list[dict[str, Any]] = []
     reused = 0
+    parsed = 0
 
-    discovered_files = discover_files(project_root)
-    for path in discovered_files:
-        rel = path.relative_to(project_root).as_posix()
+    cfg = traversal_config
+    if cfg is None:
+        cap = max_files if max_files is not None else 5000
+        cfg = TraversalConfig(max_files=cap)
+    else:
+        cap = max_files if max_files is not None else cfg.max_files
+        cfg = replace(cfg, max_files=cap)
+    listing = list_project_files(project_root, cfg, file_filter=indexable_file_filter)
+    discovered_files = listing.files
+
+    for entry in discovered_files:
+        rel = entry.rel_path
         try:
-            stat = path.stat()
-            digest = content_hash(path)
+            digest = content_hash(entry.path)
         except OSError:
             continue
         metadata = {
             "path": rel,
             "content_hash": digest,
-            "mtime": stat.st_mtime,
-            "size_bytes": stat.st_size,
-            "language": language_for(path),
-            "parser": parser_for(path),
+            "mtime": entry.path.stat().st_mtime if entry.path.exists() else 0,
+            "size_bytes": entry.size_bytes,
+            "language": language_for(entry.path),
+            "parser": parser_for(entry.path),
             "last_indexed_at": indexed_at,
             "confidence": 0.9,
             "provenance": {"source": "filesystem", "indexer": "codebase_indexer.py"},
         }
-        if incremental and previous_by_hash.get(rel) == digest:
-            prior = previous_files.get(rel, {})
-            if isinstance(prior, dict):
-                metadata["last_indexed_at"] = prior.get("last_indexed_at", indexed_at)
-                reused += 1
+        prior = previous_files.get(rel, {})
+        can_reuse = (
+            incremental
+            and previous_by_hash.get(rel) == digest
+            and isinstance(prior, dict)
+            and "chunks" in prior
+        )
+        if can_reuse:
+            reused_meta = dict(prior)
+            reused_meta.update({
+                "content_hash": digest,
+                "mtime": metadata["mtime"],
+                "size_bytes": entry.size_bytes,
+                "language": metadata["language"],
+                "parser": metadata["parser"],
+                "confidence": prior.get("confidence", 0.9),
+                "provenance": prior.get("provenance", metadata["provenance"]),
+            })
+            files[rel] = reused_meta
+            all_chunks.extend(previous_chunks.get(rel, []))
+            all_symbols.extend(previous_symbols.get(rel, []))
+            all_imports.extend(previous_imports.get(rel, []))
+            all_routes.extend(previous_routes.get(rel, []))
+            all_models.extend(previous_models.get(rel, []))
+            all_risks.extend(previous_risks.get(rel, []))
+            reused += 1
+            continue
         try:
-            text = path.read_text(encoding="utf-8", errors="replace")
+            text, _bytes_read, _large = sample_for_index(entry.path, cfg.max_file_bytes)
         except OSError:
             continue
-        all_file_symbols = collect_symbols(rel, text, metadata["language"])
-        symbols = all_file_symbols[:MAX_SYMBOLS_PER_FILE]
-        all_file_chunks = collect_chunks(rel, text, all_file_symbols)
-        chunks = all_file_chunks[:MAX_CHUNKS_PER_FILE]
-        imports = extract_imports(rel, text)
-        routes = extract_routes(rel, text)
-        models = extract_models(rel, text)
-        risks = risk_signals(rel, text)
-        symbol_total = len(all_file_symbols)
-        chunk_total = len(all_file_chunks)
-        metadata.update({
-            "lines": len(text.splitlines()),
-            "chunks": [chunk["id"] for chunk in chunks],
-            "symbols": [symbol["id"] for symbol in symbols],
-            "risk_signals": [risk["type"] for risk in risks],
-            "truncation": {
-                "symbols": {
-                    "total": symbol_total,
-                    "included": len(symbols),
-                    "truncated": symbol_total > len(symbols),
-                    "cap": MAX_SYMBOLS_PER_FILE,
-                },
-                "chunks": {
-                    "total": chunk_total,
-                    "included": len(chunks),
-                    "truncated": chunk_total > len(chunks),
-                    "cap": MAX_CHUNKS_PER_FILE,
-                },
-            },
-        })
+        metadata, chunks, symbols, imports, routes, models, risks = parse_file(rel, text, metadata)
         files[rel] = metadata
         all_chunks.extend(chunks)
         all_symbols.extend(symbols)
@@ -394,16 +440,24 @@ def build_codebase_index(project_root: Path, output_path: Path | None = None, in
         all_routes.extend(routes)
         all_models.extend(models)
         all_risks.extend(risks)
+        parsed += 1
 
     references = [{"source": imp["source"], "target": imp["target"], "kind": "import", "line": imp["line"], "confidence": imp["confidence"]} for imp in all_imports]
     configs = [{"path": path, "language": meta["language"], "content_hash": meta["content_hash"], "confidence": 0.84} for path, meta in files.items() if Path(path).name in CONFIG_NAMES or "/.github/workflows/" in path]
+    reuse_ratio = round(reused / len(files), 4) if files else 0.0
     payload = {
         "schema_version": SCHEMA_VERSION,
         "status": "built",
         "generated_at": indexed_at,
         "project_root": project_root.as_posix(),
         "storage": {"type": "json", "path": index_path.relative_to(project_root).as_posix() if index_path.is_relative_to(project_root) else index_path.as_posix(), "fts": "inverted_index"},
-        "incremental": {"enabled": incremental, "rebuild": rebuild, "reused_files": reused, "indexed_files": len(files) - reused},
+        "incremental": {
+            "enabled": incremental,
+            "rebuild": rebuild,
+            "reused_files": reused,
+            "indexed_files": parsed,
+            "reuse_ratio": reuse_ratio,
+        },
         "stats": {
             "files_discovered": len(discovered_files),
             "files_indexed": len(files),

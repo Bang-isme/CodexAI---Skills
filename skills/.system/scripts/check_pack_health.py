@@ -27,6 +27,8 @@ REQUIRED_ALIASES = [
     "$check-docs",
     "$install-hooks",
     "$install-ci",
+    "$today",
+    "$pulse",
 ]
 REQUIRED_DOT_DIRS = [".system", ".agents", ".workflows"]
 REQUIRED_PLUGIN_ROOT_PATHS = [

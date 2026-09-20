@@ -55,7 +55,10 @@
     "deploy",
     "handoff",
     "refactor",
-    "prototype"
+    "prototype",
+    "build",
+    "fix",
+    "docs"
   ],
   "scripts_registry": ".system/REGISTRY.md",
   "plugin_tool_contract": {

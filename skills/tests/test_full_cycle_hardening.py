@@ -977,8 +977,11 @@ def test_knowledge_artifacts_redact_index_graph_chunks_and_dashboard_json(tmp_pa
     assert sample_api_key not in all_artifacts
     assert sample_gh_token not in all_artifacts
     assert "[REDACTED]" in index["recent_commits"][0]["subject"]
-    assert graph["api_routes"][0]["handler"] == "[REDACTED]"
-    assert "[REDACTED]" in graph["data_models"]["User"]["fields"]
+    # Identifier names such as `token` stay queryable; only secret values redact.
+    assert graph["api_routes"][0]["handler"] == "token"
+    assert sample_api_key not in str(graph["api_routes"][0])
+    assert set(graph["data_models"]["User"]["fields"]) == {"ownerEmail", "token"}
+    assert sample_email not in str(graph["data_models"]["User"])
     assert "[REDACTED]" in graph["code_index"]["src/routes/leak.routes.js"]["preview"]
     assert "[REDACTED]" in graph["code_index"]["src/routes/leak.routes.js"]["chunks"][0]["preview"]
     assert "Redaction Status" in html

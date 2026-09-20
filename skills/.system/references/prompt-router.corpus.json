@@ -286,6 +286,42 @@
       "suggested_agent": "creative-director",
       "workflow": "prototype",
       "surface_mode": "experience"
+    },
+    {
+      "prompt": "Write pytest coverage for the auth module using TDD",
+      "intent": "test",
+      "suggested_agent": "test-engineer",
+      "workflow": "create"
+    },
+    {
+      "prompt": "Viết unit test và tăng phủ test cho API",
+      "intent": "test",
+      "suggested_agent": "test-engineer",
+      "workflow": "create"
+    },
+    {
+      "prompt": "Facilitate sprint planning and the daily scrum",
+      "intent": "scrum",
+      "suggested_agent": "scrum-master",
+      "workflow": "plan"
+    },
+    {
+      "prompt": "Chạy retrospective và refinement cho sprint",
+      "intent": "scrum",
+      "suggested_agent": "scrum-master",
+      "workflow": "plan"
+    },
+    {
+      "prompt": "$today",
+      "intent": "pulse",
+      "suggested_agent": "planner",
+      "workflow": "plan"
+    },
+    {
+      "prompt": "Hôm nay thế nào? What's next on the project pulse?",
+      "intent": "pulse",
+      "suggested_agent": "planner",
+      "workflow": "plan"
     }
   ]
 }
