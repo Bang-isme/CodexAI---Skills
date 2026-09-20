@@ -14,7 +14,7 @@
 | Starters | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 10 |
-| Workflow Aliases | 8 |
+| Workflow Aliases | 12 |
 | Short Aliases | 25+ |
 | Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
 | Local Marketplace | `../.agents/plugins/marketplace.json` |
@@ -25,6 +25,8 @@
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
 | Pytest | 461/461 |
 | Smoke | 87/87 |
+
+18.0.0 removed the three design redirect skills and three redirect agents. `$design` / `$ux` / `$direction` load `codex-frontend-design`. `memory_status --strict` and `install.py doctor --host all` are the pack's CI-facing contracts.
 
 ---
 

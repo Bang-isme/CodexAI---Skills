@@ -32,13 +32,34 @@ The pack is designed for 3 outcomes:
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
 | Agent Personas | 10 |
-| Workflow Aliases | 8 |
+| Workflow Aliases | 12 |
 | Verification | 461 unit + 87 smoke = 548 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
+| Cursor / Codex session hook | tracked `.codex/hooks.json` (relative `runtime_hook.py`) |
 | Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
 | GitHub Automation | GitHub CLI (`gh`) + `gh auth login` for PR/release workflows |
 | CI/CD | `.github/workflows/ci.yml` + `.github/workflows/release.yml` |
+
+---
+
+## What's new in 18.0.0
+
+18.0.0 is a breaking cleanup. The pack's value is **fail-closed scripts** (pipeline, doctor, memory `--strict`, corpus router), not extra skill names.
+
+**Breaking**
+
+- Removed compatibility redirect skills `codex-design-system`, `codex-ui-ux-design`, and `codex-creative-direction`. Use `codex-frontend-design` (`$design` / `$ux` / `$direction`).
+- Removed redirect agents `ui-ux-designer`, `creative-director`, and `creative-designer`. Use `design-lead`.
+- Removed six frontend catalog stubs from `codex-domain-specialist/references/`. Load `codex-frontend-implementation/references/` instead.
+
+**What got more reliable**
+
+- `memory_status --strict` is usable in CI: graph coherence compares the `LANGUAGE_REGISTRY` subset of the codebase index. Indexer-only extras (`.md`, `Dockerfile`, tests the graph skipped) are `coherence.expected_extras`, not a false fail.
+- CI Python matrix is 3.12–3.14 on Linux and Windows. The 3.11 contract job is unchanged.
+- Tracked portable `.codex/hooks.json` so `install.py doctor --host all` passes on this plugin source checkout, including Cursor.
+
+Install with `install.py --host cursor --apply` (or `--host all`). Then `$plan`, `$design`, `$check`, `$pipeline`. Full notes: [skills/CHANGELOG.md](skills/CHANGELOG.md).
 
 ---
 
@@ -135,7 +156,7 @@ The pack now supports additive agent routing without breaking the old flow:
 4. If the agent file or `.agents/` folder is missing, the pack falls back to legacy routing through `codex-domain-specialist`.
 5. `codex-workflow-autopilot` then routes execution mode as usual, optionally loading a workflow alias file.
 
-This keeps the pack fully backward compatible: if you never use agents or workflow aliases, the previous skill-only pipeline still works exactly the same way.
+Agents are optional. If you never set `suggested_agent`, routing still goes through `codex-domain-specialist`. 18.0.0 is **not** skill-name compatible with the three deleted design redirects: `$design` / `$ux` / `$direction` still resolve to `codex-frontend-design`.
 
 ## Role Documentation System
 
@@ -168,6 +189,9 @@ This makes requirements, acceptance criteria, FE/BE/data/QA impact, and verifica
 | `$review` | `skills/.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `skills/.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `skills/.workflows/handoff.md` | `workflow-handoff.md` + session summary |
+| `$design` / `$ux` / `$direction` | `codex-frontend-design` | Fast path for a page/component; studio only for a new identity |
+| `$check` | `auto_gate.py --mode quick` | Advisory pre-commit gate |
+| `$pipeline` | `pipeline.py --stage all` | Lint, contracts, test, build, doctor |
 
 Aliases are shortcuts, not replacements. All legacy triggers such as `$codex-plan-writer`, `$codex-workflow-autopilot`, and `$codex-execution-quality-gate` remain supported in parallel.
 
@@ -214,7 +238,7 @@ This is the biggest differentiator of the pack today:
 | `codex-frontend-implementation` | React/Next/Tailwind/shadcn/GSAP recipes, 17 curated craft files with provenance, OKLCH starter without Inter | 8 | 1 |
 | `codex-design-md` | Durable `DESIGN.md` contracts, lint/diff/export workflows, and design-token source of truth | 3 | 1 |
 | `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched capture, fresh-eyes review with `DEGRADED` marking | 0 | 0 |
-| `codex-domain-specialist` | Full-stack engineering | 66 | 19 |
+| `codex-domain-specialist` | Full-stack engineering | 61 | 19 |
 | `codex-security-specialist` | Network, infra, AppSec, DevSecOps, compliance | 30 | 10 |
 
 ### Quality and Delivery
@@ -247,7 +271,7 @@ python ".\skills\.system\scripts\install.py" doctor --host all --repo-root "." -
 
 3. **Use an alias** such as `$plan`, `$create`, `$design`, or `$check`. Load `codex-master-instructions` first.
 
-Host details: Cursor writes `.cursor/skills` plus `.cursor/rules/codexai-core.mdc`. Codex uses `.agents/skills` plus `AGENTS.md`. Claude uses `.claude/skills` plus `CLAUDE.md`.
+Host details: Cursor writes `.cursor/skills` plus `.cursor/rules/codexai-core.mdc`. Codex uses `.agents/skills` plus `AGENTS.md`. Claude uses `.claude/skills` plus `CLAUDE.md`. This repo tracks `.codex/hooks.json` so `install.py doctor` can pass on the plugin source checkout without a consumer install.
 
 ### 1. Install (advanced)
 
@@ -411,6 +435,9 @@ This is the path that pushes outputs away from generic AI prose and toward human
 CodexAI---Skills/
 |-- README.md
 |-- LICENSE
+|-- .codex/hooks.json
+|-- .codex-plugin/plugin.json
+|-- .claude-plugin/plugin.json
 |-- docs/
 |   `-- huong-dan-vi.md
 `-- skills/

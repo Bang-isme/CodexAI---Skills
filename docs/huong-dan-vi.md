@@ -21,8 +21,14 @@ Luồng chuẩn của pack:
 | Starters | 29 |
 | Artifact templates | 9 |
 | Agent personas | 10 |
-| Workflow aliases | 8 |
+| Workflow aliases | 12 |
 | Kiểm thử | 461 unit + 87 smoke = 548 bài test |
+
+### Breaking 18.0.0
+
+- Không còn skill redirect `codex-design-system`, `codex-ui-ux-design`, `codex-creative-direction`. Dùng `codex-frontend-design` (`$design` / `$ux` / `$direction`).
+- Không còn agent `ui-ux-designer`, `creative-director`, `creative-designer`. Dùng `design-lead`.
+- `memory_status --strict` dùng được trên CI. `install.py doctor --host all` pass trên source checkout, kể cả Cursor.
 
 ## 2. Điểm mạnh chính
 
@@ -140,6 +146,7 @@ Pass criteria:
 | `$knowledge` | Tạo `.codex/knowledge/INDEX.md` để làm tri thức ngầm trở nên rõ ràng |
 | `$check`, `$check-full`, `$check-deploy` | Chạy `auto_gate.py` theo mức quick/full/deploy |
 | `$health` | Kiểm tra manifest, registry, aliases, dot directories, global sync, và encoding |
+| `$design` / `$ux` / `$direction` | `codex-frontend-design`: fast path cho page/component; studio khi cần identity mới |
 | `$pipeline` | Chạy `pipeline.py --stage all`: lint, contracts, test, build, doctor trong một lệnh, xuất report JSON |
 | `$release-gate` | Chạy `local_release_gate.py` (dry-run) trước khi tạo tag `vX.Y.Z` để kích hoạt GitHub Release |
 | `$doctor` | `install.py doctor --host all` kiểm tra wiring Codex/Claude/Cursor/Antigravity |
