@@ -5,16 +5,20 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 from test_full_cycle_hardening import (
     codebase_indexer,
     knowledge_graph,
     knowledge_index,
+    memory_status,
     project_traversal,
     write,
 )
 
 
 SKILLS_ROOT = Path(__file__).resolve().parents[1]
+BUILD_INDEX_SCRIPT = SKILLS_ROOT / "codex-project-memory" / "scripts" / "build_knowledge_index.py"
 
 
 def load_redaction():
@@ -172,3 +176,169 @@ def test_knowledge_build_does_not_rebuild_index_twice(tmp_path: Path) -> None:
     assert graph["codebase_index"]["generated_at"] == first["generated_at"]
     assert graph["redaction_applied"] is True
     assert graph["redaction"]["enabled"] is True
+
+
+def test_traversal_hard_skips_build_output_and_backup_dirs(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "main.rs", "fn main() {}\n")
+    write(tmp_path / "target" / "debug" / "generated.rs", "fn junk() {}\n")
+    write(tmp_path / ".codexai-backups" / "old" / "SKILL.md", "# stale backup\n")
+    write(tmp_path / "node_modules" / "pkg" / "index.js", "module.exports = 1;\n")
+
+    listing = project_traversal.list_project_files(tmp_path, project_traversal.TraversalConfig())
+    rels = [entry.rel_path for entry in listing.files]
+
+    assert rels == ["src/main.rs"]
+    assert "target" in project_traversal.HARD_CODED_SKIP_DIRS
+    assert ".codexai-backups" in project_traversal.HARD_CODED_SKIP_DIRS
+    assert not hasattr(knowledge_index, "IGNORED_DIRS")
+
+
+def test_atomic_write_keeps_previous_artifact_when_write_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target = tmp_path / ".codex" / "knowledge" / "index.json"
+    project_traversal.atomic_write_text(target, '{"v": 1}')
+    assert json.loads(target.read_text(encoding="utf-8")) == {"v": 1}
+
+    original_write_text = Path.write_text
+
+    def exploding_write_text(self: Path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if self.name.endswith(".tmp"):
+            self.touch()
+            raise OSError("disk full mid-write")
+        return original_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", exploding_write_text)
+    with pytest.raises(OSError):
+        project_traversal.atomic_write_text(target, '{"v": 2}')
+    monkeypatch.undo()
+
+    assert json.loads(target.read_text(encoding="utf-8")) == {"v": 1}
+    assert [path.name for path in target.parent.iterdir()] == ["index.json"]
+
+
+def test_knowledge_artifacts_are_written_without_leftover_temp_files(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    output_dir = tmp_path / ".codex" / "knowledge"
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir, write_html=True)
+
+    names = sorted(path.name for path in output_dir.iterdir())
+    assert not [name for name in names if name.endswith(".tmp")]
+    for expected in ("index.json", "INDEX.md", "knowledge-graph.json", "codebase-index.json", "index.html"):
+        assert expected in names
+
+
+def test_index_records_source_fingerprint_stable_across_builds(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    output_dir = tmp_path / ".codex" / "knowledge"
+
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir)
+    first = json.loads((output_dir / "index.json").read_text(encoding="utf-8"))["source"]
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir)
+    second = json.loads((output_dir / "index.json").read_text(encoding="utf-8"))["source"]
+
+    assert first["tree_fingerprint"] == second["tree_fingerprint"]
+    assert len(first["tree_fingerprint"]) == 64
+    assert first["files_counted"] == 1
+    assert "git_head" in first
+
+    write(tmp_path / "src" / "extra.py", "def extra():\n    return 2\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir)
+    third = json.loads((output_dir / "index.json").read_text(encoding="utf-8"))["source"]
+    assert third["tree_fingerprint"] != first["tree_fingerprint"]
+
+
+def test_memory_status_warns_when_index_is_behind_head_or_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    output_dir = tmp_path / ".codex" / "knowledge"
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir)
+    index_path = output_dir / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index["source"]["git_head"] = "a" * 40
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    monkeypatch.setattr(memory_status, "git_head", lambda _root: "b" * 40)
+    payload = memory_status.build_status(tmp_path, output_dir, max_age_hours=168)
+    assert payload["status"] == "warn"
+    assert payload["source"]["git_head"] == "drift"
+    assert any("HEAD" in warning for warning in payload["warnings"])
+
+    monkeypatch.setattr(memory_status, "git_head", lambda _root: "a" * 40)
+    clean = memory_status.build_status(tmp_path, output_dir, max_age_hours=168, verify_tree=True)
+    assert clean["source"]["git_head"] == "match"
+    assert clean["source"]["tree_fingerprint"] == "match"
+    assert not any("HEAD" in warning for warning in clean["warnings"])
+
+    write(tmp_path / "src" / "added.py", "def added():\n    return 3\n")
+    drifted = memory_status.build_status(tmp_path, output_dir, max_age_hours=168, verify_tree=True)
+    assert drifted["source"]["tree_fingerprint"] == "drift"
+    assert any("tree_fingerprint" in warning for warning in drifted["warnings"])
+
+
+def test_memory_status_tolerates_index_without_source_block(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    output_dir = tmp_path / ".codex" / "knowledge"
+    knowledge_index.write_knowledge_artifacts(tmp_path, output_dir)
+    index_path = output_dir / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    index.pop("source", None)
+    index_path.write_text(json.dumps(index), encoding="utf-8")
+
+    payload = memory_status.build_status(tmp_path, output_dir, max_age_hours=168, verify_tree=True)
+    assert payload["status"] != "fail"
+    assert payload["source"]["git_head"] == "not_recorded"
+    assert payload["source"]["tree_fingerprint"] == "not_recorded"
+
+
+def test_indexer_handles_unicode_paths(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "tiếng-việt" / "mô_đun.py", "def chào():\n    return 'xin chào'\n")
+    write(tmp_path / "docs" / "説明.md", "# 説明\n")
+    output = tmp_path / ".codex" / "knowledge" / "codebase-index.json"
+
+    index = codebase_indexer.build_codebase_index(tmp_path, output_path=output, rebuild=True)
+    assert "src/tiếng-việt/mô_đun.py" in index["files"]
+    assert "docs/説明.md" in index["files"]
+    reloaded = json.loads(output.read_text(encoding="utf-8"))
+    assert set(reloaded["files"]) == set(index["files"])
+    assert project_traversal.tree_fingerprint(
+        [{"rel_path": "src/tiếng-việt/mô_đun.py", "size_bytes": 1}]
+    ) == project_traversal.tree_fingerprint([{"rel_path": "src/tiếng-việt/mô_đun.py", "size_bytes": 1}])
+
+
+def test_large_file_hash_uses_sampled_prefix_and_size(tmp_path: Path) -> None:
+    big = tmp_path / "big.py"
+    head = b"# header\n" * 1000
+    big.write_bytes(head + b"x" * 50_000)
+    size = big.stat().st_size
+
+    sampled = codebase_indexer.content_hash(big, max_bytes=4096, size_bytes=size)
+    full = codebase_indexer.content_hash(big)
+    assert sampled != full
+    assert sampled == codebase_indexer.content_hash(big, max_bytes=4096, size_bytes=size)
+
+    big.write_bytes(head + b"y" * 50_000)
+    assert codebase_indexer.content_hash(big, max_bytes=4096, size_bytes=big.stat().st_size) == sampled
+    big.write_bytes(head + b"y" * 50_001)
+    assert codebase_indexer.content_hash(big, max_bytes=4096, size_bytes=big.stat().st_size) != sampled
+    small = tmp_path / "small.py"
+    small.write_bytes(b"tiny")
+    assert codebase_indexer.content_hash(small, max_bytes=4096, size_bytes=4) == codebase_indexer.content_hash(small)
+
+
+def test_build_knowledge_index_cli_defaults_to_incremental(tmp_path: Path) -> None:
+    import subprocess
+
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    base = [sys.executable, str(BUILD_INDEX_SCRIPT), "--project-root", str(tmp_path), "--format", "json"]
+
+    first = json.loads(subprocess.run(base, capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+    assert first["status"] == "built"
+    second = json.loads(subprocess.run(base, capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+    codebase = json.loads(Path(second["codebase_index_path"]).read_text(encoding="utf-8"))
+    assert codebase["incremental"]["enabled"] is True
+    assert codebase["incremental"]["reused_files"] == 1
+
+    third = json.loads(
+        subprocess.run(base + ["--no-incremental"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+    )
+    codebase = json.loads(Path(third["codebase_index_path"]).read_text(encoding="utf-8"))
+    assert codebase["incremental"]["enabled"] is False
+    assert codebase["incremental"]["reused_files"] == 0

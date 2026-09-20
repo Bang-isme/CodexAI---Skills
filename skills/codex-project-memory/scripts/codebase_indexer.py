@@ -17,7 +17,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from project_traversal import TraversalConfig, list_project_files, sample_for_index
+from project_traversal import HARD_CODED_SKIP_DIRS, TraversalConfig, atomic_write_json, list_project_files, sample_for_index
 from redaction import redact_text as shared_redact_text
 
 SCHEMA_VERSION = "1.0"
@@ -27,10 +27,7 @@ MAX_CHUNKS_PER_FILE = 300
 MAX_IMPORTS_PER_FILE = 300
 MAX_ROUTES_PER_FILE = 100
 MAX_MODELS_PER_FILE = 100
-SKIP_DIRS = {
-    ".git", ".next", ".pytest_cache", "__pycache__", "build", "coverage", "dist",
-    "node_modules", "vendor", ".venv", "venv", ".codex", ".codexai", ".idea", ".vscode",
-}
+SKIP_DIRS = set(HARD_CODED_SKIP_DIRS)
 MAX_CHUNK_TEXT = 24000
 CODE_EXTENSIONS = {
     ".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".json", ".toml", ".yaml", ".yml",
@@ -99,8 +96,19 @@ def parser_for(path: Path) -> str:
     return "line-window"
 
 
-def content_hash(path: Path) -> str:
+def content_hash(path: Path, max_bytes: int | None = None, size_bytes: int | None = None) -> str:
+    """sha256 of the file, or of the sampled prefix plus declared size for files above max_bytes.
+
+    The indexer only ever parses the first ``max_file_bytes`` of a large file, so hashing the whole
+    file would read megabytes that never influence the index. The sampled digest still changes when
+    the head or the size changes, which is what incremental reuse needs.
+    """
     digest = hashlib.sha256()
+    if max_bytes is not None and size_bytes is not None and size_bytes > max_bytes:
+        with path.open("rb") as handle:
+            digest.update(handle.read(max_bytes))
+        digest.update(f"|size={size_bytes}".encode("utf-8"))
+        return digest.hexdigest()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
@@ -387,7 +395,7 @@ def build_codebase_index(
     for entry in discovered_files:
         rel = entry.rel_path
         try:
-            digest = content_hash(entry.path)
+            digest = content_hash(entry.path, max_bytes=cfg.max_file_bytes, size_bytes=entry.size_bytes)
         except OSError:
             continue
         metadata = {
@@ -487,8 +495,7 @@ def build_codebase_index(
         "semantic": {"enabled": False, "adapter": "optional", "vector_metadata_path": ".codex/knowledge/codebase-vectors.json", "offline_safe": True},
         "inverted_index": build_inverted_index(all_chunks, all_symbols),
     }
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    index_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(index_path, payload)
     return payload
 
 

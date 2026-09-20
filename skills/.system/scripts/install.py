@@ -137,16 +137,51 @@ def run_install_host(
     return payload
 
 
+PLUGIN_SOURCE_MANIFESTS = {
+    "codex": ".codex-plugin/plugin.json",
+    "claude": ".claude-plugin/plugin.json",
+    "antigravity": "antigravity/plugin.json",
+    "cursor": ".cursor/rules/codexai-core.mdc",
+}
+# Cursor only discovers skills from .cursor/skills, so a source checkout is a warning, not a pass.
+PLUGIN_SOURCE_STATUS = {"codex": "pass", "claude": "pass", "antigravity": "pass", "cursor": "warn"}
+
+
+def plugin_source_root(host: str, repo_root: Path | None) -> Path | None:
+    """Return repo_root/skills when repo_root is the plugin source itself for a manifest-loaded host."""
+    if repo_root is None or host not in PLUGIN_SOURCE_MANIFESTS:
+        return None
+    skills_root = repo_root / "skills"
+    if not (skills_root / "codex-master-instructions" / "SKILL.md").exists():
+        return None
+    if not (repo_root / PLUGIN_SOURCE_MANIFESTS[host]).exists():
+        return None
+    return skills_root
+
+
 def doctor_host(host: str, scope: str, repo_root: Path | None) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     skills_target = None
     try:
         skills_target = expected_skills_root(host, scope, repo_root)
         exists = skills_target.exists()
-        checks.append({"name": "skills_root", "status": "pass" if exists else "fail", "detail": str(skills_target)})
-        skill_md = skills_target / "codex-master-instructions" / "SKILL.md"
-        if host == "antigravity":
-            skill_md = skills_target / "skills" / "codex-master-instructions" / "SKILL.md"
+        source_root = None if exists else plugin_source_root(host, repo_root)
+        if exists:
+            checks.append({"name": "skills_root", "status": "pass", "detail": str(skills_target)})
+            skill_md = skills_target / "codex-master-instructions" / "SKILL.md"
+            if host == "antigravity":
+                skill_md = skills_target / "skills" / "codex-master-instructions" / "SKILL.md"
+        elif source_root is not None:
+            detail = f"plugin source {source_root} (host loads via {PLUGIN_SOURCE_MANIFESTS[host]})"
+            if host == "cursor":
+                detail = f"plugin source {source_root}; run install.py --host cursor --scope repo --apply to materialize {skills_target}"
+            checks.append({"name": "skills_root", "status": PLUGIN_SOURCE_STATUS[host], "detail": detail})
+            skill_md = source_root / "codex-master-instructions" / "SKILL.md"
+        else:
+            checks.append({"name": "skills_root", "status": "fail", "detail": str(skills_target)})
+            skill_md = skills_target / "codex-master-instructions" / "SKILL.md"
+            if host == "antigravity":
+                skill_md = skills_target / "skills" / "codex-master-instructions" / "SKILL.md"
         checks.append(
             {
                 "name": "master_skill",

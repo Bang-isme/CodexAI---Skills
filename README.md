@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-17.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-435%2F435%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-17.1.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-456%2F456%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -33,7 +33,7 @@ The pack is designed for 3 outcomes:
 | Artifact Templates | 9 |
 | Agent Personas | 13 |
 | Workflow Aliases | 8 |
-| Verification | 435 unit + 87 smoke = 522 tests |
+| Verification | 456 unit + 87 smoke = 543 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 | Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
@@ -48,7 +48,7 @@ The pack is designed for 3 outcomes:
 | --- | --- |
 | Vague task interpretation | `codex-intent-context-analyzer` locks goal, scope, and ambiguity before code |
 | Plans that sound good but do not guide execution | `codex-plan-writer` creates verifiable, dependency-aware task breakdowns |
-| Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into grammar and a lintable `DESIGN.md`; product/surface context lives under `.codex/design/` |
+| Design output drifts between sessions | `codex-frontend-design` plus `codex-design-md` turn design intent into a brief and a lintable `DESIGN.md`; product/surface context lives under `.codex/design/` |
 | Vague “make it look great” UI prompts | `design-lead` + `codex-frontend-design` fast path, then `codex-frontend-implementation` and `$visual-gate` |
 | Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
@@ -79,20 +79,28 @@ Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI.
 
 The repository ships a senior baseline GitHub Actions setup:
 
-- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium), Python 3.12–3.13 × Linux/Windows matrix, Python 3.11 on `main`, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
+- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift check, host doctor, smoke tests, a `pipeline-selfcheck` job that runs `pipeline.py`, memory-at-scale (medium), Python 3.12–3.13 × Linux/Windows matrix, Python 3.11 contracts, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
 - `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
-- `release.yml`: optional manual ZIP build (`workflow_dispatch` only).
+- `release.yml`: on tag push `v*` it verifies the tag matches `skills/VERSION`, runs the pipeline and `local_release_gate.py --apply`, then publishes a **GitHub Release** with the ZIP attached. `workflow_dispatch` still builds the ZIP as an artifact only.
 
 CI validates **this plugin pack** only. CI/CD scripts and `plugin-tools.json` are **capabilities for your Project CLI** to invoke locally against any `project-root` — not a production deploy pipeline for this repo.
 
-**Local pack check** (optional, before sharing a ZIP):
+**Unified local pipeline** (same gates as CI, one command; alias `$pipeline`):
 
 ```bash
-python skills/.system/scripts/local_release_gate.py --format json
-python skills/.system/scripts/local_release_gate.py --apply --format json
+python skills/.system/scripts/pipeline.py --stage all --format text            # lint, contracts, test, build, doctor
+python skills/.system/scripts/pipeline.py --stage lint,contracts --format text # fast pre-commit
+python skills/.system/scripts/pipeline.py --stage all --report-path .codex/pipeline-report.json
 ```
 
-See `skills/.system/references/deploy-promotion.md`.
+**Release** (after the pipeline is green):
+
+```bash
+python skills/.system/scripts/local_release_gate.py --format json   # dry-run
+git tag v17.1.0 && git push origin v17.1.0                           # triggers release.yml
+```
+
+See `skills/.system/OPERATION_RUNBOOK.md` and `skills/.system/references/deploy-promotion.md`.
 
 ---
 
@@ -202,8 +210,10 @@ This is the biggest differentiator of the pack today:
 
 | Skill | Coverage | Refs | Starters |
 | --- | --- | ---: | ---: |
-| `codex-design-system` | Premium UI vocabulary across palettes, typography, layout, motion, composition, trends, and anti-patterns | 7 | 0 |
+| `codex-frontend-design` | Fast path for a page/component or studio path for a new identity; OKLCH palettes, type, states, landing anatomy, anti-slop, refinement dials | 20 | 0 |
+| `codex-frontend-implementation` | React/Next/Tailwind/shadcn/GSAP recipes, 17 curated craft files with provenance, OKLCH starter without Inter | 8 | 1 |
 | `codex-design-md` | Durable `DESIGN.md` contracts, lint/diff/export workflows, and design-token source of truth | 3 | 1 |
+| `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched capture, fresh-eyes review with `DEGRADED` marking | 0 | 0 |
 | `codex-domain-specialist` | Full-stack engineering | 66 | 19 |
 | `codex-security-specialist` | Network, infra, AppSec, DevSecOps, compliance | 30 | 10 |
 
@@ -317,6 +327,9 @@ The legacy sync commands copy dot directories such as `.system`, `.agents`, and 
 ### 2. Verify
 
 ```bash
+# Everything in one command (lint, contracts, test, build, doctor)
+python skills/.system/scripts/pipeline.py --stage all --format text
+
 # Unit tests
 python -m pytest skills/tests -q
 
@@ -420,8 +433,13 @@ CodexAI---Skills/
     |-- codex-workflow-autopilot/
     |-- codex-reasoning-rigor/
     |-- codex-role-docs/
-    |-- codex-design-system/
+    |-- codex-frontend-design/
+    |-- codex-frontend-implementation/
+    |-- codex-visual-quality-gate/
     |-- codex-design-md/
+    |-- codex-design-system/          (redirect -> codex-frontend-design)
+    |-- codex-ui-ux-design/           (redirect -> codex-frontend-design)
+    |-- codex-creative-direction/     (redirect -> codex-frontend-design studio)
     |-- codex-domain-specialist/
     |-- codex-security-specialist/
     |-- codex-execution-quality-gate/

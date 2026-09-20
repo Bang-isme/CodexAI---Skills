@@ -29,6 +29,7 @@ flowchart LR
 | `validate_tool_contracts` | `validate_tool_contracts.py` | `project-cli plugin contracts` |
 | `memory_scale_gate` | `run_scale_gate.py` | `project-cli memory scale --tier medium` |
 | `memory_status` | `memory_status.py` | `project-cli memory status` |
+| `pipeline_run` | `pipeline.py` | `project-cli plugin pipeline --stage all` |
 | `local_release_gate` | `local_release_gate.py` | `project-cli release gate` |
 | `trust_harness` | `trust_harness.py` | `project-cli trust check` |
 
@@ -38,17 +39,20 @@ Read `skills/.system/references/plugin-tools.json` for full `args_schema`, `exit
 
 | Workflow | Purpose |
 |----------|---------|
-| `ci.yml` | Validate plugin pack + regression tests |
+| `ci.yml` | Validate plugin pack + regression tests + `pipeline-selfcheck` |
 | `scale-nightly.yml` | Weekly large memory scale stress |
-| `release.yml` | Optional manual plugin ZIP (`workflow_dispatch`) |
+| `release.yml` | Tag push `v*`: gate, build ZIP, publish GitHub Release. `workflow_dispatch`: ZIP artifact only |
 
-No `deploy.yml`. No staging/production environments for this repository.
+No `deploy.yml`. No staging/production environments for this repository. Publishing a GitHub Release is the only "deploy" step and it requires the tag to equal `skills/VERSION`.
 
 ## Local usage (today, without Project CLI)
 
 ```bash
 # Gate on a user project
 python skills/codex-project-memory/scripts/memory_status.py --project-root /path/to/project
+
+# Whole plugin pipeline in one command (lint, contracts, test, build, doctor)
+python skills/.system/scripts/pipeline.py --stage all --format text
 
 # Plugin pack release check (operator machine)
 python skills/.system/scripts/local_release_gate.py --format json

@@ -53,6 +53,37 @@ def test_init_agents_md_writes_all_host_bridges(tmp_path: Path) -> None:
     assert second["status"] == "unchanged"
 
 
+def test_init_agents_md_check_detects_missing_and_drifted_bridges(tmp_path: Path) -> None:
+    missing = init_agents_md.check_payload(tmp_path, target="all")
+    assert missing["status"] == "drift"
+    assert set(missing["drifted"]) == set(render_core_rules.HOSTS)
+    assert all(item["state"] == "missing" for item in missing["hosts"])
+    assert "--merge" in missing["next"]
+
+    init_agents_md.build_payload(tmp_path, mode="merge", dry_run=False, target="all")
+    in_sync = init_agents_md.check_payload(tmp_path, target="all")
+    assert in_sync["status"] == "pass"
+    assert in_sync["drifted"] == []
+
+    agents = tmp_path / "AGENTS.md"
+    text = agents.read_text(encoding="utf-8")
+    agents.write_text(text.replace("Do not bulk-load the pack.", "Bulk-load everything."), encoding="utf-8")
+    drifted = init_agents_md.check_payload(tmp_path, target="all")
+    assert drifted["status"] == "drift"
+    assert drifted["drifted"] == ["agents"]
+    assert next(item for item in drifted["hosts"] if item["host"] == "agents")["state"] == "drift"
+
+    (tmp_path / "CLAUDE.md").write_text("# custom file without markers\n", encoding="utf-8")
+    unmarked = init_agents_md.check_payload(tmp_path, target="claude")
+    assert unmarked["status"] == "drift"
+    assert unmarked["hosts"][0]["state"] == "unmarked"
+
+
+def test_repo_host_bridges_are_in_sync_with_aliases() -> None:
+    payload = init_agents_md.check_payload(REPO_ROOT, target="all")
+    assert payload["status"] == "pass", payload
+
+
 def test_pack_antigravity_core_rule_matches_renderer() -> None:
     rendered = render_core_rules.render_host_document("antigravity")
     path = REPO_ROOT / "antigravity" / "rules" / "codexai-core.md"

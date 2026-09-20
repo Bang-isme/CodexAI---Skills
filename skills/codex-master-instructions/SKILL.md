@@ -40,7 +40,7 @@ If the pack is not loaded, run `python skills/.system/scripts/install.py doctor 
 
 Critical aliases: `$hook` `$preflight` `$health` `$init-profile` `$knowledge` `$spec` `$prototype` `$think` `$decide` `$check` `$check-full` `$check-deploy` `$init-docs` `$check-docs` `$install-hooks` `$install-ci` `$today` `$pulse`.
 
-Also: `$direction` `$refine` `$polish` `$fix` `$build` `$docs`. Full catalog: `../.system/references/aliases.json`.
+Also: `$direction` `$refine` `$polish` `$fix` `$build` `$docs` `$pipeline` `$release-gate`. Full catalog: `../.system/references/aliases.json`.
 
 Request types include question, survey, simple-code, complex-code, prototype, debug, review, and | document |.
 

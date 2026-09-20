@@ -41,14 +41,17 @@ def remove_managed_block(text: str) -> str:
 def github_workflow() -> str:
     return f"""name: CodexAI Quality Gate
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - name: Resolve CodexAI Skills
         shell: bash
         run: |
@@ -79,7 +82,7 @@ def write_github_workflow(output_path: Path, force: bool) -> None:
 def gitlab_block() -> str:
     return f"""{START_MARKER}
 codex_quality_gate:
-  image: python:3.11
+  image: python:3.12
   stage: test
   before_script:
     - |

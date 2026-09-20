@@ -6,8 +6,10 @@ Use the two design skills together, but for different jobs:
 
 | Skill | Job |
 | --- | --- |
-| `codex-design-system` | choose palettes, fonts, layout patterns, motion, composition, anti-pattern avoidance |
+| `codex-frontend-design` | choose palettes (OKLCH), fonts, layout patterns, motion, composition, anti-slop avoidance (fast path or studio) |
 | `codex-design-md` | turn those choices into a durable, lintable, exportable contract |
+
+`codex-design-system` remains only as a compatibility redirect into `codex-frontend-design`.
 
 ## When To Reach For DESIGN.md
 
@@ -22,7 +24,7 @@ Do not force `DESIGN.md` for a tiny one-off tweak where no persistent design con
 
 ## Pack-Specific Workflow
 
-1. Use `codex-design-system` to choose a palette, typography pair, and layout language.
+1. Use `codex-frontend-design` to choose a palette, typography pair, and layout language.
 2. Run `design_contract.py scaffold` to create `DESIGN.md`.
 3. Replace scaffold defaults with the chosen tokens and rationale.
 4. Run `design_contract.py lint DESIGN.md`.

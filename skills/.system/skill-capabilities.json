@@ -173,7 +173,7 @@
     {
       "skill": "codex-ui-ux-design",
       "domain": "frontend",
-      "objective": "Produce UX contracts for jobs, flows, IA, states, copy, and accessible responsive behavior.",
+      "objective": "Compatibility redirect into codex-frontend-design for UX contracts covering jobs, flows, IA, states, copy, and accessible responsive behavior.",
       "triggers": ["user flow", "information architecture", "empty states", "onboarding"],
       "resources": {"scripts": [], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
       "output_artifacts": ["UX surface contract", ".codex/design/surfaces"],
@@ -181,12 +181,12 @@
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance only; file writes go through design_context.py with --apply."},
       "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
-      "handoff": "Pass the UX contract to creative-designer or frontend-specialist."
+      "handoff": "Redirect: design-lead owns the UX contract via codex-frontend-design; pass it to frontend-specialist."
     },
     {
       "skill": "codex-creative-direction",
       "domain": "frontend",
-      "objective": "Decode vague or redesign briefs into three distinct directions with thesis, risk, and implementation consequence.",
+      "objective": "Compatibility redirect into the codex-frontend-design studio path for vague or redesign briefs that need distinct directions.",
       "triggers": ["art direction", "redesign", "landing page", "visual identity"],
       "resources": {"scripts": [], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
       "output_artifacts": ["direction contract", ".codex/design/directions"],
@@ -194,7 +194,7 @@
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Does not invent product claims or copy third-party brand assets."},
       "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
-      "handoff": "Send the chosen direction to ui-ux-designer and creative-designer."
+      "handoff": "Redirect: design-lead runs the codex-frontend-design studio path; send the chosen direction to frontend-specialist."
     },
     {
       "skill": "codex-visual-quality-gate",

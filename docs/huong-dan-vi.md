@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `17.0.0` | Cập nhật: 2026-09-20
+> Phiên bản: `17.1.0` | Cập nhật: 2026-09-20
 
 ## 1. Giới Thiệu
 
@@ -22,7 +22,7 @@ Luồng chuẩn của pack:
 | Artifact templates | 9 |
 | Agent personas | 13 |
 | Workflow aliases | 8 |
-| Kiểm thử | 435 unit + 87 smoke = 522 bài test |
+| Kiểm thử | 456 unit + 87 smoke = 543 bài test |
 
 ## 2. Điểm mạnh chính
 
@@ -95,6 +95,15 @@ python ./skills/.system/scripts/sync_global_skills.py --source-root ./skills --g
 
 ## 4. Kiểm Tra Sau Cài Đặt
 
+Cách nhanh nhất là chạy pipeline hợp nhất (cùng bộ gate với CI; alias `$pipeline`):
+
+```bash
+python skills/.system/scripts/pipeline.py --stage all --format text            # lint, contracts, test, build, doctor
+python skills/.system/scripts/pipeline.py --stage lint,contracts --format text # kiểm tra nhanh trước khi commit
+```
+
+Hoặc chạy từng bước:
+
 ```bash
 python -m pytest skills/tests -q
 python skills/tests/smoke_test.py
@@ -131,6 +140,9 @@ Pass criteria:
 | `$knowledge` | Tạo `.codex/knowledge/INDEX.md` để làm tri thức ngầm trở nên rõ ràng |
 | `$check`, `$check-full`, `$check-deploy` | Chạy `auto_gate.py` theo mức quick/full/deploy |
 | `$health` | Kiểm tra manifest, registry, aliases, dot directories, global sync, và encoding |
+| `$pipeline` | Chạy `pipeline.py --stage all`: lint, contracts, test, build, doctor trong một lệnh, xuất report JSON |
+| `$release-gate` | Chạy `local_release_gate.py` (dry-run) trước khi tạo tag `vX.Y.Z` để kích hoạt GitHub Release |
+| `$doctor` | `install.py doctor --host all` kiểm tra wiring Codex/Claude/Cursor/Antigravity |
 | `$think` / `$decide` | Tạo decision surface ngắn: options, evidence, cost, risk, verification |
 
 ## 6. Quy Trình Full-Cycle Prototype

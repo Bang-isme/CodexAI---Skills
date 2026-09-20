@@ -99,5 +99,5 @@ The upstream `lint` command validates structure and token references, and it als
 ## Practical Guidance For This Pack
 
 - Keep the contract short but normative. Put tokens in YAML and only rationale in markdown.
-- Use `codex-design-system` references to choose palette and typography inputs before filling the contract.
+- Use `codex-frontend-design` references to choose palette and typography inputs before filling the contract.
 - Treat contract diffs as design changes that deserve review, not as passive documentation churn.

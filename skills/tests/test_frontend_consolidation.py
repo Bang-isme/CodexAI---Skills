@@ -57,6 +57,31 @@ def test_starters_and_template_do_not_default_to_inter() -> None:
     assert "use Space Grotesk" not in template
 
 
+def test_docs_and_capabilities_no_longer_treat_redirects_as_primary() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    skills_readme = (SKILLS_ROOT / "README.md").read_text(encoding="utf-8")
+    capabilities = (SKILLS_ROOT / ".system" / "skill-capabilities.json").read_text(encoding="utf-8")
+    frontend_agent = (SKILLS_ROOT / ".agents" / "frontend-specialist.md").read_text(encoding="utf-8")
+    role_manifest = (SKILLS_ROOT / "codex-role-docs" / "templates" / "role_docs_manifest.json").read_text(encoding="utf-8")
+    design_md = (SKILLS_ROOT / "codex-design-md" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "| `codex-frontend-design` |" in root_readme
+    assert "| `codex-design-system` |" not in root_readme
+    assert "`codex-frontend-design`" in skills_readme
+    assert "v14 NEW" not in skills_readme
+    assert "- `design-lead`" in skills_readme
+    assert "- `visual-quality-reviewer`" in skills_readme
+    for legacy in ("creative-designer", "ui-ux-designer", "creative-director"):
+        assert legacy not in capabilities
+        assert legacy not in frontend_agent
+        assert legacy not in role_manifest
+    assert "codex-design-system" not in design_md
+    assert "codex-frontend-design" in design_md
+    review_route = next(route for route in router.ROUTES if route["agent"] == "visual-quality-reviewer")
+    assert "codex-design-system" not in review_route["skills"]
+    assert "codex-frontend-design" in review_route["skills"]
+
+
 def test_beautiful_landing_page_routes_fast_design_lead() -> None:
     routed = router.route_prompt("Build a beautiful landing page")
     assert routed["suggested_agent"] == "design-lead"

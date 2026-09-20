@@ -76,7 +76,7 @@ User intent -> Memory action?
 - `references/feedback-tracker-spec.md`: feedback logging and aggregate usage.
 - `references/skill-evolution-spec.md`: skill usage analytics and optimization.
 - `references/knowledge-graph-spec.md`: deep architecture mapping and refresh guidance.
-- `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, config, and the structural knowledge graph; redacts secret-like values, stores provenance/confidence, and writes an offline interactive HTML dashboard for AI and human review.
+- `build_knowledge_index.py`: schema-versioned project knowledge index from genome, role docs, decisions, commits, config, and the structural knowledge graph; redacts secret-like values, stores provenance/confidence and a source fingerprint for staleness checks; `--html` optionally adds an offline interactive dashboard.
 - `references/knowledge-index.schema.json`: output contract for `.codex/knowledge/index.json`.
 - `references/knowledge-graph.schema.json`: output contract for `.codex/knowledge/knowledge-graph.json` and `.codex/knowledge-graph.json`.
 - `references/context-compactor-spec.md`: retention policy, archive layout, and dry-run expectations.

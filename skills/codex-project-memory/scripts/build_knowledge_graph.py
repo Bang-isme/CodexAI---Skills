@@ -1469,10 +1469,7 @@ def main() -> int:
             traversal_config=traversal_config,
             redaction_enabled=not args.no_redaction,
         )
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open("w", encoding="utf-8", newline="\n") as handle:
-            json.dump(graph, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
+        load_traversal().atomic_write_json(output_path, graph)
     except PermissionError as exc:
         emit({"status": "error", "path": "", "message": f"Permission denied: {exc}"})
         return 1

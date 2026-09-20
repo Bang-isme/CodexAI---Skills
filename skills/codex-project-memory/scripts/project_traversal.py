@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import fnmatch
+import hashlib
+import json
 import os
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 
 
 HARD_CODED_SKIP_DIRS = {
@@ -18,15 +21,85 @@ HARD_CODED_SKIP_DIRS = {
     "coverage",
     "dist",
     "node_modules",
+    "target",
     "vendor",
     ".venv",
     "venv",
     ".codex",
     ".codexai",
+    ".codexai-backups",
     ".idea",
     ".vscode",
     ".yarn",
 }
+
+
+def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """Write text via a same-directory temp file + os.replace so readers never see a partial artifact."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp_path.write_text(text, encoding=encoding)
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+
+def atomic_write_json(path: Path, payload: Any, indent: int = 2, trailing_newline: bool = True) -> None:
+    text = json.dumps(payload, ensure_ascii=False, indent=indent)
+    atomic_write_text(path, text + ("\n" if trailing_newline else ""))
+
+
+def git_head(project_root: Path) -> str:
+    """Return the current git HEAD sha or an empty string when git is unavailable or the root is not a repo."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def tree_fingerprint(files: Iterable[Any]) -> str:
+    """Stable sha256 over sorted (rel_path, size_bytes) pairs; deterministic across runs and OSes."""
+    rows: list[str] = []
+    for entry in files:
+        rel = getattr(entry, "rel_path", None)
+        size = getattr(entry, "size_bytes", None)
+        if rel is None and isinstance(entry, dict):
+            rel = entry.get("rel_path") or entry.get("path")
+            size = entry.get("size_bytes", entry.get("size"))
+        if rel is None:
+            continue
+        rows.append(f"{rel}\0{int(size or 0)}")
+    digest = hashlib.sha256()
+    for row in sorted(rows):
+        digest.update(row.encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def source_snapshot(project_root: Path, files: Iterable[Any]) -> dict[str, Any]:
+    """Provenance block stored on generated indexes so memory_status can detect staleness."""
+    listed = list(files)
+    return {
+        "git_head": git_head(project_root),
+        "tree_fingerprint": tree_fingerprint(listed),
+        "fingerprint_inputs": "sorted(rel_path, size_bytes)",
+        "files_counted": len(listed),
+    }
 
 BINARY_EXTENSIONS = {
     ".7z",

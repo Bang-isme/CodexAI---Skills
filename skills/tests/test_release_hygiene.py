@@ -175,6 +175,13 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
 
     assert not (REPO_ROOT / ".github" / "workflows" / "deploy.yml").exists()
 
+    # 17.1: missing steps folded into CI plus the unified pipeline self-check job.
+    assert "install.py doctor" in ci
+    assert "smoke_test.py" in ci
+    assert "init_agents_md.py" in ci and "--check" in ci
+    assert "pipeline-selfcheck" in ci
+    assert "scripts/pipeline.py" in ci
+
     assert "local_release_gate.py" in release
     assert "skill_capabilities" in (REPO_ROOT / "skills" / ".system" / "scripts" / "local_release_gate.py").read_text(encoding="utf-8")
     assert "actions/checkout@v5" in release
@@ -182,3 +189,10 @@ def test_github_actions_workflows_cover_ci_and_release_gates() -> None:
     assert "actions/upload-artifact" in release
     assert "local_release_gate.py" in release
     assert "--apply" in release
+    # 17.1: tag-triggered GitHub Release with the built ZIP attached.
+    assert "tags:" in release
+    assert "workflow_dispatch" in release
+    assert "softprops/action-gh-release@v2" in release
+    assert "skills/VERSION" in release
+    assert "contents: write" in release
+    assert "startsWith(github.ref, 'refs/tags/v')" in release

@@ -18,7 +18,7 @@
 | `.codex/knowledge/index.json` | `build_knowledge_index.py` | Primary knowledge index (schema v2) |
 | `.codex/knowledge/knowledge-graph.json` | `build_knowledge_index.py` | In-knowledge-dir graph copy |
 | `.codex/knowledge/codebase-index.json` | `build_knowledge_index.py` | Symbol/chunk index |
-| `.codex/knowledge/index.html` | `build_knowledge_index.py` | Offline dashboard |
+| `.codex/knowledge/index.html` | `build_knowledge_index.py --html` | Offline dashboard (opt-in only; not checked by `memory_status.py`) |
 | `.codex/knowledge/index-progress.json` | `build_knowledge_index.py` | Incremental build progress |
 | `.codex/knowledge-graph.json` | `build_knowledge_graph.py` | Standalone graph (optional for `memory_status`) |
 | `.codex/context/genome.md` | `generate_genome.py` | Project genome |
@@ -43,5 +43,15 @@ No generated dashboard or index files are committed by default. If a future doc 
 `memory_status.py` treats:
 
 - `.codex/knowledge/index.json` and `.codex/knowledge/knowledge-graph.json` as **required** (fail if missing/invalid).
-- `.codex/knowledge/codebase-index.json` and `index.html` as **optional** (warn).
+- `.codex/knowledge/codebase-index.json` as **optional** (warn when missing or invalid).
+- `.codex/knowledge/index.html` as **ignored** (opt-in dashboard; never checked).
 - `.codex/knowledge-graph.json` (standalone) as **optional** by default; use `--require-standalone-graph` when CI must enforce it.
+- `source.git_head` / `source.tree_fingerprint` in `index.json` as a **staleness signal** (warn when the current git HEAD or file tree no longer matches; `--strict` turns the warning into exit 1).
+
+## Generated vs human-owned
+
+| Kind | Paths | Rule |
+| --- | --- | --- |
+| Generated, regenerate freely | `.codex/knowledge/**`, `.codex/knowledge-graph.json`, `.codex/genome.md`, `.codex/handoff.md` | Never hand-edit; rebuild with the owning script. Edits are lost on the next run. |
+| Append-only | `.codex/decisions/**`, `.codex/feedback/**`, `.codex/skill-usage/**` | Scripts add entries; humans may curate but should not rewrite history. |
+| Human-owned | `.codex/project-docs/**`, `.codex/specs/**`, `DESIGN.md`, `.codex/profile.json` | Scripts scaffold once and append factual entries only; humans own the content. |

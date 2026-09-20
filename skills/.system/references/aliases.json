@@ -46,6 +46,8 @@
     {"alias": "$animate", "command": "$refine animate", "skill": "codex-frontend-design"},
     {"alias": "$genome", "command": "$codex-genome", "skill": "codex-project-memory"},
     {"alias": "$doctor", "command": "install.py doctor", "skill": ".system"},
+    {"alias": "$pipeline", "command": "pipeline.py --stage all", "skill": ".system"},
+    {"alias": "$release-gate", "command": "local_release_gate.py", "skill": ".system"},
     {"alias": "$check", "command": "auto_gate.py --mode quick", "skill": "codex-execution-quality-gate"},
     {"alias": "$check-full", "command": "auto_gate.py --mode full", "skill": "codex-execution-quality-gate"},
     {"alias": "$check-deploy", "command": "auto_gate.py --mode deploy", "skill": "codex-execution-quality-gate"},

@@ -1,7 +1,7 @@
 # Domain Specialist Routing Index
 
 Canonical routing tables, combo detection, and signal maps. Keep `SKILL.md` short.
-Frontend implementation references now live in `codex-frontend-implementation/`. Local `frontend-rules.md`, `react-patterns.md`, `css-architecture.md`, `accessibility-rules.md`, `nextjs-patterns.md`, and `gsap-mastery.md` are compatibility stubs.
+Frontend implementation references live in `codex-frontend-implementation/references/`; tables below link there directly. Local `frontend-rules.md`, `react-patterns.md`, `css-architecture.md`, `accessibility-rules.md`, `nextjs-patterns.md`, and `gsap-mastery.md` are compatibility stubs only. Bare filenames in the combo tables resolve to the frontend-implementation copies for those six files.
 
 Load at most 4 references on the first pass. Quality gates are owned by `codex-execution-quality-gate` / `codex-visual-quality-gate`, not this skill.
 
@@ -57,9 +57,9 @@ After determining the primary domain (via profile or detection), check for recur
 
 | Feedback Category | Supplemental Reference |
 | --- | --- |
-| frontend | `references/frontend-rules.md` |
-| react | `references/react-patterns.md` |
-| nextjs | `references/nextjs-patterns.md` |
+| frontend | `../codex-frontend-implementation/references/frontend-rules.md` |
+| react | `../codex-frontend-implementation/references/react-patterns.md` |
+| nextjs | `../codex-frontend-implementation/references/nextjs-patterns.md` |
 | backend | `references/backend-rules.md` |
 | api | `references/api-design-rules.md` |
 | database | `references/database-rules.md` |
@@ -71,7 +71,7 @@ After determining the primary domain (via profile or detection), check for recur
 | test-strategy | `references/testing-strategy.md` |
 | performance | `references/performance-rules.md` |
 | profiling | `references/performance-profiling.md` |
-| accessibility | `references/accessibility-rules.md` |
+| accessibility | `../codex-frontend-implementation/references/accessibility-rules.md` |
 | architecture | `references/architecture-rules.md` |
 | integration | `references/integration-rules.md` |
 | caching | `references/caching-patterns.md` |
@@ -82,7 +82,7 @@ After determining the primary domain (via profile or detection), check for recur
 | creative | `references/creative-ui-ux.md` |
 | creative-dev | `references/creative-development.md` |
 | animation | `references/creative-ui-ux.md` |
-| gsap | `references/gsap-mastery.md` |
+| gsap | `../codex-frontend-implementation/references/gsap-mastery.md` |
 | interactive | `references/interactive-elements.md` |
 | ui-design | `references/ui-ux-design-principles.md` |
 | visualization | `references/data-visualization.md` |
@@ -238,11 +238,11 @@ When task signals match keywords below, add the corresponding reference. If mult
 
 | Signal | Add Reference |
 | --- | --- |
-| design tokens, color palette, spacing, CSS variables, theme, dark mode | `references/css-architecture.md` |
+| design tokens, color palette, spacing, CSS variables, theme, dark mode | `../codex-frontend-implementation/references/css-architecture.md` |
 | chart, graph, visualization, Recharts, D3, sparkline, bar chart, pie chart | `references/data-visualization.md` |
 | GSAP, Three.js, WebGL, Framer Motion, Awwwards, creative, storytelling, landing page, scrolltrigger | `references/creative-ui-ux.md` |
 | creative development, art direction, breakthrough design, brand experience, experimental, unique design, wow factor, premium feel, creative archetype | `references/creative-development.md` |
-| gsap.timeline, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, scrub, pin, tween, stagger | `references/gsap-mastery.md` |
+| gsap.timeline, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, scrub, pin, tween, stagger | `../codex-frontend-implementation/references/gsap-mastery.md` |
 | interactive, fun, playful, hover effect, tilt card, confetti, particle, drag, ripple, Easter egg, cursor effect, magnetic button, text scramble | `references/interactive-elements.md` |
 | ui design, ux design, visual hierarchy, color theory, typography pair, layout, whitespace, gestalt, aesthetics, beautiful design, shadow depth | `references/ui-ux-design-principles.md` |
 | form, multi-step form, field array, form validation UX, React Hook Form | `references/form-patterns.md` |
@@ -251,7 +251,7 @@ When task signals match keywords below, add the corresponding reference. If mult
 | tiếng việt, vietnamese, dấu, diacritics, vietnamese font, vi locale | `references/vietnamese-typography.md` |
 | PWA, service worker, offline, manifest, installable | `references/pwa-patterns.md` |
 | lighthouse, bundle size, web vitals, LCP, CLS, INP | `references/performance-profiling.md` |
-| keyboard, focus, screen reader, WCAG, aria | `references/accessibility-rules.md` |
+| keyboard, focus, screen reader, WCAG, aria | `../codex-frontend-implementation/references/accessibility-rules.md` |
 | canonical, sitemap, metadata, structured data, SEO | `references/seo-rules.md` |
 
 ### Backend Signals
@@ -332,10 +332,10 @@ When task matches a combo pattern, load the specified set instead of individual 
 
 | Combo Pattern | Load Set (in order) |
 | --- | --- |
-| Build new CRUD page | `starters/react-crud-page.jsx` + `references/frontend-rules.md` + `references/validation-patterns.md` + `references/form-patterns.md` |
+| Build new CRUD page | `starters/react-crud-page.jsx` + `../codex-frontend-implementation/references/frontend-rules.md` + `references/validation-patterns.md` + `references/form-patterns.md` |
 | Create new API endpoint | `starters/express-api.js` + `references/backend-rules.md` + `references/validation-patterns.md` + `references/api-design-rules.md` |
 | Add authentication | `starters/auth-flow.js` + `references/auth-patterns.md` + `references/security-rules.md` + `references/web-security-deep.md` |
-| Build dashboard with charts | `starters/dashboard-layout.css` + `references/data-visualization.md` + `references/frontend-rules.md` + `references/database-aggregation.md` |
+| Build dashboard with charts | `starters/dashboard-layout.css` + `references/data-visualization.md` + `../codex-frontend-implementation/references/frontend-rules.md` + `references/database-aggregation.md` |
 | Export data to CSV/Excel | `references/data-export.md` + `references/database-aggregation.md` + `references/backend-rules.md` |
 | Setup project from scratch | `starters/env-config.js` + `starters/docker-compose.yml` + `references/file-structure.md` + `references/git-workflow.md` |
 | Implement file upload | `references/file-upload.md` + `references/backend-rules.md` + `references/security-rules.md` |
@@ -482,21 +482,21 @@ Rules:
 - `references/monorepo-patterns.md`: workspace structure and shared package conventions.
 - `references/message-queue-comparison.md`: broker selection and queue pattern guidance.
 - `references/database-aggregation.md`: MongoDB aggregation pipeline and analytics patterns.
-- `references/accessibility-rules.md`: accessibility standards, semantic patterns, and WCAG-aligned implementation.
+- `../codex-frontend-implementation/references/accessibility-rules.md`: accessibility standards, semantic patterns, and WCAG-aligned implementation.
 - `references/api-design-rules.md`: API contract design, versioning, and idempotency patterns.
 - `references/auth-patterns.md`: authentication and authorization implementation guidance.
 - `references/backend-rules.md`: backend architecture, service boundaries, and API implementation rules.
-- `references/css-architecture.md`: CSS structure, design tokens, and styling system conventions.
+- `../codex-frontend-implementation/references/css-architecture.md`: CSS structure, design tokens, and styling system conventions.
 - `references/database-rules.md`: database schema, query, and migration core rules.
 - `references/debugging-rules.md`: debugging workflow, hypothesis-driven investigation, and root-cause practices.
 - `references/devops-rules.md`: CI/CD, deployment reliability, and operational safeguards.
 - `references/error-handling-patterns.md`: consistent error taxonomy and handling patterns.
 - `references/file-structure.md`: repository and module structure conventions.
-- `references/frontend-rules.md`: frontend architecture and UI engineering baseline rules.
+- `../codex-frontend-implementation/references/frontend-rules.md`: frontend architecture and UI engineering baseline rules.
 - `references/mobile-rules.md`: mobile app architecture and performance/security constraints.
-- `references/nextjs-patterns.md`: Next.js routing, rendering, and data-fetching patterns.
+- `../codex-frontend-implementation/references/nextjs-patterns.md`: Next.js routing, rendering, and data-fetching patterns.
 - `references/performance-rules.md`: performance budgets, profiling, and optimization priorities.
-- `references/react-patterns.md`: React composition, hooks usage, and state patterns.
+- `../codex-frontend-implementation/references/react-patterns.md`: React composition, hooks usage, and state patterns.
 - `references/realtime-patterns.md`: realtime communication patterns (polling/SSE/WebSocket).
 - `references/security-rules.md`: baseline security controls and threat mitigation practices.
 - `references/seo-rules.md`: SEO technical implementation and discoverability patterns.
@@ -506,7 +506,7 @@ Rules:
 - `references/vietnamese-typography.md`: Vietnamese font selection, UTF-8 encoding, diacritics handling, and locale-aware text processing.
 - `references/creative-ui-ux.md`: Advanced UI/UX, GSAP orchestration, Three.js integration, storytelling flow, and creative design principles.
 - `references/ui-ux-design-principles.md`: Visual hierarchy, Gestalt principles, color theory, typography scales, whitespace strategy, optical alignment, and developer design anti-patterns.
-- `references/gsap-mastery.md`: GSAP core architecture, easing, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, performance, React integration, and creative recipes.
+- `../codex-frontend-implementation/references/gsap-mastery.md`: GSAP core architecture, easing, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, performance, React integration, and creative recipes.
 - `references/interactive-elements.md`: Fun interactive UI elements: custom cursors, tilt cards, magnetic buttons, confetti, particles, text scramble, hover effects, drag/swipe, Easter eggs.
 - `references/creative-development.md`: Creative Director's Brain — Creative Brief Decoder, 7 archetypes, experimental typography, glow/neon systems, purpose-driven animation, differentiation playbook, conversion-focused creative.
 - `references/output-quality-gates.md`: **MANDATORY** — Anti-generic and anti-overengineering guardrails: 3-Second Rule, Scope Fit Gate, FE/BE/DB Quality Gates, 12-point checklist, Why Mandate, Framework Defaults Override.

@@ -16,7 +16,7 @@ Own component architecture, client-side state, styling systems, accessibility, p
 - Edit only files matching `file_ownership`.
 - Stay inside frontend concerns; do not change backend contracts, database schema, or deployment config.
 - If a fix needs API, auth, or infrastructure changes, suggest handoff to `backend-specialist`, `security-auditor`, or `devops-engineer`.
-- If the prompt is a vague new surface or redesign with no approved direction, hand off to `creative-director` before coding.
+- If the prompt is a vague new surface or redesign with no approved direction, hand off to `design-lead` before coding.
 - Do not self-approve visual quality; request `visual-quality-reviewer` after substantial UI.
 
 ## Behavioral Rules

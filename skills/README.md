@@ -6,7 +6,7 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `17.0.0` |
+| Version | `17.1.0` |
 | Core Skills | 33 |
 | Entry-point Scripts | 74 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
@@ -23,7 +23,7 @@
 | Antigravity templates | `../antigravity/` (native package candidate) |
 | GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 435/435 |
+| Pytest | 456/456 |
 | Smoke | 87/87 |
 
 ---
@@ -84,7 +84,10 @@ Reasoning Rigor
 
 | Skill | Notes |
 | --- | --- |
-| `codex-design-system` | Premium visual vocabulary with palettes, typography, layouts, motion, composition, trends, and anti-pattern guards |
+| `codex-frontend-design` | Fast path (page/component) or studio path (new identity); OKLCH palettes, typography, states, landing anatomy, anti-slop, refinement dials via `$refine` |
+| `codex-frontend-implementation` | React, Next.js, Tailwind, shadcn, GSAP recipes; curated craft files with provenance; OKLCH starter stylesheet |
+| `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched full-page capture, fresh-eyes review with explicit `DEGRADED` marking |
+| `codex-design-system`, `codex-ui-ux-design`, `codex-creative-direction` | Compatibility redirects into `codex-frontend-design` (kept so old prompts and aliases still resolve) |
 | `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
 | `codex-document-writer` | Report and document templates, sentence-quality rules, reliability tone, Vietnamese style, and formatting guidance |
 | `codex-domain-specialist` | 66 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
@@ -100,12 +103,12 @@ Reasoning Rigor
 | `codex-role-docs` | 4 scripts for role-doc initialization, updates, indexing, and advisory changed-file coverage checks |
 | `codex-git-autopilot` | Commit automation with gate awareness |
 | `codex-doc-renderer` | DOCX rendering and verification helpers |
-| `codex-test-driven-development` | **v14 NEW** - RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
-| `codex-systematic-debugging` | **v14 NEW** - 4-phase root cause debugging, defense-in-depth, condition-based waiting, root cause tracing. Aliases: `$root-cause`, `$trace` |
-| `codex-subagent-execution` | **v14 NEW** - Fresh subagent per task + 2-stage review (spec compliance -> code quality), prompt templates. Aliases: `$sdd`, `$dispatch` |
-| `codex-git-worktrees` | **v14 NEW** - Isolated workspaces with safety verification, auto-setup, clean test baseline. Aliases: `$worktree`, `$isolate` |
-| `codex-verification-discipline` | **v14.1 NEW** - Iron Law "evidence before claims" behavioral constraint. No "should work" without fresh verification. Aliases: `$verify`, `$evidence` |
-| `codex-branch-finisher` | **v14.1 NEW** - Structured 4-option completion workflow (merge, PR, keep, discard) with test gate and worktree cleanup. Aliases: `$finish`, `$finish-branch` |
+| `codex-test-driven-development` | RED-GREEN-REFACTOR enforcement, Iron Law TDD, testing anti-patterns reference. Aliases: `$tdd`, `$red-green` |
+| `codex-systematic-debugging` | 4-phase root cause debugging, defense-in-depth, condition-based waiting, root cause tracing. Aliases: `$root-cause`, `$trace` |
+| `codex-subagent-execution` | Fresh subagent per task + 2-stage review (spec compliance -> code quality), prompt templates. Aliases: `$sdd`, `$dispatch` |
+| `codex-git-worktrees` | Isolated workspaces with safety verification, auto-setup, clean test baseline. Aliases: `$worktree`, `$isolate` |
+| `codex-verification-discipline` | Iron Law "evidence before claims" behavioral constraint. No "should work" without fresh verification. Aliases: `$verify`, `$evidence` |
+| `codex-branch-finisher` | Structured 4-option completion workflow (merge, PR, keep, discard) with test gate and worktree cleanup. Aliases: `$finish`, `$finish-branch` |
 
 ---
 
@@ -166,7 +169,9 @@ Supported native-agent scopes:
 
 The agent layer adds scoped personas on top of the normal skill pipeline. Current personas:
 
+- `design-lead` (brief, UX contract, visual direction via `codex-frontend-design`)
 - `frontend-specialist`
+- `visual-quality-reviewer`
 - `backend-specialist`
 - `security-auditor`
 - `debugger`
@@ -174,6 +179,8 @@ The agent layer adds scoped personas on top of the normal skill pipeline. Curren
 - `devops-engineer`
 - `planner`
 - `scrum-master`
+
+Compatibility redirects: `creative-director`, `ui-ux-designer`, and `creative-designer` resolve to `design-lead`.
 
 These files live under `skills/.agents/` and are loaded when intent analysis suggests a matching persona.
 

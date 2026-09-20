@@ -148,7 +148,7 @@ flowchart LR
 3. Use `code_index` for file-level definitions, imports, imported-by, language, module, entrypoint, and risk tags.
 4. Use module boundaries and route/model maps to reduce incorrect assumptions.
 5. When modifying a module, check `imported_by` and `ai_context.top_dependents` to identify downstream impact.
-6. When adding a new feature, check existing modules and the interactive HTML dashboard to avoid duplication.
+6. When adding a new feature, check existing modules in `INDEX.md` (or the optional dashboard if built with `--html`) to avoid duplication.
 
 ## Detection Rules
 

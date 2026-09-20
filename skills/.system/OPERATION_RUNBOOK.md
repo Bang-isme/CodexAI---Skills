@@ -87,20 +87,31 @@ python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-roo
 
 The release ZIP builder excludes `.git`, `__pycache__`, `.pytest_cache`, `.codexai-backups`, coverage output, logs, cache/state directories, and the built-in `.system` marker.
 
-CI/CD workflows:
-
-- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, memory-at-scale (medium), Python matrix (3.12–3.13 × OS; 3.11 on `main`), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
-- `.github/workflows/scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with report artifact.
-- `.github/workflows/release.yml`: optional manual ZIP (`workflow_dispatch` only).
-- Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
-
-There is **no** `deploy.yml` and no GitHub Environments for staging/production — CI is plugin validation only.
-
-Local pack gate (optional):
+Unified local pipeline (single source of truth for every gate):
 
 ```powershell
-python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --format json
-python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --apply --format json
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage all --format text
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage lint,contracts --format text   # fast pre-commit
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage all --report-path .codex\pipeline-report.json
+```
+
+Stages run in a fixed order: `lint` (pack health, core-rules drift via `init_agents_md.py --check`), `contracts` (tool contracts, capability audit, prompt-router corpus, Codex/Claude validators), `test` (pytest + `smoke_test.py`), `build` (Antigravity build/validate, release ZIP dry-run), `doctor` (`install.py doctor --host all`). Exit code 1 on any failing step; `--skip-tests` and `--fail-fast` are available. Alias: `$pipeline`.
+
+CI/CD workflows:
+
+- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift, host doctor, smoke tests, `pipeline-selfcheck` (runs `pipeline.py --stage lint,contracts,build,doctor`), memory-at-scale (medium), Python matrix (3.12–3.13 × OS; 3.11 contracts), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
+- `.github/workflows/scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with report artifact.
+- `.github/workflows/release.yml`: on tag push `v*` it verifies the tag equals `skills/VERSION`, runs `pipeline.py --stage lint,contracts,test,doctor`, runs `local_release_gate.py --apply`, uploads `dist/*.zip`, and publishes a GitHub Release with generated notes. `workflow_dispatch` builds the ZIP artifact only.
+- Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
+
+There is **no** `deploy.yml` and no GitHub Environments for staging/production — CI validates the plugin and publishes release artifacts only.
+
+Release flow:
+
+```powershell
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage all --format text
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --format json      # dry-run
+git tag v<VERSION> ; git push origin v<VERSION>                                          # triggers release.yml
 ```
 
 Docs: `<SOURCE_SKILLS_ROOT>/.system/references/deploy-promotion.md`

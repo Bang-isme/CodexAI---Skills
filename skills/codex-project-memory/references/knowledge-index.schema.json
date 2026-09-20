@@ -46,6 +46,17 @@
       "type": "object",
       "required": ["genome", "role_docs", "decisions", "commits", "configs", "redaction", "trust"]
     },
+    "source": {
+      "type": "object",
+      "description": "Optional provenance snapshot used by memory_status.py for staleness detection (added in 17.1; older indexes omit it).",
+      "required": ["git_head", "tree_fingerprint"],
+      "properties": {
+        "git_head": {"type": "string"},
+        "tree_fingerprint": {"type": "string"},
+        "fingerprint_inputs": {"type": "string"},
+        "files_counted": {"type": "integer"}
+      }
+    },
     "tacit_knowledge": {
       "type": "object",
       "required": ["conventions", "risk_hotspots", "verification_commands"],

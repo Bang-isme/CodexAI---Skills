@@ -52,6 +52,15 @@ jobs:
       - name: Validate prompt router corpus
         run: python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
 
+      - name: Check core-rules bridges are in sync with aliases.json
+        run: python skills/.system/scripts/init_agents_md.py --repo-root . --target all --check --format json
+
+      - name: Doctor host wiring (plugin source)
+        run: python skills/.system/scripts/install.py doctor --host all --repo-root . --format json
+
+      - name: Run smoke tests
+        run: python skills/tests/smoke_test.py
+
       - name: Build and validate Antigravity package
         run: |
           python skills/.system/scripts/build_antigravity_plugin.py \
@@ -65,6 +74,40 @@ jobs:
 
       - name: Validate release archive plan
         run: python skills/.system/scripts/build_release_zip.py --project-root . --dry-run --format json
+
+  pipeline-selfcheck:
+    name: Unified pipeline self-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip -r requirements-dev.txt
+
+      - name: Run pipeline.py (lint, contracts, build, doctor)
+        run: |
+          python skills/.system/scripts/pipeline.py \
+            --stage lint,contracts,build,doctor \
+            --report-path pipeline-report.json \
+            --format text
+
+      - name: Upload pipeline report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-report
+          path: pipeline-report.json
+          if-no-files-found: ignore
+          retention-days: 7
 
   test:
     name: Test (py${{ matrix.python-version }}, ${{ matrix.os }})

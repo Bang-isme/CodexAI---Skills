@@ -59,7 +59,7 @@ ROUTES: list[dict[str, Any]] = [
         "intent": "review",
         "agent": "visual-quality-reviewer",
         "workflow": "review",
-        "skills": ["codex-visual-quality-gate", "codex-design-system"],
+        "skills": ["codex-visual-quality-gate", "codex-frontend-design"],
         "priority": 55,
         "signals": [
             "visual review",

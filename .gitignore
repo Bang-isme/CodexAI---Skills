@@ -28,7 +28,8 @@ skills/.analytics/
 cache/
 state/
 
-.cursor/
+.cursor/*
+!.cursor/rules/
 .commandcode/
 .ci-log.zip
 scale-artifact.zip

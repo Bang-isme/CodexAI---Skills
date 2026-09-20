@@ -10,7 +10,7 @@ Load when a project needs a durable design contract, not just one-off styling ad
 ## Activation
 1. Activate when the user mentions `DESIGN.md`, design tokens, Tailwind theme export, DTCG export, or a reusable visual identity contract.
 2. Activate on `$design-md`, "create a design contract", "lint DESIGN.md", or "export design tokens".
-3. Load alongside `codex-design-system` when UI work needs both creative direction and a durable source-of-truth file.
+3. Load alongside `codex-frontend-design` when UI work needs both creative direction and a durable source-of-truth file.
 4. Auto-load when `frontend-specialist` is active and the task needs persistent design-system artifacts.
 
 ## Decision Flow
@@ -24,7 +24,7 @@ Load when a project needs a durable design contract, not just one-off styling ad
 - Treat `DESIGN.md` as the durable source of truth for visual identity; do not scatter token decisions across ad-hoc prompts.
 - Keep the file canonical: YAML tokens first, then markdown sections in spec order.
 - Use exact token values. Do not write vague prose where a token should exist.
-- Pair this skill with `codex-design-system` for palettes, typography, layouts, and motion vocabulary.
+- Pair this skill with `codex-frontend-design` (references/ for OKLCH palettes, typography, layouts, motion) for the visual vocabulary.
 - Prefer validation and diff evidence over aesthetic claims.
 
 ## Reference Files

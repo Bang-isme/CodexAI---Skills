@@ -282,7 +282,7 @@
       "name": "memory_status",
       "kind": "memory",
       "script": "codex-project-memory/scripts/memory_status.py",
-      "purpose": "Validate generated project-memory artifacts for schema, staleness, and graph coherence.",
+      "purpose": "Validate generated project-memory artifacts for schema, age and git-HEAD staleness, and graph coherence.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
@@ -292,6 +292,7 @@
           "max_age_hours": {"type": "integer", "default": 168},
           "strict": {"type": "boolean", "default": false},
           "require_standalone_graph": {"type": "boolean", "default": false},
+          "verify_tree": {"type": "boolean", "default": false, "description": "Re-list files and compare source.tree_fingerprint; slower but detects uncommitted changes"},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
       },
@@ -338,10 +339,21 @@
           "output_dir": {"type": "string", "default": ".codex/knowledge"},
           "query": {"type": "string"},
           "top_k": {"type": "integer", "default": 10},
-          "incremental": {"type": "boolean", "default": false},
+          "incremental": {"type": "boolean", "default": true, "description": "Default on; pass --no-incremental to disable hash-based chunk reuse"},
           "rebuild": {"type": "boolean", "default": false},
           "no_redaction": {"type": "boolean", "default": false},
           "html": {"type": "boolean", "default": false},
+          "progress_file": {"type": "string", "default": ".codex/knowledge/index-progress.json"},
+          "watch": {"type": "boolean", "default": false},
+          "serve": {"type": "boolean", "default": false},
+          "host": {"type": "string", "default": "127.0.0.1"},
+          "port": {"type": "integer", "default": 8765},
+          "include": {"type": "array", "items": {"type": "string"}},
+          "exclude": {"type": "array", "items": {"type": "string"}},
+          "max_files": {"type": "integer", "default": 1000},
+          "max_file_bytes": {"type": "integer", "default": 262144},
+          "max_total_bytes": {"type": "integer", "default": 20971520},
+          "follow_symlinks": {"type": "boolean", "default": false},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
       },
@@ -353,7 +365,7 @@
       },
       "artifact_policy": {
         "mode": "generated_on_success",
-        "description": "Writes index, graph, codebase index, and INDEX.md under output_dir. index.html is opt-in via --html.",
+        "description": "Writes index (with source.git_head + source.tree_fingerprint), graph, codebase index, and INDEX.md under output_dir atomically. index.html is opt-in via --html.",
         "paths": [
           ".codex/knowledge/index.json",
           ".codex/knowledge/knowledge-graph.json",
@@ -389,6 +401,8 @@
           "file_count": {"type": "integer"},
           "max_files": {"type": "integer"},
           "budget_seconds": {"type": "integer"},
+          "seed": {"type": "integer", "default": 42},
+          "keep_fixture": {"type": "boolean", "default": false},
           "report_path": {"type": "string"},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
@@ -449,6 +463,45 @@
       "smoke": {
         "argv": ["--format", "json"],
         "expect_exit_codes": [0, 1],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "pipeline_run",
+      "kind": "release",
+      "script": ".system/scripts/pipeline.py",
+      "purpose": "Run the unified plugin pipeline (lint, contracts, test, build, doctor) in a fixed order and emit one JSON report; the same stages back CI pipeline-selfcheck.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "project_root": {"type": "string"},
+          "skills_root": {"type": "string"},
+          "stage": {"type": "string", "default": "all", "description": "Comma-separated subset of lint,contracts,test,build,doctor or all"},
+          "skip_tests": {"type": "boolean", "default": false},
+          "fail_fast": {"type": "boolean", "default": false},
+          "report_path": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1, 2]},
+      "warning_policy": {"mode": "none", "description": "Any failing step fails the pipeline; exit 2 for unknown stage names."},
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes a JSON report only when --report-path is set; Antigravity build uses a temp dir and release ZIP stays dry-run.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Smoke uses --help only; full runs spawn pytest and validators locally."
+      },
+      "wrapper_notes": "Use --stage lint,contracts for a fast pre-commit check; --stage all before tagging.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
         "cwd": "repo_root"
       }
     },

@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [17.1.0] - 2026-09-20
+
+### Added
+- `skills/.system/scripts/pipeline.py`: unified local pipeline (`lint`, `contracts`, `test`, `build`, `doctor`) with a fixed stage order, UTF-8 safe output, `--skip-tests`, `--fail-fast`, and an atomic JSON report via `--report-path`. Registered as `pipeline_run` in `plugin-tools.json`; aliases `$pipeline` and `$release-gate`.
+- `init_agents_md.py --check`: read-only drift detection between `aliases.json` and the AGENTS.md / CLAUDE.md / Cursor / Antigravity bridge files (exit 1 on drift).
+- `install.py doctor` recognizes the plugin source checkout (`skills/` + host manifest) so `doctor --host all` passes on the repo itself; Cursor reports `warn` until `.cursor/skills` is materialized.
+- Tag-triggered `release.yml`: `v*` tags verify `skills/VERSION`, run the pipeline and `local_release_gate.py --apply`, upload `dist/*.zip`, and publish a GitHub Release with generated notes. `workflow_dispatch` keeps artifact-only builds.
+- `ci.yml`: core-rules drift check, `install.py doctor`, `smoke_test.py`, and a `pipeline-selfcheck` job that uploads the pipeline report.
+- Committed `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/codexai-core.mdc` so the plugin repo dogfoods its own core rules.
+- Project memory: `index.json` now records `source.git_head` and `source.tree_fingerprint`; `memory_status.py` warns when the index is behind HEAD and `--verify-tree` re-lists files to detect uncommitted drift (`--strict` turns both into exit 1). Older indexes without `source` still pass.
+- `skills/tests/test_pipeline.py` plus new memory-hardening tests (skip dirs, atomic writes, fingerprint stability, HEAD drift, Unicode paths, sampled hashing, CLI incremental default).
+
+### Changed
+- Project memory artifacts (`index.json`, `INDEX.md`, `knowledge-graph.json`, `codebase-index.json`, `index.html`, standalone graph) are written atomically (temp file + `os.replace`) via shared `project_traversal.atomic_write_*`.
+- `HARD_CODED_SKIP_DIRS` adds `target` and `.codexai-backups`; dead `IGNORED_DIRS` / duplicate `SKIP_DIRS` sets removed in favour of the shared traversal set.
+- `build_knowledge_index.py --incremental` defaults to on (`--no-incremental` to disable) to match the Python API; large files hash only the sampled prefix plus size instead of the whole file.
+- `plugin-tools.json`, `project-memory-tools.json`, `script-commands.md`, `artifact-lifecycle-policy.md`, and `knowledge-index.schema.json` synced with the real CLI flags; `index.html` is documented as opt-in and never checked by `memory_status.py`; generated vs append-only vs human-owned artifacts are listed explicitly.
+- Stale v16 references cleaned: README / skills README, `skill-capabilities.json`, `frontend-specialist.md`, `role_docs_manifest.json`, `codex-design-md` docs, and the visual-review router route now point at `codex-frontend-design` / `design-lead`; `codex-domain-specialist/references/INDEX.md` links straight to `codex-frontend-implementation/references/`.
+- `install_ci_gate.py` and `templates/github-actions-quality-gate.yml` emit `checkout@v5`, `setup-python@v6`, Python 3.12, and the correct `skills/tests/smoke_test.py` path.
+- `REGISTRY.md` lists `pipeline.py`, `validate_tool_contracts.py`, `local_release_gate.py`, `promote_deploy.py`, and `sync_openai_yaml.py`.
+
+### Infrastructure
+- Bumped version: `17.0.0` -> `17.1.0`
+- Verified suite target: `456` unit tests + `87` smoke checks.
+
 ## [17.0.0] - 2026-09-20
 
 ### Added

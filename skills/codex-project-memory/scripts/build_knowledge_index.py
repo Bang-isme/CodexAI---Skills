@@ -38,7 +38,6 @@ CONFIG_FILES = [
     "turbo.json",
     "nx.json",
 ]
-IGNORED_DIRS = {".git", ".next", ".pytest_cache", "__pycache__", "build", "coverage", "dist", "node_modules", "vendor"}
 PROGRESS_PHASES = (
     "discovery",
     "parsing",
@@ -420,6 +419,7 @@ def build_index(
         "warnings": artifact_warnings + normalize_warning_messages(list(traversal_result.warnings)),
         "redaction": redaction_meta,
         "sources": sources,
+        "source": load_traversal().source_snapshot(project_root, traversal_result.files),
         "coverage": traversal_result.coverage,
         "architecture_seams": extract_headings(genome_text, limit=12) if genome_text else [],
         "domain_vocabulary": extract_headings(genome_text, limit=8) if genome_text else [],
@@ -624,9 +624,10 @@ def write_knowledge_artifacts(
         html_path = output_dir / "index.html"
 
         progress.update("chunking", current_file="index.json", files_done=min(files_total, max(graph_total, files_total - 2)), files_total=files_total)
-        index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
-        md_path.write_text(render_markdown(index), encoding="utf-8")
-        graph_path.write_text(json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        traversal = load_traversal()
+        traversal.atomic_write_json(index_path, index, trailing_newline=False)
+        traversal.atomic_write_text(md_path, render_markdown(index))
+        traversal.atomic_write_json(graph_path, graph)
 
         progress.update("risk_scan", current_file="risk signals", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
         risk_count = len(graph.get("risk_signals", [])) if isinstance(graph.get("risk_signals"), list) else 0
@@ -635,10 +636,7 @@ def write_knowledge_artifacts(
         progress_url = progress_fetch_url(output_dir, progress_path)
         if write_html:
             progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
-            html_path.write_text(
-                render_interactive_html(index, graph, progress_fetch_url=progress_url),
-                encoding="utf-8",
-            )
+            traversal.atomic_write_text(html_path, render_interactive_html(index, graph, progress_fetch_url=progress_url))
             html_written = True
         progress.update("complete", current_file="INDEX.md", files_done=files_total, files_total=files_total, status="complete")
         combined_warnings = list(index.get("warnings", [])) + normalize_warning_messages(graph.get("warnings", []))
@@ -821,8 +819,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--serve", action="store_true", help="Alias for --watch")
     parser.add_argument("--host", default="127.0.0.1", help="Host for --watch/--serve")
     parser.add_argument("--port", type=int, default=8765, help="Port for --watch/--serve")
-    parser.add_argument("--incremental", action="store_true", help="Reuse unchanged file metadata when building the codebase index")
-    parser.add_argument("--rebuild", action="store_true", help="Force a fresh codebase index rebuild")
+    parser.add_argument(
+        "--incremental",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Reuse unchanged file chunks by content hash when building the codebase index (default on; --no-incremental disables)",
+    )
+    parser.add_argument("--rebuild", action="store_true", help="Force a fresh codebase index rebuild (implies --no-incremental)")
     parser.add_argument("--query", default="", help="Run local lexical search against the codebase index")
     parser.add_argument("--top-k", type=int, default=10, help="Maximum query results to return")
     load_traversal().add_traversal_args(parser)

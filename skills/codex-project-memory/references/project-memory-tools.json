@@ -4,7 +4,7 @@
     {
       "name": "build_knowledge_index",
       "script": "scripts/build_knowledge_index.py",
-      "purpose": "Build index.json, INDEX.md, knowledge-graph.json, codebase-index.json, progress JSON, and offline dashboard HTML.",
+      "purpose": "Build index.json, INDEX.md, knowledge-graph.json, codebase-index.json, and progress JSON; offline dashboard HTML only with --html.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
@@ -13,10 +13,22 @@
           "output_dir": {"type": "string", "default": ".codex/knowledge"},
           "query": {"type": "string"},
           "top_k": {"type": "integer", "default": 10},
-          "incremental": {"type": "boolean", "default": false},
+          "incremental": {"type": "boolean", "default": true},
           "rebuild": {"type": "boolean", "default": false},
           "no_redaction": {"type": "boolean", "default": false},
-          "html": {"type": "boolean", "default": false}
+          "html": {"type": "boolean", "default": false},
+          "progress_file": {"type": "string", "default": ".codex/knowledge/index-progress.json"},
+          "watch": {"type": "boolean", "default": false},
+          "serve": {"type": "boolean", "default": false},
+          "host": {"type": "string", "default": "127.0.0.1"},
+          "port": {"type": "integer", "default": 8765},
+          "include": {"type": "array", "items": {"type": "string"}},
+          "exclude": {"type": "array", "items": {"type": "string"}},
+          "max_files": {"type": "integer", "default": 1000},
+          "max_file_bytes": {"type": "integer", "default": 262144},
+          "max_total_bytes": {"type": "integer", "default": 20971520},
+          "follow_symlinks": {"type": "boolean", "default": false},
+          "format": {"enum": ["json", "text"], "default": "json"}
         }
       },
       "success_statuses": ["built", "queried"],
@@ -72,7 +84,7 @@
     {
       "name": "memory_status",
       "script": "scripts/memory_status.py",
-      "purpose": "Validate generated memory artifacts for schema presence, staleness, and graph/codebase coherence.",
+      "purpose": "Validate generated memory artifacts for schema presence, age and git-HEAD staleness, and graph/codebase coherence.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
@@ -81,7 +93,9 @@
           "knowledge_dir": {"type": "string", "default": ".codex/knowledge"},
           "max_age_hours": {"type": "integer", "default": 168},
           "strict": {"type": "boolean", "default": false},
-          "require_standalone_graph": {"type": "boolean", "default": false}
+          "require_standalone_graph": {"type": "boolean", "default": false},
+          "verify_tree": {"type": "boolean", "default": false},
+          "format": {"enum": ["json", "text"], "default": "json"}
         }
       },
       "success_statuses": ["pass", "warn"],
@@ -89,14 +103,12 @@
         ".codex/knowledge/index.json",
         ".codex/knowledge/knowledge-graph.json",
         ".codex/knowledge/codebase-index.json",
-        ".codex/knowledge/index.html",
         ".codex/knowledge-graph.json"
       ],
       "required_artifact_modes": {
         ".codex/knowledge/index.json": "required",
         ".codex/knowledge/knowledge-graph.json": "required",
         ".codex/knowledge/codebase-index.json": "optional",
-        ".codex/knowledge/index.html": "optional",
         ".codex/knowledge-graph.json": "optional"
       },
       "exit_codes": {
@@ -106,7 +118,7 @@
       },
       "warning_policy": {
         "mode": "strict_exit",
-        "description": "Default: warn exits 0. --strict promotes warn to exit 1. --require-standalone-graph promotes missing/invalid standalone graph from warn to fail."
+        "description": "Default: warn exits 0. --strict promotes warn to exit 1. --require-standalone-graph promotes missing/invalid standalone graph from warn to fail. A git HEAD or (with --verify-tree) tree fingerprint mismatch against index.json source is a warn."
       },
       "stdout_contract": "references/output-schemas.md#memory_status.py",
       "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"

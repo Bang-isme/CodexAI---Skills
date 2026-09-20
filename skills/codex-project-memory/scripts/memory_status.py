@@ -26,8 +26,63 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Treat missing or invalid standalone .codex/knowledge-graph.json as failures instead of warnings",
     )
+    parser.add_argument(
+        "--verify-tree",
+        action="store_true",
+        help="Re-list project files and compare the tree fingerprint recorded in index.json (slower; detects uncommitted changes)",
+    )
     parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args()
+
+
+def load_traversal():
+    script_dir = str(Path(__file__).resolve().parent)
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    try:
+        import project_traversal  # noqa: WPS433 - sibling module, imported lazily
+    except ImportError:
+        return None
+    return project_traversal
+
+
+def source_staleness(project_root: Path, index: dict[str, Any], current_head: str, verify_tree: bool) -> dict[str, Any]:
+    """Compare index.json `source` provenance against the live repo. Missing `source` is tolerated (older index)."""
+    source = index.get("source") if isinstance(index.get("source"), dict) else {}
+    warnings: list[str] = []
+    recorded_head = str(source.get("git_head") or "")
+    recorded_fp = str(source.get("tree_fingerprint") or "")
+    head_state = "unknown"
+    if recorded_head and current_head:
+        head_state = "match" if recorded_head == current_head else "drift"
+        if head_state == "drift":
+            warnings.append(f"index built at git {recorded_head[:12]} but HEAD is {current_head[:12]}; rebuild the knowledge index")
+    elif not source:
+        head_state = "not_recorded"
+    tree_state = "skipped"
+    current_fp = ""
+    if verify_tree and recorded_fp:
+        traversal = load_traversal()
+        if traversal is None:
+            tree_state = "unavailable"
+        else:
+            listing = traversal.list_project_files(project_root, traversal.TraversalConfig())
+            current_fp = traversal.tree_fingerprint(listing.files)
+            tree_state = "match" if current_fp == recorded_fp else "drift"
+            if tree_state == "drift":
+                warnings.append("project file tree changed since the index was built (tree_fingerprint drift); rebuild the knowledge index")
+    elif verify_tree:
+        tree_state = "not_recorded"
+    return {
+        "status": "warn" if warnings else "pass",
+        "recorded_git_head": recorded_head,
+        "current_git_head": current_head,
+        "git_head": head_state,
+        "tree_fingerprint": tree_state,
+        "recorded_tree_fingerprint": recorded_fp,
+        "current_tree_fingerprint": current_fp,
+        "warnings": warnings,
+    }
 
 
 def read_json(path: Path) -> tuple[dict[str, Any], str]:
@@ -134,6 +189,7 @@ def build_status(
     max_age_hours: int,
     require_standalone_graph: bool = False,
     strict_warnings: bool = False,
+    verify_tree: bool = False,
 ) -> dict[str, Any]:
     index_path = knowledge_dir / "index.json"
     graph_path = knowledge_dir / "knowledge-graph.json"
@@ -190,23 +246,33 @@ def build_status(
         artifacts.append(sc)
 
     coherence = graph_coherence(graph, codebase) if graph else {"status": "fail", "failures": ["graph missing"], "warnings": []}
+    current_head = git_head(project_root)
+    source = source_staleness(project_root, index, current_head, verify_tree) if index else {
+        "status": "skipped",
+        "git_head": "unknown",
+        "tree_fingerprint": "skipped",
+        "warnings": [],
+    }
     failures.extend(item for artifact in artifacts for item in artifact.get("failures", []))
     warnings.extend(item for artifact in artifacts for item in artifact.get("warnings", []))
     failures.extend(coherence.get("failures", []))
     warnings.extend(coherence.get("warnings", []))
+    warnings.extend(source.get("warnings", []))
     status = "fail" if failures else "warn" if warnings else "pass"
     return {
         "status": status,
         "project_root": project_root.as_posix(),
-        "git_head": git_head(project_root),
+        "git_head": current_head,
         "knowledge_dir": knowledge_dir.as_posix(),
         "policy": {
             "standalone_graph": "required" if require_standalone_graph else "optional",
             "strict_warnings_exit_nonzero": strict_warnings,
             "max_age_hours": max_age_hours,
+            "verify_tree": verify_tree,
         },
         "artifacts": artifacts,
         "coherence": coherence,
+        "source": source,
         "warnings": warnings,
         "failures": failures,
     }
@@ -242,6 +308,7 @@ def main() -> int:
         args.max_age_hours,
         require_standalone_graph=args.require_standalone_graph,
         strict_warnings=args.strict,
+        verify_tree=args.verify_tree,
     )
     if args.format == "text":
         print(render_text(payload))

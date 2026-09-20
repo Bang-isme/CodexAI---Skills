@@ -1,33 +1,45 @@
-# Template reference: copy into target repo and customize script paths/steps as needed.
+# Template reference: copy into a target repo that vendors this skill pack under skills/.
+# Adjust SKILLS_ROOT if the pack lives elsewhere (e.g. .agents/skills or .cursor/skills).
 name: Codex Quality Gate
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
+env:
+  SKILLS_ROOT: skills
+  PYTHONUTF8: "1"
+
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "22"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: python -m pip install --upgrade pip pytest PyYAML
 
       - name: Run smoke test
-        run: python tests/smoke_test.py
+        run: python "$SKILLS_ROOT/tests/smoke_test.py"
 
       - name: Run unit tests
-        run: pytest tests/ -v
+        run: python -m pytest "$SKILLS_ROOT/tests" -q
+
+      - name: Quick quality gate
+        run: python "$SKILLS_ROOT/codex-execution-quality-gate/scripts/auto_gate.py" --project-root . --mode quick
 
       - name: Security scan
-        run: python codex-execution-quality-gate/scripts/security_scan.py --project-root .
+        run: python "$SKILLS_ROOT/codex-execution-quality-gate/scripts/security_scan.py" --project-root .
 
       - name: Pre-commit check
-        run: python codex-execution-quality-gate/scripts/pre_commit_check.py --project-root .
+        run: python "$SKILLS_ROOT/codex-execution-quality-gate/scripts/pre_commit_check.py" --project-root .

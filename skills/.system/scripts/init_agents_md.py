@@ -99,6 +99,35 @@ def build_payload(repo_root: Path, mode: str, dry_run: bool, target: str = "agen
     return primary
 
 
+def check_payload(repo_root: Path, target: str = "all") -> dict[str, Any]:
+    """Report drift between rendered core rules and the on-disk host bridges without writing."""
+    hosts = HOSTS if target == "all" else (target,)
+    if target != "all" and target not in HOSTS:
+        raise ValueError(f"unsupported target: {target}")
+    results: list[dict[str, Any]] = []
+    for host in hosts:
+        path = target_path(repo_root, host)
+        rendered = render_core_rules.render_host_document(host)
+        existing = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
+        if not path.exists():
+            state = "missing"
+        elif START_MARKER not in existing or END_MARKER not in existing:
+            state = "unmarked"
+        else:
+            merged, _action = merge_content(existing, rendered)
+            state = "in_sync" if merged == existing else "drift"
+        results.append({"host": host, "path": str(path), "state": state})
+    drifted = [item for item in results if item["state"] != "in_sync"]
+    return {
+        "status": "pass" if not drifted else "drift",
+        "command": "check",
+        "host": target,
+        "hosts": results,
+        "drifted": [item["host"] for item in drifted],
+        "next": "" if not drifted else f"python skills/.system/scripts/init_agents_md.py --repo-root {repo_root} --target all --merge",
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Initialize CodexAI core-rules host bridges.")
     parser.add_argument("--repo-root", required=True, help="Repository root")
@@ -106,6 +135,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Preview only. Default when neither --merge nor --force is passed.")
     parser.add_argument("--merge", action="store_true", help="Create or merge the CodexAI bridge block")
     parser.add_argument("--force", action="store_true", help="Replace the target file with the CodexAI bridge")
+    parser.add_argument("--check", action="store_true", help="Read-only drift check; exit 1 when any host bridge is missing or stale")
     parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args()
 
@@ -116,19 +146,25 @@ def main() -> int:
         root = validate_repo_root(Path(args.repo_root))
         if args.force and args.merge:
             raise ValueError("Use only one of --merge or --force")
-        mode = "force" if args.force else "merge"
-        dry_run = args.dry_run or not (args.merge or args.force)
-        payload = build_payload(root, mode, dry_run, target=args.target)
+        if args.check:
+            payload = check_payload(root, target=args.target)
+        else:
+            mode = "force" if args.force else "merge"
+            dry_run = args.dry_run or not (args.merge or args.force)
+            payload = build_payload(root, mode, dry_run, target=args.target)
     except Exception as exc:
         payload = {"status": "error", "message": str(exc)}
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 1
 
     if args.format == "text":
-        print(f"{payload['status']}: {payload.get('path', '')}")
+        if args.check:
+            print(f"{payload['status']}: drifted={','.join(payload['drifted']) or 'none'}")
+        else:
+            print(f"{payload['status']}: {payload.get('path', '')}")
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-    return 0
+    return 0 if payload["status"] != "drift" else 1
 
 
 if __name__ == "__main__":
