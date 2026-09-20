@@ -80,9 +80,6 @@ After routing to an agent, the following discipline skills activate automaticall
 | `debugger` | `codex-systematic-debugging` (`$root-cause`) + `codex-test-driven-development` (`$tdd`) |
 | `test-engineer` | `codex-test-driven-development` (`$tdd`) |
 | `design-lead` | `codex-frontend-design` then `codex-frontend-implementation` |
-| `creative-director` | redirect to `design-lead` |
-| `ui-ux-designer` | redirect to `design-lead` |
-| `creative-designer` | redirect to `design-lead` |
 | `visual-quality-reviewer` | `codex-visual-quality-gate` (must not approve its own implementation) |
 | `frontend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |
 | `backend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |

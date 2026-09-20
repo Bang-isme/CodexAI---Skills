@@ -699,11 +699,15 @@ def test_memory_status_strict_cli_exits_nonzero_on_warn(tmp_path: Path) -> None:
         check=False,
     )
     payload = json.loads(normal.stdout)
-    if payload["status"] == "warn":
+    if payload["status"] == "pass":
         assert normal.returncode == 0
-        assert strict.returncode == 1
-        strict_payload = json.loads(strict.stdout)
-        assert strict_payload["policy"]["strict_warnings_exit_nonzero"] is True
+        assert strict.returncode == 0
+        return
+    assert payload["status"] == "warn"
+    assert normal.returncode == 0
+    assert strict.returncode == 1
+    strict_payload = json.loads(strict.stdout)
+    assert strict_payload["policy"]["strict_warnings_exit_nonzero"] is True
 
 
 def test_project_traversal_does_not_follow_symlinks_outside_root(tmp_path: Path) -> None:

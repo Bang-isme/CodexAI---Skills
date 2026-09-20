@@ -1,4 +1,0 @@
-interface:
-  display_name: "Design System"
-  short_description: "Use for UI, frontend, styling, landing page, or component work; applies grammar (surface mode, change mode, composition, motion) instead of."
-  default_prompt: "Use $codex-design-system for this task. Load it before acting."

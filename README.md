@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-17.1.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-456%2F456%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-18.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-461%2F461%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,15 +25,15 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 33 |
+| Core Skills | 30 |
 | Entry-point Scripts | 74 |
 | Shared Helpers | 2 |
 | Reference Docs | 190+ |
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 13 |
+| Agent Personas | 10 |
 | Workflow Aliases | 8 |
-| Verification | 456 unit + 87 smoke = 543 tests |
+| Verification | 461 unit + 87 smoke = 548 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 | Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
@@ -79,7 +79,7 @@ Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI.
 
 The repository ships a senior baseline GitHub Actions setup:
 
-- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift check, host doctor, smoke tests, a `pipeline-selfcheck` job that runs `pipeline.py`, memory-at-scale (medium), Python 3.12–3.13 × Linux/Windows matrix, Python 3.11 contracts, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
+- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift check, host doctor, smoke tests, a `pipeline-selfcheck` job that runs `pipeline.py`, memory-at-scale (medium), Python 3.12–3.14 × Linux/Windows matrix, Python 3.11 contracts, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
 - `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
 - `release.yml`: on tag push `v*` it verifies the tag matches `skills/VERSION`, runs the pipeline and `local_release_gate.py --apply`, then publishes a **GitHub Release** with the ZIP attached. `workflow_dispatch` still builds the ZIP as an artifact only.
 
@@ -97,7 +97,7 @@ python skills/.system/scripts/pipeline.py --stage all --report-path .codex/pipel
 
 ```bash
 python skills/.system/scripts/local_release_gate.py --format json   # dry-run
-git tag v17.1.0 && git push origin v17.1.0                           # triggers release.yml
+git tag v18.0.0 && git push origin v18.0.0                           # triggers release.yml
 ```
 
 See `skills/.system/OPERATION_RUNBOOK.md` and `skills/.system/references/deploy-promotion.md`.
@@ -437,9 +437,6 @@ CodexAI---Skills/
     |-- codex-frontend-implementation/
     |-- codex-visual-quality-gate/
     |-- codex-design-md/
-    |-- codex-design-system/          (redirect -> codex-frontend-design)
-    |-- codex-ui-ux-design/           (redirect -> codex-frontend-design)
-    |-- codex-creative-direction/     (redirect -> codex-frontend-design studio)
     |-- codex-domain-specialist/
     |-- codex-security-specialist/
     |-- codex-execution-quality-gate/

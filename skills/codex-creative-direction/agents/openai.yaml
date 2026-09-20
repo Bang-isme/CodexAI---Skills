@@ -1,4 +1,0 @@
-interface:
-  display_name: "Creative Direction"
-  short_description: "Use for vague new or redesign UI prompts; decode the brief, pick visual authority, and produce three distinct directions before implementati."
-  default_prompt: "Use $codex-creative-direction for this task. Load it before acting."

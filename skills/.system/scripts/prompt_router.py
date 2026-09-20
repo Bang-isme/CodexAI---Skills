@@ -384,12 +384,6 @@ def supporting_agents_for(agent: str, design_operation: str | None, implementati
         return []
     if agent == "design-lead":
         return ["frontend-specialist", "visual-quality-reviewer"]
-    if agent == "creative-director":
-        return ["frontend-specialist", "visual-quality-reviewer"]
-    if agent == "ui-ux-designer":
-        return ["frontend-specialist", "visual-quality-reviewer"]
-    if agent == "creative-designer":
-        return ["frontend-specialist", "visual-quality-reviewer"]
     if agent == "frontend-specialist" and design_operation in {"new", "redesign"}:
         return ["visual-quality-reviewer"]
     if agent == "visual-quality-reviewer":
@@ -399,7 +393,7 @@ def supporting_agents_for(agent: str, design_operation: str | None, implementati
 
 def required_evidence_for(agent: str, design_operation: str | None) -> list[str]:
     evidence: list[str] = []
-    if agent in {"design-lead", "creative-director", "ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"}:
+    if agent in {"design-lead", "frontend-specialist", "visual-quality-reviewer"}:
         if design_operation in {"new", "redesign"}:
             evidence.extend(["design_contract", "direction_or_ux_contract"])
         if agent in {"frontend-specialist", "visual-quality-reviewer"} or design_operation in {"new", "redesign"}:
@@ -495,9 +489,9 @@ def route_prompt(prompt: str) -> dict[str, Any]:
     best_matches: list[str] = []
     best_score = 0
     for route in ROUTES:
-        if implementation_only and route["agent"] in {"design-lead", "creative-director", "ui-ux-designer", "creative-designer"}:
+        if implementation_only and route["agent"] == "design-lead":
             continue
-        if design_operation == "refine" and route["agent"] in {"design-lead", "creative-director"} and "landing" not in lowered and "beautiful" not in lowered:
+        if design_operation == "refine" and route["agent"] == "design-lead" and "landing" not in lowered and "beautiful" not in lowered:
             continue
         score, matches = score_route(route, lowered, injection_detected)
         if not matches and not (injection_detected and route["agent"] == "security-auditor"):

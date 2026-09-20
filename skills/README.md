@@ -6,14 +6,14 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `17.1.0` |
-| Core Skills | 33 |
+| Version | `18.0.0` |
+| Core Skills | 30 |
 | Entry-point Scripts | 74 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
 | References | 190+ |
 | Starters | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 13 |
+| Agent Personas | 10 |
 | Workflow Aliases | 8 |
 | Short Aliases | 25+ |
 | Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
@@ -23,7 +23,7 @@
 | Antigravity templates | `../antigravity/` (native package candidate) |
 | GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 456/456 |
+| Pytest | 461/461 |
 | Smoke | 87/87 |
 
 ---
@@ -87,10 +87,9 @@ Reasoning Rigor
 | `codex-frontend-design` | Fast path (page/component) or studio path (new identity); OKLCH palettes, typography, states, landing anatomy, anti-slop, refinement dials via `$refine` |
 | `codex-frontend-implementation` | React, Next.js, Tailwind, shadcn, GSAP recipes; curated craft files with provenance; OKLCH starter stylesheet |
 | `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched full-page capture, fresh-eyes review with explicit `DEGRADED` marking |
-| `codex-design-system`, `codex-ui-ux-design`, `codex-creative-direction` | Compatibility redirects into `codex-frontend-design` (kept so old prompts and aliases still resolve) |
 | `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
 | `codex-document-writer` | Report and document templates, sentence-quality rules, reliability tone, Vietnamese style, and formatting guidance |
-| `codex-domain-specialist` | 66 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
+| `codex-domain-specialist` | 61 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
 | `codex-security-specialist` | 30 references and 10 starters across network, infrastructure, AppSec, DevSecOps, compliance, and advanced security |
 
 ### Quality, Memory, Delivery, and Discipline
@@ -179,8 +178,6 @@ The agent layer adds scoped personas on top of the normal skill pipeline. Curren
 - `devops-engineer`
 - `planner`
 - `scrum-master`
-
-Compatibility redirects: `creative-director`, `ui-ux-designer`, and `creative-designer` resolve to `design-lead`.
 
 These files live under `skills/.agents/` and are loaded when intent analysis suggests a matching persona.
 

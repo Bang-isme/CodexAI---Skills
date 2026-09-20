@@ -282,7 +282,7 @@
       "name": "memory_status",
       "kind": "memory",
       "script": "codex-project-memory/scripts/memory_status.py",
-      "purpose": "Validate generated project-memory artifacts for schema, age and git-HEAD staleness, and graph coherence.",
+      "purpose": "Validate generated project-memory artifacts for schema, age and git-HEAD staleness, and LANGUAGE_REGISTRY-filtered graph/indexer coherence.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],

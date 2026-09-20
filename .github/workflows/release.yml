@@ -1,5 +1,5 @@
 ﻿# Plugin release pipeline.
-# - Tag push v* (e.g. v17.1.0): run the local release gate, build the ZIP, publish a GitHub Release.
+# - Tag push v* (e.g. v18.0.0): run the local release gate, build the ZIP, publish a GitHub Release.
 # - workflow_dispatch: build the ZIP as an artifact only (no GitHub Release).
 # There is intentionally no deploy.yml and no staging/production environments for this repository.
 

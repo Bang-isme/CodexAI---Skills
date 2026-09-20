@@ -117,7 +117,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -292,20 +292,11 @@ jobs:
           python skills/codex-project-memory/scripts/build_knowledge_index.py --project-root .
           python skills/codex-project-memory/scripts/build_knowledge_graph.py --project-root .
 
-      - name: Validate project-memory status (warnings allowed)
+      - name: Validate project-memory status
         run: python skills/codex-project-memory/scripts/memory_status.py --project-root . --format json
 
-      - name: Validate project-memory strict behavior is explicit
-        shell: bash
-        run: |
-          set +e
-          python skills/codex-project-memory/scripts/memory_status.py --project-root . --strict --format json
-          code=$?
-          set -e
-          if [[ "$code" != "0" && "$code" != "1" ]]; then
-            echo "Unexpected memory_status --strict exit code: $code"
-            exit 1
-          fi
+      - name: Validate project-memory strict gate
+        run: python skills/codex-project-memory/scripts/memory_status.py --project-root . --strict --format json
 
   plugin-pack-release-smoke:
     name: Plugin pack release smoke

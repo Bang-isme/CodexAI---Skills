@@ -101,7 +101,7 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - Verify file tree against the recorded fingerprint (slower; catches uncommitted changes):
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path> --verify-tree`
 - Output:
-  JSON status (`pass`, `warn`, or `fail`) with `policy`, artifact checks, age staleness, `source` staleness (git HEAD vs `index.json.source.git_head`, optional tree fingerprint), module/file coherence, and graph/codebase index count checks. `index.html` is never checked.
+  JSON status (`pass`, `warn`, or `fail`) with `policy`, artifact checks, age staleness, `source` staleness (git HEAD vs `index.json.source.git_head`, optional tree fingerprint), and graph/codebase coherence. Coherence compares `code_index` to the LANGUAGE_REGISTRY subset of the indexer; `.md`/config extras are `expected_extras` (not warnings). `index.html` is never checked.
 - See also:
   `references/ci-readiness.md`, `references/artifact-lifecycle-policy.md`, `references/project-memory-tools.json`
 

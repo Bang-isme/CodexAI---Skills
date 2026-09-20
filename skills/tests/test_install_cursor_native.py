@@ -50,3 +50,17 @@ def test_install_doctor_reports_missing_cursor_wiring(tmp_path: Path) -> None:
     names = {item["name"]: item["status"] for item in report["checks"]}
     assert names["cursor_rule"] == "fail"
     assert names["skills_root"] == "fail"
+
+
+def test_install_doctor_plugin_source_cursor_is_pass(tmp_path: Path) -> None:
+    write(tmp_path / "skills" / "codex-master-instructions" / "SKILL.md", "demo\n")
+    write(
+        tmp_path / ".cursor" / "rules" / "codexai-core.mdc",
+        "<!-- codexai-agentic-workflow:start -->\n# CodexAI Core\n<!-- codexai-agentic-workflow:end -->\n",
+    )
+    report = pack_install.doctor_host("cursor", "repo", tmp_path)
+    assert report["status"] == "pass"
+    names = {item["name"]: item["status"] for item in report["checks"]}
+    assert names["skills_root"] == "pass"
+    assert names["cursor_rule"] == "pass"
+    assert names["master_skill"] == "pass"

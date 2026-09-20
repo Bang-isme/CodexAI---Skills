@@ -79,7 +79,7 @@ def test_manifest_router_and_plugin_tools_are_linked() -> None:
 def test_ci_workflow_uses_dev_requirements_cache() -> None:
     ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "cache-dependency-path: requirements-dev.txt" in ci
-    assert "python-version: [\"3.12\", \"3.13\"]" in ci or 'python-version: ["3.12", "3.13"]' in ci
+    assert "python-version: [\"3.12\", \"3.13\", \"3.14\"]" in ci or 'python-version: ["3.12", "3.13", "3.14"]' in ci
 
 
 def test_plugin_tool_registry_covers_trust_harness_commands() -> None:

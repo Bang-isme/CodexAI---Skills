@@ -17,7 +17,7 @@ MANIFEST = SKILLS_ROOT / ".system" / "manifest.json"
 BENCHMARK = SKILLS_ROOT / "tests" / "benchmark_quality.py"
 VI_GUIDE = REPO_ROOT / "docs" / "huong-dan-vi.md"
 
-EXPECTED_PYTEST = 456
+EXPECTED_PYTEST = 461
 EXPECTED_SMOKE = 87
 EXPECTED_TOTAL = EXPECTED_PYTEST + EXPECTED_SMOKE
 
@@ -43,6 +43,23 @@ def test_release_version_metadata_matches_single_source_of_truth() -> None:
     assert f"| Version | `{version}` |" in skills_readme
     assert f"## [{version}]" in changelog
     assert changelog.startswith("# Changelog\n\n## [Unreleased]") or changelog.startswith(f"# Changelog\n\n## [{version}]")
+
+
+def test_skill_md_frontmatter_version_matches_pack_version() -> None:
+    version = read(VERSION).strip()
+    pattern = re.compile(r'(?m)^version:\s*["\']?([^"\'\n]+)["\']?\s*$')
+    mismatches: list[str] = []
+    for skill_md in sorted(SKILLS_ROOT.glob("*/SKILL.md")):
+        text = read(skill_md)
+        if not text.startswith("---"):
+            continue
+        parts = text.split("---", 2)
+        if len(parts) < 3:
+            continue
+        match = pattern.search(parts[1])
+        if match and match.group(1).strip() != version:
+            mismatches.append(f"{skill_md.parent.name}: {match.group(1).strip()} != {version}")
+    assert not mismatches, "SKILL.md version frontmatter must match skills/VERSION:\n" + "\n".join(mismatches)
 
 
 def test_public_test_count_metadata_matches_verified_suite_target() -> None:

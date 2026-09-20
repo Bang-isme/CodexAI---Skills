@@ -143,8 +143,9 @@ PLUGIN_SOURCE_MANIFESTS = {
     "antigravity": "antigravity/plugin.json",
     "cursor": ".cursor/rules/codexai-core.mdc",
 }
-# Cursor only discovers skills from .cursor/skills, so a source checkout is a warning, not a pass.
-PLUGIN_SOURCE_STATUS = {"codex": "pass", "claude": "pass", "antigravity": "pass", "cursor": "warn"}
+# Plugin source checkout is a pass for every host. Cursor consumers still materialize
+# `.cursor/skills` with `install.py --host cursor --apply`; doctor reports that in detail.
+PLUGIN_SOURCE_STATUS = {"codex": "pass", "claude": "pass", "antigravity": "pass", "cursor": "pass"}
 
 
 def plugin_source_root(host: str, repo_root: Path | None) -> Path | None:

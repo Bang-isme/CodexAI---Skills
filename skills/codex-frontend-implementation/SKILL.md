@@ -2,7 +2,7 @@
 name: codex-frontend-implementation
 description: Use when implementing web UI in React, Next.js, Tailwind, CSS, or GSAP against an approved or fast-path brief.
 load_priority: on-demand
-version: "17.0.0"
+version: "18.0.0"
 ---
 
 ## TL;DR

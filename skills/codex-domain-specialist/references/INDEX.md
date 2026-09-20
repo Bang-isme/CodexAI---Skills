@@ -1,7 +1,7 @@
 # Domain Specialist Routing Index
 
 Canonical routing tables, combo detection, and signal maps. Keep `SKILL.md` short.
-Frontend implementation references live in `codex-frontend-implementation/references/`; tables below link there directly. Local `frontend-rules.md`, `react-patterns.md`, `css-architecture.md`, `accessibility-rules.md`, `nextjs-patterns.md`, and `gsap-mastery.md` are compatibility stubs only. Bare filenames in the combo tables resolve to the frontend-implementation copies for those six files.
+Frontend implementation references live in `codex-frontend-implementation/references/`; tables below link there directly. Bare filenames in the combo tables for `frontend-rules.md`, `react-patterns.md`, `css-architecture.md`, `accessibility-rules.md`, `nextjs-patterns.md`, and `gsap-mastery.md` resolve to those frontend-implementation copies.
 
 Load at most 4 references on the first pass. Quality gates are owned by `codex-execution-quality-gate` / `codex-visual-quality-gate`, not this skill.
 

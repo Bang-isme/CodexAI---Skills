@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `17.1.0` | Cập nhật: 2026-09-20
+> Phiên bản: `18.0.0` | Cập nhật: 2026-09-21
 
 ## 1. Giới Thiệu
 
@@ -14,15 +14,15 @@ Luồng chuẩn của pack:
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Core skills | 33 |
+| Core skills | 30 |
 | Entry-point scripts | 74 |
 | Shared helpers | 2 |
 | References | 190+ |
 | Starters | 29 |
 | Artifact templates | 9 |
-| Agent personas | 13 |
+| Agent personas | 10 |
 | Workflow aliases | 8 |
-| Kiểm thử | 456 unit + 87 smoke = 543 bài test |
+| Kiểm thử | 461 unit + 87 smoke = 548 bài test |
 
 ## 2. Điểm mạnh chính
 

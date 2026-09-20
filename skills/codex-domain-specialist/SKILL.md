@@ -2,7 +2,7 @@
 name: codex-domain-specialist
 description: Use when frontend, backend, mobile, data, DevOps, or security work needs domain routing and at most four focused references.
 load_priority: on-demand
-version: "17.0.0"
+version: "18.0.0"
 ---
 
 ## TL;DR
@@ -16,7 +16,7 @@ Detect the primary domain, load at most 4 references from `references/INDEX.md`,
 
 ## Load budget
 1. Max 4 references on the first pass. Declare `Loading:` and `Skipping:`.
-2. Frontend/UI/React/Next/CSS/GSAP: load `codex-frontend-implementation`, not local frontend catalogs. Stubs remain at `references/frontend-rules.md`, `references/react-patterns.md`, `references/nextjs-patterns.md`, `references/css-architecture.md`, `references/accessibility-rules.md`, and `references/gsap-mastery.md`.
+2. Frontend/UI/React/Next/CSS/GSAP: load `codex-frontend-implementation`, not local frontend catalogs.
 3. `references/output-quality-gates.md` is owned by `codex-execution-quality-gate` / `codex-visual-quality-gate`. Do not bulk-load it here.
 
 ## Routing

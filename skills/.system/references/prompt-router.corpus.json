@@ -133,7 +133,7 @@
       "intent": "build",
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
-      "must_not_include_agents": ["design-lead", "ui-ux-designer", "creative-designer"]
+      "must_not_include_agents": ["design-lead"]
     },
     {
       "prompt": "Chỉ implement giao diện React đã duyệt, không đổi art direction",

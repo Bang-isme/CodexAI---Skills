@@ -145,19 +145,6 @@
       "handoff": "Return implemented UI and request $visual-gate."
     },
     {
-      "skill": "codex-design-system",
-      "domain": "frontend",
-      "objective": "Compatibility redirect into codex-frontend-design visual grammar, type, color, and anti-slop.",
-      "triggers": ["design system", "component consistency", "visual tokens"],
-      "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["design decisions", "component guidance"],
-      "tool_classes": ["read_only"],
-      "risk_tier": "advisory",
-      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance does not process secrets or invoke external assets."},
-      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
-      "handoff": "Pass design constraints and component criteria to implementation and quality gate."
-    },
-    {
       "skill": "codex-design-md",
       "domain": "frontend",
       "objective": "Validate design markdown contracts and emit deterministic design review artifacts.",
@@ -169,32 +156,6 @@
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Generated reports stay within the selected project output directory."},
       "verification": {"owner": "tests/test_design_md.py", "command": "python -m pytest tests/test_design_md.py"},
       "handoff": "Provide contract findings and artifact paths to frontend implementation or QA."
-    },
-    {
-      "skill": "codex-ui-ux-design",
-      "domain": "frontend",
-      "objective": "Compatibility redirect into codex-frontend-design for UX contracts covering jobs, flows, IA, states, copy, and accessible responsive behavior.",
-      "triggers": ["user flow", "information architecture", "empty states", "onboarding"],
-      "resources": {"scripts": [], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["UX surface contract", ".codex/design/surfaces"],
-      "tool_classes": ["read_only"],
-      "risk_tier": "advisory",
-      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance only; file writes go through design_context.py with --apply."},
-      "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
-      "handoff": "Redirect: design-lead owns the UX contract via codex-frontend-design; pass it to frontend-specialist."
-    },
-    {
-      "skill": "codex-creative-direction",
-      "domain": "frontend",
-      "objective": "Compatibility redirect into the codex-frontend-design studio path for vague or redesign briefs that need distinct directions.",
-      "triggers": ["art direction", "redesign", "landing page", "visual identity"],
-      "resources": {"scripts": [], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["direction contract", ".codex/design/directions"],
-      "tool_classes": ["read_only"],
-      "risk_tier": "advisory",
-      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Does not invent product claims or copy third-party brand assets."},
-      "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
-      "handoff": "Redirect: design-lead runs the codex-frontend-design studio path; send the chosen direction to frontend-specialist."
     },
     {
       "skill": "codex-visual-quality-gate",

@@ -2,7 +2,7 @@
 name: codex-frontend-design
 description: Use when building or redesigning UI; pick fast path for a page/component or studio path for a new visual identity.
 load_priority: on-demand
-version: "17.0.0"
+version: "18.0.0"
 ---
 
 ## TL;DR

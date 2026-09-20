@@ -22,17 +22,21 @@ def load_script_module(name: str, relative_path: str):
 router = load_script_module("prompt_router_frontend", ".system/scripts/prompt_router.py")
 
 
-def test_redirect_skills_resolve_to_frontend_design() -> None:
+def test_legacy_design_redirects_are_removed() -> None:
     for name in ("codex-ui-ux-design", "codex-creative-direction", "codex-design-system"):
-        text = (SKILLS_ROOT / name / "SKILL.md").read_text(encoding="utf-8")
-        assert "Merged into `codex-frontend-design`" in text
-
-
-def test_redirect_agents_point_to_design_lead() -> None:
+        assert not (SKILLS_ROOT / name).exists()
     for name in ("creative-director", "ui-ux-designer", "creative-designer"):
-        text = (SKILLS_ROOT / ".agents" / f"{name}.md").read_text(encoding="utf-8")
-        assert "design-lead" in text
-        assert "Redirect" in text
+        assert not (SKILLS_ROOT / ".agents" / f"{name}.md").exists()
+    stubs = (
+        "frontend-rules.md",
+        "react-patterns.md",
+        "css-architecture.md",
+        "accessibility-rules.md",
+        "nextjs-patterns.md",
+        "gsap-mastery.md",
+    )
+    for name in stubs:
+        assert not (SKILLS_ROOT / "codex-domain-specialist" / "references" / name).exists()
 
 
 def test_craft_provenance_headers_present() -> None:
@@ -67,7 +71,11 @@ def test_docs_and_capabilities_no_longer_treat_redirects_as_primary() -> None:
 
     assert "| `codex-frontend-design` |" in root_readme
     assert "| `codex-design-system` |" not in root_readme
-    assert "`codex-frontend-design`" in skills_readme
+    assert "| `codex-frontend-design` |" in skills_readme
+    assert "Compatibility redirects" not in skills_readme
+    assert "codex-design-system" not in skills_readme
+    assert "codex-ui-ux-design" not in skills_readme
+    assert "codex-creative-direction" not in skills_readme
     assert "v14 NEW" not in skills_readme
     assert "- `design-lead`" in skills_readme
     assert "- `visual-quality-reviewer`" in skills_readme

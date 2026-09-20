@@ -251,3 +251,17 @@ def test_codex_hooks_validator_reports_malformed_json(tmp_path: Path) -> None:
 
     assert validation["status"] == "fail"
     assert "invalid JSON" in validation["message"]
+
+
+def test_plugin_repo_codex_hooks_are_portable() -> None:
+    hooks_path = REPO_ROOT / ".codex" / "hooks.json"
+    text = hooks_path.read_text(encoding="utf-8")
+    payload = json.loads(text)
+    command = payload["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+    assert "skills/codex-runtime-hook/scripts/runtime_hook.py" in command
+    assert "--project-root ." in command
+    assert "C:\\" not in text
+    assert "/home/" not in text
+    assert "C:/" not in command
+    validation = validate_hooks.validate_hooks(REPO_ROOT)
+    assert validation["status"] == "pass"

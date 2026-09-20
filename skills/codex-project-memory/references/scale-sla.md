@@ -59,7 +59,7 @@ CI medium/large tiers use polyglot fixtures so gates exercise multi-parser index
 
 - Do **not** commit `.codex/` output; see `references/artifact-lifecycle-policy.md`.
 - On Windows CI, exclude symlink traversal test when lacking privilege (see `ci-readiness.md`).
-- Advisory `memory_status` warn (graph vs codebase parity) is expected on real repos; use `--strict` only when policy requires it.
+- After a fresh index+graph build, `memory_status --strict` should exit 0. Indexer-only extras (`.md`, `.toml`, `Dockerfile`) are `expected_extras`, not warnings.
 - External CLI wrappers should read `skills/.system/references/plugin-tools.json` entry `memory_scale_gate` instead of shell-scripting individual memory commands.
 
 ## CI workflows

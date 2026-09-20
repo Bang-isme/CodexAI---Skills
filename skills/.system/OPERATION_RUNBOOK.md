@@ -99,7 +99,7 @@ Stages run in a fixed order: `lint` (pack health, core-rules drift via `init_age
 
 CI/CD workflows:
 
-- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift, host doctor, smoke tests, `pipeline-selfcheck` (runs `pipeline.py --stage lint,contracts,build,doctor`), memory-at-scale (medium), Python matrix (3.12–3.13 × OS; 3.11 contracts), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
+- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift, host doctor, smoke tests, `pipeline-selfcheck` (runs `pipeline.py --stage lint,contracts,build,doctor`), memory-at-scale (medium), Python matrix (3.12–3.14 × OS; 3.11 contracts), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
 - `.github/workflows/scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with report artifact.
 - `.github/workflows/release.yml`: on tag push `v*` it verifies the tag equals `skills/VERSION`, runs `pipeline.py --stage lint,contracts,test,doctor`, runs `local_release_gate.py --apply`, uploads `dist/*.zip`, and publishes a GitHub Release with generated notes. `workflow_dispatch` builds the ZIP artifact only.
 - Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.

@@ -1,5 +1,5 @@
 {
-  "version": "17.1.0",
+  "version": "18.0.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -12,10 +12,7 @@
     "codex-spec-driven-development",
     "codex-frontend-design",
     "codex-frontend-implementation",
-    "codex-design-system",
     "codex-design-md",
-    "codex-ui-ux-design",
-    "codex-creative-direction",
     "codex-visual-quality-gate",
     "codex-domain-specialist",
     "codex-security-specialist",
@@ -38,9 +35,6 @@
   "agents": [
     "design-lead",
     "frontend-specialist",
-    "ui-ux-designer",
-    "creative-director",
-    "creative-designer",
     "visual-quality-reviewer",
     "backend-specialist",
     "security-auditor",
@@ -131,10 +125,7 @@
       "codex-spec-driven-development",
       "codex-frontend-design",
       "codex-frontend-implementation",
-      "codex-design-system",
       "codex-design-md",
-      "codex-ui-ux-design",
-      "codex-creative-direction",
       "codex-visual-quality-gate",
       "codex-domain-specialist",
       "codex-security-specialist",

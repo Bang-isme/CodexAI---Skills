@@ -20,7 +20,8 @@ scale-gate-report-*.json
 *.tmp
 *.bak
 
-.codex/
+.codex/*
+!.codex/hooks.json
 skills/.codex/
 skills/.analytics/
 .codexai-backups/

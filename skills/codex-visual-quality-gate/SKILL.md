@@ -2,7 +2,7 @@
 name: codex-visual-quality-gate
 description: Use after UI implementation for mechanical source checks and a rendered or fresh-eyes review.
 load_priority: on-demand
-version: "17.0.0"
+version: "18.0.0"
 ---
 
 ## TL;DR

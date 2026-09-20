@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -342,3 +343,84 @@ def test_build_knowledge_index_cli_defaults_to_incremental(tmp_path: Path) -> No
     codebase = json.loads(Path(third["codebase_index_path"]).read_text(encoding="utf-8"))
     assert codebase["incremental"]["enabled"] is False
     assert codebase["incremental"]["reused_files"] == 0
+
+
+def test_memory_status_coherence_ignores_indexer_only_docs_and_configs(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    write(tmp_path / "README.md", "# docs\n")
+    write(tmp_path / "Dockerfile", "FROM python:3.13\n")
+
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    status = memory_status.build_status(tmp_path, tmp_path / ".codex" / "knowledge", max_age_hours=24)
+    coherence = status["coherence"]
+
+    assert coherence["status"] == "pass"
+    extras = {Path(path).name for path in coherence["expected_extras"]}
+    assert "README.md" in extras
+    assert "Dockerfile" in extras
+    assert coherence["graph_only"] == []
+    assert coherence["codebase_only"] == []
+    assert not any("file sets differ" in warning for warning in coherence["warnings"])
+    assert not any("file sets differ" in warning for warning in status["warnings"])
+
+
+def test_memory_status_coherence_warns_when_graph_misses_code_file(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    write(tmp_path / "src" / "extra.py", "def extra():\n    return 2\n")
+    knowledge_dir = tmp_path / ".codex" / "knowledge"
+    knowledge_index.write_knowledge_artifacts(tmp_path, knowledge_dir)
+    graph_path = knowledge_dir / "knowledge-graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    removed = graph["code_index"].pop("src/extra.py")
+    assert removed
+    graph_path.write_text(json.dumps(graph), encoding="utf-8")
+
+    status = memory_status.build_status(tmp_path, knowledge_dir, max_age_hours=24)
+    assert status["coherence"]["status"] == "warn"
+    assert "src/extra.py" in status["coherence"]["codebase_only"]
+    assert any("file sets differ" in warning for warning in status["coherence"]["warnings"])
+
+    strict = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"),
+            "--project-root",
+            str(tmp_path),
+            "--strict",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert json.loads(strict.stdout)["status"] == "warn"
+    assert strict.returncode == 1
+
+
+def test_memory_status_strict_cli_exits_zero_on_clean_docs_and_code(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    write(tmp_path / "README.md", "# docs\n")
+    write(tmp_path / "Dockerfile", "FROM python:3.13\n")
+    knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+
+    strict = subprocess.run(
+        [
+            sys.executable,
+            str(SKILLS_ROOT / "codex-project-memory/scripts/memory_status.py"),
+            "--project-root",
+            str(tmp_path),
+            "--strict",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    payload = json.loads(strict.stdout)
+    assert payload["status"] == "pass"
+    assert payload["coherence"]["status"] == "pass"
+    assert strict.returncode == 0

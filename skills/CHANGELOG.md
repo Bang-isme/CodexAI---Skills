@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [18.0.0] - 2026-09-21
+
+### Breaking
+- Removed compatibility redirect skills `codex-design-system`, `codex-ui-ux-design`, and `codex-creative-direction`. Use `codex-frontend-design` (`$design` / `$ux` / `$direction`).
+- Removed redirect agents `ui-ux-designer`, `creative-director`, and `creative-designer`. Use `design-lead`.
+- Removed six frontend catalog stubs from `codex-domain-specialist/references/`. Load `codex-frontend-implementation/references/` instead.
+
+### Added
+- Python 3.14 on the CI OS matrix (3.12–3.14 × Linux/Windows); Python 3.11 contract job unchanged.
+- Tracked portable `.codex/hooks.json` with a relative `runtime_hook.py` command so `install.py doctor --host codex` passes on the plugin source checkout.
+- `memory_status` reports indexer-only extras (`.md`, `.toml`, `Dockerfile`, test files when the graph excluded them) as `coherence.expected_extras` instead of a false-positive file-set warning.
+- SKILL.md `version:` frontmatter, when present, is checked against `skills/VERSION`.
+
+### Changed
+- `graph_coherence` compares `code_index` to the `LANGUAGE_REGISTRY` subset of the codebase index (same predicate as `build_knowledge_graph.py`). `--strict` is now usable in CI after a fresh index+graph build; the plugin CI job fails on a non-zero exit.
+- `install.py doctor` treats a Cursor plugin source checkout as `pass`. Consumers still materialize `.cursor/skills` with `install.py --host cursor --apply`.
+- Pack counts: 30 skills, 10 agents.
+
+### Infrastructure
+- Bumped version: `17.1.0` -> `18.0.0`
+- Verified suite target: `461` unit tests + `87` smoke checks.
+
 ## [17.1.0] - 2026-09-20
 
 ### Added

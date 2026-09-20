@@ -9,8 +9,6 @@ Use the two design skills together, but for different jobs:
 | `codex-frontend-design` | choose palettes (OKLCH), fonts, layout patterns, motion, composition, anti-slop avoidance (fast path or studio) |
 | `codex-design-md` | turn those choices into a durable, lintable, exportable contract |
 
-`codex-design-system` remains only as a compatibility redirect into `codex-frontend-design`.
-
 ## When To Reach For DESIGN.md
 
 Use `DESIGN.md` when at least one of these is true:

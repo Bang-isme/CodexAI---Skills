@@ -35,15 +35,83 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_traversal():
+def _ensure_script_dir_on_path() -> None:
     script_dir = str(Path(__file__).resolve().parent)
     if script_dir not in sys.path:
         sys.path.insert(0, script_dir)
+
+
+def load_traversal():
+    _ensure_script_dir_on_path()
     try:
         import project_traversal  # noqa: WPS433 - sibling module, imported lazily
     except ImportError:
         return None
     return project_traversal
+
+
+def load_graph_builder():
+    """Load build_knowledge_graph for LANGUAGE_REGISTRY / is_test_file (same predicate as graph coherence)."""
+    _ensure_script_dir_on_path()
+    try:
+        import build_knowledge_graph  # noqa: WPS433 - sibling module, imported lazily
+    except ImportError:
+        return None
+    return build_knowledge_graph
+
+
+FALLBACK_GRAPH_EXTENSIONS = frozenset(
+    {
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".mjs",
+        ".cjs",
+        ".py",
+        ".go",
+        ".rs",
+        ".java",
+        ".cs",
+        ".php",
+        ".rb",
+        ".kt",
+        ".kts",
+        ".swift",
+        ".vue",
+        ".svelte",
+        ".html",
+        ".css",
+        ".scss",
+        ".sql",
+        ".tf",
+        ".yaml",
+        ".yml",
+        ".json",
+    }
+)
+
+
+def graph_language_extensions() -> frozenset[str]:
+    builder = load_graph_builder()
+    if builder is None:
+        return FALLBACK_GRAPH_EXTENSIONS
+    return frozenset(builder.LANGUAGE_REGISTRY)
+
+
+def is_test_file(rel: str) -> bool:
+    builder = load_graph_builder()
+    if builder is not None:
+        return bool(builder.is_test_file(rel))
+    lower = rel.replace("\\", "/").lower()
+    name = Path(rel).name.lower()
+    return (
+        ".test." in name
+        or ".spec." in name
+        or "/tests/" in lower
+        or "/__tests__/" in lower
+        or name.startswith("test_")
+    )
 
 
 def source_staleness(project_root: Path, index: dict[str, Any], current_head: str, verify_tree: bool) -> dict[str, Any]:
@@ -166,10 +234,25 @@ def graph_coherence(graph: dict[str, Any], codebase: dict[str, Any]) -> dict[str
     if empty_modules:
         warnings.append(f"module boundaries without mapped files: {', '.join(empty_modules[:10])}")
     codebase_files = codebase.get("files") if isinstance(codebase.get("files"), dict) else {}
-    if codebase_files and set(codebase_files) != set(code_index):
+    graph_files = {str(path) for path in code_index}
+    include_tests = any(is_test_file(path) for path in graph_files)
+    extensions = graph_language_extensions()
+    comparable: set[str] = set()
+    expected_extras: list[str] = []
+    for raw_path in codebase_files:
+        path = str(raw_path)
+        suffix = Path(path).suffix.lower()
+        if suffix in extensions and (include_tests or not is_test_file(path)):
+            comparable.add(path)
+        else:
+            expected_extras.append(path)
+    expected_extras.sort()
+    graph_only = sorted(graph_files - comparable)
+    codebase_only = sorted(comparable - graph_files)
+    if codebase_files and (graph_only or codebase_only):
         warnings.append(
-            "code_index and codebase_index file sets differ "
-            f"(graph={len(code_index)}, codebase={len(codebase_files)})"
+            "code_index and comparable codebase_index file sets differ "
+            f"(graph_only={len(graph_only)}, codebase_only={len(codebase_only)})"
         )
     if not code_index:
         failures.append("graph code_index is empty")
@@ -180,6 +263,13 @@ def graph_coherence(graph: dict[str, Any], codebase: dict[str, Any]) -> dict[str
         "code_index_files": len(code_index),
         "module_file_counts": module_counts,
         "codebase_index_files": len(codebase_files),
+        "comparable_index_files": len(comparable),
+        "graph_only": graph_only[:25],
+        "codebase_only": codebase_only[:25],
+        "expected_extras": expected_extras[:25],
+        "expected_extras_count": len(expected_extras),
+        "include_tests": include_tests,
+        "truncated": len(graph_only) > 25 or len(codebase_only) > 25 or len(expected_extras) > 25,
     }
 
 

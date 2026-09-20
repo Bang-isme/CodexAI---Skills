@@ -21,15 +21,13 @@ Expected:
 
 - Pack health: `status: pass`
 - `memory_status` default: exit `0` when `status` is `pass` or `warn`
-- `memory_status --strict`: exit `1` when `status` is `warn`
+- `memory_status --strict`: exit `0` when `status` is `pass`; exit `1` when `status` is `warn` or `fail`
 
-### Expected advisory warnings (not release blockers)
+### Coherence comparison
 
-After a normal build, `memory_status` may report `warn` with only:
+`memory_status` compares graph `code_index` keys to the **LANGUAGE_REGISTRY subset** of `codebase-index.json` files (same predicate as `build_knowledge_graph.py`). Markdown, TOML, shell, and config names such as `Dockerfile` are reported as `coherence.expected_extras` and do **not** warn.
 
-- `code_index and codebase_index file sets differ (...)`
-
-This is expected: the structural graph and the codebase symbol index use different traversal scopes and caps. Treat it as disclosure, not a failed build, unless your team makes graph/codebase parity mandatory in a future phase.
+A warn of `code_index and comparable codebase_index file sets differ` means a true mismatch: the graph is missing a code file the indexer has, or the graph contains a path the indexer does not. `--strict` is appropriate in CI after regenerating artifacts.
 
 A missing `.codex/knowledge-graph.json` is **not** warned when standalone graph policy is optional (default). Only use `--require-standalone-graph` when CI must enforce that file exists and is schema v2.
 
@@ -105,7 +103,7 @@ Quick rules:
 |------------|----------------|-------|
 | CI pipeline | `.github/workflows/ci.yml` | PR + push `main`; 386+ tests |
 | Caching | `setup-python` `cache: pip` + `requirements-dev.txt` | All Python jobs |
-| Matrix builds | `test`: OS × Python 3.12/3.13; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
+| Matrix builds | `test`: OS × Python 3.12/3.13/3.14; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
 | Deployments | N/A in this repo | Project CLI may call `local_release_gate` / `promote_deploy` on user machine |
 | Plugin scale gate | `memory-at-scale-medium` / `scale-nightly.yml` | Polyglot synthetic fixtures |
 | Local release | `local_release_gate.py` | Before `git tag v*` |
