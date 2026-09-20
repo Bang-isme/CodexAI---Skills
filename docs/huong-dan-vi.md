@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `16.0.0` | Cập nhật: 2026-09-04
+> Phiên bản: `17.0.0` | Cập nhật: 2026-09-20
 
 ## 1. Giới Thiệu
 
@@ -14,15 +14,15 @@ Luồng chuẩn của pack:
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Core skills | 31 |
+| Core skills | 33 |
 | Entry-point scripts | 74 |
 | Shared helpers | 2 |
 | References | 190+ |
 | Starters | 29 |
 | Artifact templates | 9 |
-| Agent personas | 12 |
+| Agent personas | 13 |
 | Workflow aliases | 8 |
-| Kiểm thử | 411 unit + 78 smoke = 489 bài test |
+| Kiểm thử | 435 unit + 87 smoke = 522 bài test |
 
 ## 2. Điểm mạnh chính
 
@@ -33,10 +33,18 @@ Luồng chuẩn của pack:
 | Tri thức ngầm nằm trong đầu người làm | `$knowledge` tạo `.codex/knowledge/INDEX.md` từ genome, role docs, decisions, commit history, và config |
 | Prototype fullstack bắt đầu quá mơ hồ | `$prototype` ép chạy spec-first: `$hook -> $init-profile -> $genome -> $init-docs -> $spec -> $plan -> implement -> $check-full` |
 | Output generic, thiếu bằng chứng | `codex-reasoning-rigor`, `output_guard.py`, và `editorial_review.py` ép file, command, risk, next step |
-| UI đẹp nhưng UX khó dùng | `creative-director`, `ui-ux-designer`, `frontend-specialist`, grammar design, và visual mechanical gate |
+| UI đẹp nhưng UX khó dùng | `design-lead`, `codex-frontend-design` (fast/studio), `frontend-specialist`, và visual mechanical gate |
 | Không có gate trước khi kết luận | `auto_gate.py` gom preflight, security, lint/test, role docs, spec, knowledge, visual mechanical, bundle |
 
-## 3. Cài Đặt Hoặc Sync Global Skills
+## 3. Cài đặt trong 3 bước
+
+1. Cài host: `python ".\skills\.system\scripts\install.py" --host cursor --scope repo --repo-root "." --apply --format text`
+2. Doctor: `python ".\skills\.system\scripts\install.py" doctor --host all --repo-root "." --format text`
+3. Dùng alias: `$plan`, `$create`, `$design`, `$check`. Nạp `codex-master-instructions` trước.
+
+Chi tiết từng host (Codex / Claude / Antigravity) nằm dưới đây. Không dùng `skills/*`, vì wildcard đó có thể bỏ sót `.system`, `.agents`, và `.workflows`.
+
+## 3b. Cài Đặt Hoặc Sync Global Skills
 
 Chạy từ root repo `CodexAI---Skills`. Không dùng `skills/*`, vì wildcard đó có thể bỏ sót `.system`, `.agents`, và `.workflows`.
 

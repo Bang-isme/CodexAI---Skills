@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Md"
+  short_description: "Use for DESIGN.md visual identity contracts; author, scaffold, lint, diff, and export design contracts with the upstream spec and CLI."
+  default_prompt: "Use $codex-design-md for this task. Load it before acting."

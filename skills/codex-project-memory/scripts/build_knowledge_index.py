@@ -557,6 +557,7 @@ def write_knowledge_artifacts(
     rebuild: bool = False,
     traversal_config=None,
     redaction_enabled: bool = True,
+    write_html: bool = False,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     progress_path = progress_file or (output_dir / "index-progress.json")
@@ -630,13 +631,16 @@ def write_knowledge_artifacts(
         progress.update("risk_scan", current_file="risk signals", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
         risk_count = len(graph.get("risk_signals", [])) if isinstance(graph.get("risk_signals"), list) else 0
 
-        progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
+        html_written = False
         progress_url = progress_fetch_url(output_dir, progress_path)
-        html_path.write_text(
-            render_interactive_html(index, graph, progress_fetch_url=progress_url),
-            encoding="utf-8",
-        )
-        progress.update("complete", current_file="index.html", files_done=files_total, files_total=files_total, status="complete")
+        if write_html:
+            progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
+            html_path.write_text(
+                render_interactive_html(index, graph, progress_fetch_url=progress_url),
+                encoding="utf-8",
+            )
+            html_written = True
+        progress.update("complete", current_file="INDEX.md", files_done=files_total, files_total=files_total, status="complete")
         combined_warnings = list(index.get("warnings", [])) + normalize_warning_messages(graph.get("warnings", []))
         return {
             "status": "built",
@@ -648,7 +652,7 @@ def write_knowledge_artifacts(
             "markdown_path": str(md_path),
             "graph_path": str(graph_path),
             "codebase_index_path": str(output_dir / "codebase-index.json"),
-            "html_path": str(html_path),
+            "html_path": str(html_path) if html_written else "",
             "progress_path": str(progress_path),
             "progress_fetch_url": progress_url,
             "stats": index["stats"],
@@ -823,6 +827,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=10, help="Maximum query results to return")
     load_traversal().add_traversal_args(parser)
     parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
+    parser.add_argument("--html", action="store_true", help="Also write the optional interactive index.html dashboard")
     return parser.parse_args()
 
 
@@ -863,6 +868,7 @@ def main() -> int:
                 rebuild=args.rebuild,
                 traversal_config=traversal_config,
                 redaction_enabled=not args.no_redaction,
+                write_html=bool(args.html or args.watch or args.serve),
             )
     except Exception as exc:
         payload = {"status": "error", "message": str(exc)}

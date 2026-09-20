@@ -76,9 +76,9 @@ ROUTES: list[dict[str, Any]] = [
     },
     {
         "intent": "build",
-        "agent": "ui-ux-designer",
+        "agent": "design-lead",
         "workflow": "plan",
-        "skills": ["codex-ui-ux-design", "codex-design-system"],
+        "skills": ["codex-frontend-design", "codex-visual-quality-gate"],
         "priority": 50,
         "signals": [
             "user flow",
@@ -97,12 +97,11 @@ ROUTES: list[dict[str, Any]] = [
     },
     {
         "intent": "build",
-        "agent": "creative-director",
-        "workflow": "prototype",
+        "agent": "design-lead",
+        "workflow": "create",
         "skills": [
-            "codex-creative-direction",
-            "codex-ui-ux-design",
-            "codex-design-system",
+            "codex-frontend-design",
+            "codex-frontend-implementation",
             "codex-visual-quality-gate",
         ],
         "priority": 48,
@@ -140,9 +139,9 @@ ROUTES: list[dict[str, Any]] = [
     },
     {
         "intent": "build",
-        "agent": "creative-designer",
+        "agent": "design-lead",
         "workflow": "create",
-        "skills": ["codex-design-system", "codex-design-md"],
+        "skills": ["codex-frontend-design", "codex-design-md"],
         "priority": 46,
         "signals": [
             "visual system",
@@ -160,7 +159,7 @@ ROUTES: list[dict[str, Any]] = [
         "intent": "build",
         "agent": "frontend-specialist",
         "workflow": "create",
-        "skills": ["codex-domain-specialist", "codex-test-driven-development", "codex-design-system"],
+        "skills": ["codex-frontend-implementation", "codex-test-driven-development", "codex-frontend-design"],
         "priority": 44,
         "signals": [
             "frontend",
@@ -383,13 +382,12 @@ def supporting_agents_for(agent: str, design_operation: str | None, implementati
         "scrum-master",
     }:
         return []
+    if agent == "design-lead":
+        return ["frontend-specialist", "visual-quality-reviewer"]
     if agent == "creative-director":
-        return ["ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"]
+        return ["frontend-specialist", "visual-quality-reviewer"]
     if agent == "ui-ux-designer":
-        extras = ["frontend-specialist"]
-        if design_operation in {"new", "redesign"}:
-            extras = ["creative-designer", "frontend-specialist", "visual-quality-reviewer"]
-        return extras
+        return ["frontend-specialist", "visual-quality-reviewer"]
     if agent == "creative-designer":
         return ["frontend-specialist", "visual-quality-reviewer"]
     if agent == "frontend-specialist" and design_operation in {"new", "redesign"}:
@@ -401,7 +399,7 @@ def supporting_agents_for(agent: str, design_operation: str | None, implementati
 
 def required_evidence_for(agent: str, design_operation: str | None) -> list[str]:
     evidence: list[str] = []
-    if agent in {"creative-director", "ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"}:
+    if agent in {"design-lead", "creative-director", "ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"}:
         if design_operation in {"new", "redesign"}:
             evidence.extend(["design_contract", "direction_or_ux_contract"])
         if agent in {"frontend-specialist", "visual-quality-reviewer"} or design_operation in {"new", "redesign"}:
@@ -450,6 +448,7 @@ def empty_payload(warnings: list[str]) -> dict[str, Any]:
         "normalized_prompt": "",
         "design_operation": None,
         "surface_mode": None,
+        "design_mode": None,
         "supporting_agents": [],
         "ambiguity_reasons": ["empty_prompt"],
         "required_evidence": [],
@@ -470,6 +469,7 @@ def fallback_payload(normalized: str, warnings: list[str]) -> dict[str, Any]:
         "normalized_prompt": normalized,
         "design_operation": design_operation,
         "surface_mode": surface_mode,
+        "design_mode": None,
         "supporting_agents": [],
         "ambiguity_reasons": ambiguity_reasons(normalized, design_operation),
         "required_evidence": [],
@@ -495,9 +495,9 @@ def route_prompt(prompt: str) -> dict[str, Any]:
     best_matches: list[str] = []
     best_score = 0
     for route in ROUTES:
-        if implementation_only and route["agent"] in {"creative-director", "ui-ux-designer", "creative-designer"}:
+        if implementation_only and route["agent"] in {"design-lead", "creative-director", "ui-ux-designer", "creative-designer"}:
             continue
-        if design_operation == "refine" and route["agent"] == "creative-director":
+        if design_operation == "refine" and route["agent"] in {"design-lead", "creative-director"} and "landing" not in lowered and "beautiful" not in lowered:
             continue
         score, matches = score_route(route, lowered, injection_detected)
         if not matches and not (injection_detected and route["agent"] == "security-auditor"):
@@ -516,16 +516,18 @@ def route_prompt(prompt: str) -> dict[str, Any]:
         supporting = []
 
     required_skills = list(best["skills"])
-    if best["agent"] == "creative-director":
-        required_skills = [
-            "codex-creative-direction",
-            "codex-ui-ux-design",
-            "codex-design-system",
-            "codex-visual-quality-gate",
-        ]
+    if best["agent"] == "design-lead" and design_operation in {"new", "redesign"}:
+        for name in ("codex-frontend-design", "codex-frontend-implementation", "codex-visual-quality-gate"):
+            if name not in required_skills:
+                required_skills.append(name)
     elif best["agent"] == "frontend-specialist" and not implementation_only and design_operation in {"new", "redesign"}:
         if "codex-visual-quality-gate" not in required_skills:
             required_skills.append("codex-visual-quality-gate")
+
+    design_mode = None
+    if best["agent"] == "design-lead":
+        studio_signals = ("art direction", "visual identity", "$direction", "three direction", "nhận diện", "thiết kế lại")
+        design_mode = "studio" if any(token in lowered for token in studio_signals) or design_operation == "redesign" else "fast"
 
     confidence = min(0.95, 0.45 + (0.15 * len(best_matches)))
     return {
@@ -539,6 +541,7 @@ def route_prompt(prompt: str) -> dict[str, Any]:
         "normalized_prompt": normalized,
         "design_operation": design_operation,
         "surface_mode": surface_mode,
+        "design_mode": design_mode,
         "supporting_agents": supporting,
         "ambiguity_reasons": ambiguity_reasons(normalized, design_operation),
         "required_evidence": required_evidence_for(best["agent"], design_operation),
@@ -596,7 +599,7 @@ def validate_corpus(path: Path) -> dict[str, Any]:
         failed = routed["intent"] != expected_intent or routed["suggested_agent"] != expected_agent
         if expected_workflow is not None and routed["workflow"] != expected_workflow:
             failed = True
-        for field in ("design_operation", "surface_mode"):
+        for field in ("design_operation", "surface_mode", "design_mode"):
             if field in item and routed.get(field) != item.get(field):
                 failed = True
         if "supporting_agents" in item:

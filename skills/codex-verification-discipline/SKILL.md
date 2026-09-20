@@ -1,6 +1,6 @@
 ---
 name: codex-verification-discipline
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs — requires running verification commands and confirming output before making any success claims; evidence before assertions always
+description: Use when about to claim work is complete, fixed, or passing; run verification and read the output before any success claim.
 load_priority: always
 ---
 

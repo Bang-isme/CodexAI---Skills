@@ -1,0 +1,4 @@
+interface:
+  display_name: "Subagent Execution"
+  short_description: "Use when an approved plan has independent tasks ready for delegated execution with fresh subagents and two-stage review."
+  default_prompt: "Use $codex-subagent-execution for this task. Load it before acting."

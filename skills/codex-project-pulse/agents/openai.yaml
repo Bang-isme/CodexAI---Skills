@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Pulse"
+  short_description: "Use when asking project status, next priority, sprint health, blockers, deadlines, risk register, or daily brief generation."
+  default_prompt: "Use $codex-project-pulse for this task. Load it before acting."

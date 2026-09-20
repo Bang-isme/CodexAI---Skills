@@ -36,26 +36,28 @@ agy_validate = load_script_module("agy_validate_mod", ".system/scripts/validate_
 
 def test_vague_prompt_loads_creative_studio_before_frontend() -> None:
     routed = router.route_prompt("Make a beautiful landing page for our product")
-    assert routed["suggested_agent"] == "creative-director"
-    assert routed["supporting_agents"][0] == "ui-ux-designer"
-    assert "frontend-specialist" in routed["supporting_agents"]
-    assert "codex-creative-direction" in routed["required_skills"]
-    assert routed["required_skills"].index("codex-creative-direction") < routed["required_skills"].index(
+    assert routed["suggested_agent"] == "design-lead"
+    assert routed["design_mode"] == "fast"
+    assert routed["supporting_agents"][0] == "frontend-specialist"
+    assert "visual-quality-reviewer" in routed["supporting_agents"]
+    assert "codex-frontend-design" in routed["required_skills"]
+    assert routed["required_skills"].index("codex-frontend-design") < routed["required_skills"].index(
         "codex-visual-quality-gate"
     )
 
 
 def test_vietnamese_vague_prompt_routes_to_direction() -> None:
     routed = router.route_prompt("Tạo một trang landing đẹp và sáng tạo")
-    assert routed["suggested_agent"] == "creative-director"
+    assert routed["suggested_agent"] == "design-lead"
     assert routed["design_operation"] == "new"
+    assert routed["design_mode"] == "fast"
 
 
 def test_refine_does_not_smuggle_redesign() -> None:
     routed = router.route_prompt("Tweak spacing on the pricing table")
     assert routed["suggested_agent"] == "frontend-specialist"
     assert routed["design_operation"] == "refine"
-    assert "creative-director" not in routed["supporting_agents"]
+    assert "design-lead" not in routed["supporting_agents"]
 
 
 def test_implementation_only_skips_studio() -> None:

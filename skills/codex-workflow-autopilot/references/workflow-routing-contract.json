@@ -21,7 +21,8 @@
     "handoff",
     "plan",
     "create",
-    "prototype"
+    "prototype",
+    "refine"
   ],
   "workflow_aliases": {
     "build": "create",

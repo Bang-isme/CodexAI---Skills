@@ -143,7 +143,7 @@ flowchart LR
 
 ## How AI Uses It
 
-1. Run `build_knowledge_graph.py` to generate `.codex/knowledge-graph.json`, or run `build_knowledge_index.py` to generate `.codex/knowledge/knowledge-graph.json` plus `.codex/knowledge/index.html`.
+1. Run `build_knowledge_graph.py` to generate `.codex/knowledge-graph.json`, or run `build_knowledge_index.py` to generate `.codex/knowledge/knowledge-graph.json`. Add `--html` for the optional dashboard.
 2. Read `ai_context.recommended_read_order` before complex refactors, cross-module changes, or API-impact work.
 3. Use `code_index` for file-level definitions, imports, imported-by, language, module, entrypoint, and risk tags.
 4. Use module boundaries and route/model maps to reduce incorrect assumptions.

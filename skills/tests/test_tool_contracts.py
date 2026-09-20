@@ -64,6 +64,9 @@ def test_plugin_tool_registry_schema_version_and_tools() -> None:
         "antigravity_install",
         "design_context",
         "visual_quality_gate",
+        "pack_install",
+        "install_cursor_native",
+        "render_core_rules",
     }
     for tool in registry["tools"]:
         for field in (

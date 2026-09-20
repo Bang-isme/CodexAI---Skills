@@ -379,6 +379,24 @@ def collect_missing(project_root: Path, domains: list[str]) -> list[dict[str, st
     return missing
 
 
+SKILL_LOAD_HINTS = {
+    "frontend": ["codex-frontend-design", "codex-frontend-implementation", "codex-visual-quality-gate"],
+    "backend": ["codex-domain-specialist", "codex-test-driven-development", "codex-execution-quality-gate"],
+    "devops": ["codex-execution-quality-gate", "codex-git-autopilot"],
+    "qa": ["codex-test-driven-development", "codex-execution-quality-gate"],
+    "security": ["codex-security-specialist", "codex-execution-quality-gate"],
+}
+
+
+def suggested_skills(domains: list[str]) -> list[str]:
+    skills = ["codex-master-instructions"]
+    for domain in domains:
+        for name in SKILL_LOAD_HINTS.get(domain, []):
+            if name not in skills:
+                skills.append(name)
+    return skills[:4]
+
+
 def suggested_agent(domains: list[str], changed_files: list[str]) -> str | None:
     lowered = ",".join(changed_files).lower()
     if "frontend" in domains and ("backend" not in domains or any(token in lowered for token in (".tsx", ".jsx", ".vue", ".css", "components/"))):
@@ -477,6 +495,7 @@ def build_report(project_root: Path, changed_files: list[str] | None = None) -> 
         "changed_files": changed,
         "detected_domains": domains,
         "suggested_agent": agent,
+        "suggested_skills": suggested_skills(domains),
         "missing": missing,
         "recommended_commands": recommended_commands(domains, missing, changed, readiness),
         "context_readiness": readiness,
@@ -530,7 +549,12 @@ def render_prompt(report: dict[str, Any]) -> str:
     missing = report.get("missing", [])
     missing_labels = [f"{item.get('domain')}: {item.get('item')}" for item in missing[:5] if isinstance(item, dict)]
     commands = report.get("recommended_commands", [])[:5]
+    alias = workflow.get("alias") or "$plan"
+    skills = report.get("suggested_skills") or suggested_skills(report.get("detected_domains") or [])
+    skill_hint = ", ".join(f"`{name}`" for name in skills[:4])
     lines = [
+        f"Load skill `codex-master-instructions` now; then route via `{alias}`.",
+        f"Suggested skills: {skill_hint}.",
         f"Project readiness: {report.get('overall', 'unknown')}.",
         f"Detected domains: {', '.join(report.get('detected_domains', [])) or 'none'}.",
         f"Suggested agent: {report.get('suggested_agent') or 'none'}.",

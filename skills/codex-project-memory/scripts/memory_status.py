@@ -138,7 +138,6 @@ def build_status(
     index_path = knowledge_dir / "index.json"
     graph_path = knowledge_dir / "knowledge-graph.json"
     codebase_path = knowledge_dir / "codebase-index.json"
-    html_path = knowledge_dir / "index.html"
     standalone_graph_path = project_root / ".codex" / "knowledge-graph.json"
 
     index, index_error = read_json(index_path)
@@ -152,8 +151,6 @@ def build_status(
         failures.append(f"knowledge-graph.json: {graph_error}")
     if codebase_error:
         warnings.append(f"codebase-index.json: {codebase_error}")
-    if not html_path.exists():
-        warnings.append("index.html missing")
 
     standalone_graph, standalone_error = read_json(standalone_graph_path)
     if not standalone_graph_path.exists():

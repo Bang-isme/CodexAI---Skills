@@ -19,8 +19,11 @@ SKILLS_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS: List[Tuple[str, str]] = [
     (".system", "scripts/check_pack_health.py"),
     (".system", "scripts/init_agents_md.py"),
+    (".system", "scripts/render_core_rules.py"),
+    (".system", "scripts/install.py"),
     (".system", "scripts/install_codex_native.py"),
     (".system", "scripts/install_claude_native.py"),
+    (".system", "scripts/install_cursor_native.py"),
     (".system", "scripts/sync_global_skills.py"),
     (".system", "scripts/validate_codex_plugin.py"),
     (".system", "scripts/validate_claude_plugin.py"),

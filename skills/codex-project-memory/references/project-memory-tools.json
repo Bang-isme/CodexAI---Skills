@@ -15,7 +15,8 @@
           "top_k": {"type": "integer", "default": 10},
           "incremental": {"type": "boolean", "default": false},
           "rebuild": {"type": "boolean", "default": false},
-          "no_redaction": {"type": "boolean", "default": false}
+          "no_redaction": {"type": "boolean", "default": false},
+          "html": {"type": "boolean", "default": false}
         }
       },
       "success_statuses": ["built", "queried"],
@@ -23,13 +24,14 @@
         ".codex/knowledge/index.json",
         ".codex/knowledge/knowledge-graph.json",
         ".codex/knowledge/codebase-index.json",
-        ".codex/knowledge/index.html"
+        ".codex/knowledge/INDEX.md"
       ],
       "required_artifact_modes": {
         ".codex/knowledge/index.json": "generated_on_success",
         ".codex/knowledge/knowledge-graph.json": "generated_on_success",
         ".codex/knowledge/codebase-index.json": "generated_on_success",
-        ".codex/knowledge/index.html": "generated_on_success"
+        ".codex/knowledge/INDEX.md": "generated_on_success",
+        ".codex/knowledge/index.html": "optional"
       },
       "exit_codes": {"success": [0], "failure": [1]},
       "warning_policy": {

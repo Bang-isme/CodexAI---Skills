@@ -149,7 +149,7 @@ def test_lint_valid_scaffold_has_no_findings() -> None:
     report = design_contract.lint_content(valid_design_markdown())
 
     assert report["summary"] == {"errors": 0, "warnings": 0, "info": 0}
-    assert report["design_system"]["colors"]["primary"] == "#111827"
+    assert report["design_system"]["colors"]["primary"] == "oklch(0.55 0.14 40)"
     assert [section["canonical"] for section in report["sections"]] == design_contract.SECTION_SEQUENCE
 
 
@@ -217,8 +217,8 @@ def test_export_tailwind_maps_tokens_to_theme_extension() -> None:
     payload = design_contract.export_tailwind(report["design_system"])
 
     theme = payload["theme"]["extend"]
-    assert theme["colors"]["primary"] == "#111827"
-    assert theme["fontFamily"]["body-md"] == ["Inter"]
+    assert theme["colors"]["primary"] == "oklch(0.55 0.14 40)"
+    assert theme["fontFamily"]["body-md"] == ["Source Serif 4"]
     assert theme["fontSize"]["display-xl"][0] == "3.5rem"
     assert theme["spacing"]["xl"] == "40px"
 
@@ -298,7 +298,7 @@ def test_cli_export_tailwind_outputs_json_theme(tmp_path: Path) -> None:
 
     payload = json.loads(result.stdout)
     assert result.returncode == 0
-    assert payload["theme"]["extend"]["colors"]["tertiary"] == "#0F766E"
+    assert payload["theme"]["extend"]["colors"]["tertiary"] == "oklch(0.62 0.08 160)"
 
 
 def test_cli_spec_rules_only_json_is_stable() -> None:

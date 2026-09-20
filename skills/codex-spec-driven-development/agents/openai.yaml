@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec Driven Development"
+  short_description: "Use for prototype, MVP, fullstack feature, from-scratch feature, or multi-domain work that needs a SPEC.md before planning or implementation."
+  default_prompt: "Use $codex-spec-driven-development for this task. Load it before acting."

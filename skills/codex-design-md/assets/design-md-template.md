@@ -3,32 +3,32 @@ version: alpha
 name: {{name}}
 description: {{description}}
 colors:
-  primary: "#111827"
-  secondary: "#6B7280"
-  tertiary: "#0F766E"
-  neutral: "#F8FAFC"
-  surface: "#FFFFFF"
-  text: "#111827"
+  primary: "oklch(0.55 0.14 40)"
+  secondary: "oklch(0.45 0.02 85)"
+  tertiary: "oklch(0.62 0.08 160)"
+  neutral: "oklch(0.97 0.01 85)"
+  surface: "oklch(0.99 0.008 85)"
+  text: "oklch(0.22 0.03 85)"
 typography:
   display-xl:
-    fontFamily: "Space Grotesk"
+    fontFamily: "Fraunces"
     fontSize: 3.5rem
     fontWeight: 700
     lineHeight: 1.05
     letterSpacing: -0.03em
   heading-lg:
-    fontFamily: "Space Grotesk"
+    fontFamily: "Fraunces"
     fontSize: 2rem
     fontWeight: 600
     lineHeight: 1.15
     letterSpacing: -0.02em
   body-md:
-    fontFamily: "Inter"
+    fontFamily: "Source Serif 4"
     fontSize: 1rem
     fontWeight: 400
     lineHeight: 1.6
   label-sm:
-    fontFamily: "Inter"
+    fontFamily: "IBM Plex Mono"
     fontSize: 0.875rem
     fontWeight: 500
     lineHeight: 1.4
@@ -70,8 +70,8 @@ components:
 
 ## Typography
 
-- **Display and heading** levels use Space Grotesk for a technical, assertive top-of-page voice.
-- **Body and labels** use Inter for dense readability and predictable UI rhythm.
+- **Display and heading** levels use Fraunces for a specific editorial voice.
+- **Body and labels** use Source Serif 4; never default to Inter, Space Grotesk, or system-ui-only.
 - Keep label sizes tight and consistent; do not introduce ad-hoc font sizes outside the token map unless the contract is updated.
 
 ## Layout

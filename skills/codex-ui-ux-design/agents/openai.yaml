@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ui Ux Design"
+  short_description: "Use for flows, IA, cognitive load, empty/error/loading states, content ranges, and responsive accessibility before visual decoration."
+  default_prompt: "Use $codex-ui-ux-design for this task. Load it before acting."

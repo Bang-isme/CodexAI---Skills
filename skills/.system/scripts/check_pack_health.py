@@ -76,6 +76,18 @@ def clean_backticks(value: str) -> str:
     return value.strip().strip("`").strip()
 
 
+def parse_skill_description(text: str) -> str:
+    if not text.startswith("---"):
+        return ""
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return ""
+    for line in parts[1].splitlines():
+        if line.lower().startswith("description:"):
+            return line.split(":", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
 def parse_registry_rows(registry_path: Path) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     if not registry_path.exists():
@@ -372,13 +384,41 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
 
     master_path = skills_root / "codex-master-instructions" / "SKILL.md"
     master_text = read_text(master_path) if master_path.exists() else ""
-    missing_aliases = [alias for alias in REQUIRED_ALIASES if alias not in master_text]
+    aliases_path = skills_root / ".system" / "references" / "aliases.json"
+    aliases_text = read_text(aliases_path) if aliases_path.exists() else ""
+    alias_haystack = master_text
+    missing_aliases = [alias for alias in REQUIRED_ALIASES if alias not in alias_haystack]
     add(
         checks,
         "critical_aliases",
         "pass" if not missing_aliases else "fail",
         "critical aliases present" if not missing_aliases else ", ".join(missing_aliases),
         missing=missing_aliases,
+    )
+    add(
+        checks,
+        "aliases_catalog",
+        "pass" if aliases_path.exists() else "fail",
+        str(aliases_path) if aliases_path.exists() else "aliases.json missing",
+    )
+
+    description_failures: list[str] = []
+    manifest_skill_names = manifest.get("skills", []) if isinstance(manifest, dict) else []
+    for skill_name in manifest_skill_names:
+        skill_md = skills_root / str(skill_name) / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        description = parse_skill_description(read_text(skill_md))
+        if not description.lower().startswith("use "):
+            description_failures.append(f"{skill_name}: description must start with 'Use '")
+        elif len(description) > 220:
+            description_failures.append(f"{skill_name}: description is {len(description)} chars (max 220)")
+    add(
+        checks,
+        "skill_descriptions",
+        "pass" if not description_failures else "fail",
+        "skill descriptions are host-trigger ready" if not description_failures else "; ".join(description_failures[:8]),
+        failures=description_failures,
     )
 
     mojibake_hits: list[str] = []
@@ -468,6 +508,9 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         ".system/scripts/validate_codex_plugin.py",
         ".system/scripts/validate_claude_plugin.py",
         ".system/scripts/init_agents_md.py",
+        ".system/scripts/render_core_rules.py",
+        ".system/scripts/install.py",
+        ".system/scripts/install_cursor_native.py",
         ".system/scripts/build_release_zip.py",
         ".system/scripts/prompt_router.py",
         ".system/scripts/trust_harness.py",
@@ -486,6 +529,7 @@ def check_global_sync(source_root: Path, global_root: Path) -> list[dict[str, An
         "codex-project-memory/references/project-memory-tools.json",
         ".system/references/plugin-tools.schema.json",
         ".system/references/plugin-tools.json",
+        ".system/references/aliases.json",
         ".system/references/skill-capabilities.schema.json",
         ".system/skill-capabilities.json",
         ".system/references/tool-call-contract.md",

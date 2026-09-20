@@ -1,5 +1,5 @@
 {
-  "version": "16.0.0",
+  "version": "17.0.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -10,6 +10,8 @@
     "codex-document-writer",
     "codex-role-docs",
     "codex-spec-driven-development",
+    "codex-frontend-design",
+    "codex-frontend-implementation",
     "codex-design-system",
     "codex-design-md",
     "codex-ui-ux-design",
@@ -34,6 +36,7 @@
     "codex-logical-decision-layer"
   ],
   "agents": [
+    "design-lead",
     "frontend-specialist",
     "ui-ux-designer",
     "creative-director",
@@ -58,7 +61,8 @@
     "prototype",
     "build",
     "fix",
-    "docs"
+    "docs",
+    "refine"
   ],
   "scripts_registry": ".system/REGISTRY.md",
   "plugin_tool_contract": {
@@ -125,6 +129,8 @@
       "codex-document-writer",
       "codex-role-docs",
       "codex-spec-driven-development",
+      "codex-frontend-design",
+      "codex-frontend-implementation",
       "codex-design-system",
       "codex-design-md",
       "codex-ui-ux-design",

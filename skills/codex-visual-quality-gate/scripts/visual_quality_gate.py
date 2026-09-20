@@ -266,10 +266,68 @@ def run_optional_detector() -> dict[str, Any]:
         return info
 
 
+def stitch_script() -> Path:
+    return Path(__file__).resolve().parent / "stitch_full_page_capture.mjs"
+
+
+def run_stitch_capture(url: str = "") -> dict[str, Any]:
+    node = shutil.which("node")
+    script = stitch_script()
+    if node is None or not script.exists():
+        return {"status": "DEGRADED", "reason": "node or stitch_full_page_capture.mjs unavailable"}
+    command = [node, str(script)]
+    if url:
+        command.extend(["--url", url, "--out", "full-page.png"])
+    else:
+        command.append("--help")
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            check=False,
+        )
+        stdout = (completed.stdout or "").strip()
+        if stdout.startswith("{"):
+            try:
+                payload = json.loads(stdout)
+                if isinstance(payload, dict):
+                    payload.setdefault("exit_code", completed.returncode)
+                    return payload
+            except json.JSONDecodeError:
+                pass
+        if completed.returncode == 0 and not url:
+            return {"status": "skipped", "reason": "stitcher present; no URL supplied"}
+        return {"status": "DEGRADED", "reason": stdout[-500:] or "stitcher failed", "exit_code": completed.returncode}
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"status": "DEGRADED", "reason": str(exc)}
+
+
 def browser_capability() -> dict[str, Any]:
-    if shutil.which("npx") is None:
-        return {"status": "DEGRADED", "reason": "no browser runner advertised; host must supply screenshots"}
-    return {"status": "unknown", "reason": "browser capture is host-owned; Python core does not fake screenshots"}
+    stitch = run_stitch_capture()
+    if shutil.which("node") is None:
+        return {
+            "status": "DEGRADED",
+            "reason": "no browser runner advertised; host must supply screenshots",
+            "stitch": stitch,
+            "self_review": "fresh-eyes self-review required when independent reviewer is unavailable",
+        }
+    if stitch.get("status") == "captured":
+        return {
+            "status": "unknown",
+            "reason": "capture helper ran; rendered judgment still host-owned",
+            "stitch": stitch,
+            "self_review": "fresh-eyes self-review required when independent reviewer is unavailable",
+        }
+    return {
+        "status": "unknown",
+        "reason": "browser capture is host-owned; Python core does not fake screenshots",
+        "stitch": stitch,
+        "self_review": "fresh-eyes self-review required when independent reviewer is unavailable",
+    }
 
 
 def build_report(project_root: Path, files: list[str], apply: bool, max_rounds: int) -> dict[str, Any]:

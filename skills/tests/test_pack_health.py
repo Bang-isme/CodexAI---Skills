@@ -113,7 +113,11 @@ def write_minimal_healthy_source(skills_root: Path) -> None:
     )
     write(skills_root / "codex-project-memory" / "scripts" / "build_knowledge_index.py", "print('stub')\n")
     aliases = "\n".join(pack_health.REQUIRED_ALIASES)
-    write(skills_root / "codex-master-instructions" / "SKILL.md", aliases)
+    write(skills_root / "codex-master-instructions" / "SKILL.md", "---\nname: demo\ndescription: Use when testing pack health fixtures.\n---\n" + aliases)
+    write(
+        skills_root / ".system" / "references" / "aliases.json",
+        json.dumps({"schema_version": "1.0", "featured": pack_health.REQUIRED_ALIASES, "short": [], "workflows": []}),
+    )
 
 
 def test_pack_health_current_source_is_operationally_clean() -> None:

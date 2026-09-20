@@ -26,7 +26,7 @@ load_priority: on-demand
 13. Activate on `$growth-report` to generate a developer growth report.
 14. Activate on `$compact-context` or "clean up old sessions".
 15. Activate on `$codex-genome`, `$generate-genome`, or `$genome` to create layered project context docs.
-16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`, `.codex/knowledge/index.json`, `.codex/knowledge/knowledge-graph.json`, and an offline interactive `.codex/knowledge/index.html`.
+16. Activate on `$knowledge`, "make tacit knowledge visible", or "build knowledge index" to generate `.codex/knowledge/INDEX.md`, `.codex/knowledge/index.json`, and `.codex/knowledge/knowledge-graph.json`. Pass `--html` only when an interactive dashboard is needed.
 17. Activate on "memory status", "validate project memory", or before CLI/tool-harness handoff to run `scripts/memory_status.py` against generated artifacts.
 
 ## Decision Tree Routing

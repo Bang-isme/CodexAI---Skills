@@ -1,0 +1,30 @@
+﻿:root {
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-sans: "Source Serif 4", "Georgia", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bg: oklch(0.985 0.012 85);
+  --fg: oklch(0.22 0.03 85);
+  --muted: oklch(0.45 0.02 85);
+  --accent: oklch(0.55 0.14 40);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.2 0.02 85);
+    --fg: oklch(0.95 0.015 85);
+    --muted: oklch(0.72 0.02 85);
+  }
+}
+
+html { color: var(--fg); background: var(--bg); font-family: var(--font-sans); }
+h1, h2, h3 { font-family: var(--font-display); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

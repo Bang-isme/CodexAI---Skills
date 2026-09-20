@@ -6,14 +6,14 @@
 
 | Metric | Value |
 | --- | --- |
-| Version | `16.0.0` |
-| Core Skills | 31 |
+| Version | `17.0.0` |
+| Core Skills | 33 |
 | Entry-point Scripts | 74 |
 | Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
 | References | 190+ |
 | Starters | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 12 |
+| Agent Personas | 13 |
 | Workflow Aliases | 8 |
 | Short Aliases | 25+ |
 | Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
@@ -23,8 +23,8 @@
 | Antigravity templates | `../antigravity/` (native package candidate) |
 | GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
 | CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 411/411 |
-| Smoke | 78/78 |
+| Pytest | 435/435 |
+| Smoke | 87/87 |
 
 ---
 

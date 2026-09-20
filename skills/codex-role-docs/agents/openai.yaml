@@ -1,0 +1,4 @@
+interface:
+  display_name: "Role Docs"
+  short_description: "Use for role-scoped FE/BE/DevOps/Admin/QA project docs under .codex/project-docs to preserve micro-context across long projects."
+  default_prompt: "Use $codex-role-docs for this task. Load it before acting."

@@ -246,7 +246,7 @@
         "properties": {
           "project_root": {"type": "string"},
           "skills_root": {"type": "string"},
-          "setup": {"type": "string", "enum": ["none", "generic", "codex", "claude", "antigravity", "all"], "default": "none"},
+          "setup": {"type": "string", "enum": ["none", "generic", "codex", "claude", "cursor", "antigravity", "all"], "default": "none"},
           "apply": {"type": "boolean", "default": false},
           "skip_tests": {"type": "boolean", "default": false},
           "evidence": {"type": "string"},
@@ -341,6 +341,7 @@
           "incremental": {"type": "boolean", "default": false},
           "rebuild": {"type": "boolean", "default": false},
           "no_redaction": {"type": "boolean", "default": false},
+          "html": {"type": "boolean", "default": false},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
       },
@@ -352,12 +353,12 @@
       },
       "artifact_policy": {
         "mode": "generated_on_success",
-        "description": "Writes index, graph, codebase index, and HTML under output_dir.",
+        "description": "Writes index, graph, codebase index, and INDEX.md under output_dir. index.html is opt-in via --html.",
         "paths": [
           ".codex/knowledge/index.json",
           ".codex/knowledge/knowledge-graph.json",
           ".codex/knowledge/codebase-index.json",
-          ".codex/knowledge/index.html"
+          ".codex/knowledge/INDEX.md"
         ]
       },
       "safety_policy": {
@@ -599,7 +600,7 @@
       "name": "visual_quality_gate",
       "kind": "audit",
       "script": "codex-visual-quality-gate/scripts/visual_quality_gate.py",
-      "purpose": "Run mechanical visual source checks and optional local detector without installing packages.",
+      "purpose": "Run mechanical visual source checks, optional local detector, and optional Playwright full-page stitcher.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
@@ -629,6 +630,119 @@
       "smoke": {
         "argv": ["--project-root", "{repo_root}", "--files", "README.md", "--format", "json"],
         "expect_exit_codes": [0, 1],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "pack_install",
+      "kind": "packaging",
+      "script": ".system/scripts/install.py",
+      "purpose": "Install or diagnose CodexAI host wiring for Codex, Claude, Cursor, and Antigravity.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "host": {"type": "string", "enum": ["codex", "claude", "cursor", "antigravity", "all"], "default": "all"},
+          "scope": {"type": "string", "enum": ["user", "repo"], "default": "repo"},
+          "source": {"type": "string"},
+          "repo_root": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Doctor warnings do not fail unless status is fail."},
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes host skill copies and core-rule bridges only with --apply.",
+        "paths": [".cursor/", "AGENTS.md", "CLAUDE.md"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Smoke uses --help only; install copies require --apply."
+      },
+      "wrapper_notes": "Never smoke with --apply.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "install_cursor_native",
+      "kind": "packaging",
+      "script": ".system/scripts/install_cursor_native.py",
+      "purpose": "Copy skills into Cursor skill directories and write .cursor/rules/codexai-core.mdc.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "source": {"type": "string"},
+          "scope": {"type": "string", "enum": ["repo", "user", "custom"], "default": "user"},
+          "repo_root": {"type": "string"},
+          "target_root": {"type": "string"},
+          "apply": {"type": "boolean", "default": false},
+          "dry_run": {"type": "boolean", "default": false},
+          "backup_dir": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "advisory", "description": "Dry-run reports planned copies."},
+      "artifact_policy": {
+        "mode": "optional_outputs",
+        "description": "Writes Cursor skills and core rule only with --apply.",
+        "paths": [".cursor/skills/", ".cursor/rules/codexai-core.mdc"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": true,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Smoke uses --help only."
+      },
+      "wrapper_notes": "Requires --repo-root for --scope repo.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "render_core_rules",
+      "kind": "health",
+      "script": ".system/scripts/render_core_rules.py",
+      "purpose": "Render compact host core-rules documents from aliases.json.",
+      "args_schema": {
+        "type": "object",
+        "properties": {
+          "host": {"type": "string", "enum": ["agents", "claude", "cursor", "antigravity", "all"], "default": "agents"},
+          "aliases": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text", "markdown"], "default": "markdown"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {"mode": "none", "description": "Read-only renderer."},
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Prints core-rules markdown or JSON; does not write files.",
+        "paths": []
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Local render only."
+      },
+      "wrapper_notes": "Use init_agents_md.py to write the rendered block.",
+      "smoke": {
+        "argv": ["--help"],
+        "expect_exit_codes": [0],
         "cwd": "repo_root"
       }
     }

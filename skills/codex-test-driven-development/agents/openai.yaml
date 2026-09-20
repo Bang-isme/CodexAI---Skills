@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Driven Development"
+  short_description: "Use before feature, bugfix, or refactor implementation when behavior can be tested; enforces Red-Green-Refactor discipline."
+  default_prompt: "Use $codex-test-driven-development for this task. Load it before acting."

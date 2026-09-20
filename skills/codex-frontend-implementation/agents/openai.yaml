@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Implementation"
+  short_description: "Use when implementing web UI in React, Next.js, Tailwind, CSS, or GSAP against an approved or fast-path brief."
+  default_prompt: "Use $codex-frontend-implementation for this task. Load it before acting."

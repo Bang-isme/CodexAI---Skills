@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Design"
+  short_description: "Use when building or redesigning UI; pick fast path for a page/component or studio path for a new visual identity."
+  default_prompt: "Use $codex-frontend-design for this task. Load it before acting."

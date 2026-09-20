@@ -119,16 +119,42 @@
       "handoff": "Return the spec path, ticket IDs or sections, evidence sources, and open risks."
     },
     {
+      "skill": "codex-frontend-design",
+      "domain": "frontend",
+      "objective": "Run the fast or studio frontend design path: brief, tokens, UX contract, and anti-slop before implementation.",
+      "triggers": ["landing page", "visual identity", "UX contract", "$design", "$refine"],
+      "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": []},
+      "output_artifacts": ["design brief", "UX contract", "direction set"],
+      "tool_classes": ["read_only"],
+      "risk_tier": "advisory",
+      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance only; file writes go through design_context.py with --apply."},
+      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
+      "handoff": "Pass the brief or chosen direction to frontend-specialist and visual-quality-reviewer."
+    },
+    {
+      "skill": "codex-frontend-implementation",
+      "domain": "frontend",
+      "objective": "Implement web UI from an approved or fast-path brief using stack recipes and curated craft files.",
+      "triggers": ["React", "Next.js", "Tailwind", "shadcn", "GSAP", "CSS"],
+      "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": ["starters"]},
+      "output_artifacts": ["UI implementation", "token stylesheet"],
+      "tool_classes": ["read_only"],
+      "risk_tier": "advisory",
+      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance and starters only; does not fetch or vendor third-party runtimes."},
+      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
+      "handoff": "Return implemented UI and request $visual-gate."
+    },
+    {
       "skill": "codex-design-system",
       "domain": "frontend",
-      "objective": "Apply coherent design-system decisions to product interfaces and reusable components.",
+      "objective": "Compatibility redirect into codex-frontend-design visual grammar, type, color, and anti-slop.",
       "triggers": ["design system", "component consistency", "visual tokens"],
       "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": []},
       "output_artifacts": ["design decisions", "component guidance"],
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance does not process secrets or invoke external assets."},
-      "verification": {"owner": "tests/test_agent_system.py", "command": "python -m pytest tests/test_agent_system.py"},
+      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
       "handoff": "Pass design constraints and component criteria to implementation and quality gate."
     },
     {
@@ -177,9 +203,9 @@
       "triggers": ["visual quality", "UI review", "screenshot critique"],
       "resources": {"scripts": ["scripts"], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
       "output_artifacts": ["mechanical visual report", ".codex/design/reviews"],
-      "tool_classes": ["project_write", "shell_execution", "read_only"],
+      "tool_classes": ["project_write", "shell_execution", "read_only", "network"],
       "risk_tier": "enforced",
-      "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Never installs Node packages or opens network; optional detector is local-only; writes only with --apply."},
+      "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Never installs Node packages. Optional Playwright capture uses a user-supplied URL; detector is local-only; writes only with --apply."},
       "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
       "handoff": "Return determinate mechanical failures and DEGRADED review limits to implementation."
     },

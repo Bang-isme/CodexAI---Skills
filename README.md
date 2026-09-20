@@ -4,7 +4,7 @@
 
 > Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
 
-[![Version](https://img.shields.io/badge/version-16.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-411%2F411%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-78%2F78%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-17.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-435%2F435%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -25,15 +25,15 @@ The pack is designed for 3 outcomes:
 
 | Metric | Value |
 | --- | --- |
-| Core Skills | 31 |
+| Core Skills | 33 |
 | Entry-point Scripts | 74 |
 | Shared Helpers | 2 |
 | Reference Docs | 190+ |
 | Starter Templates | 29 |
 | Artifact Templates | 9 |
-| Agent Personas | 12 |
+| Agent Personas | 13 |
 | Workflow Aliases | 8 |
-| Verification | 411 unit + 78 smoke = 489 tests |
+| Verification | 435 unit + 87 smoke = 522 tests |
 | Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
 | Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
 | Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
@@ -49,7 +49,7 @@ The pack is designed for 3 outcomes:
 | Vague task interpretation | `codex-intent-context-analyzer` locks goal, scope, and ambiguity before code |
 | Plans that sound good but do not guide execution | `codex-plan-writer` creates verifiable, dependency-aware task breakdowns |
 | Design output drifts between sessions | `codex-design-system` plus `codex-design-md` turn design intent into grammar and a lintable `DESIGN.md`; product/surface context lives under `.codex/design/` |
-| Vague “make it look great” UI prompts | Creative director → UI/UX → creative designer → frontend → visual gate, without fake balance scores |
+| Vague “make it look great” UI prompts | `design-lead` + `codex-frontend-design` fast path, then `codex-frontend-implementation` and `$visual-gate` |
 | Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
 | Documents that make readers infer too much | `codex-document-writer` forces purpose, audience, structure, complete sentences, and reliability wording |
@@ -222,7 +222,24 @@ This is the biggest differentiator of the pack today:
 
 ## Quick Start
 
-### 1. Install
+1. **Install** for the host you use:
+
+```powershell
+python ".\skills\.system\scripts\install.py" --host cursor --scope repo --repo-root "." --apply --format text
+python ".\skills\.system\scripts\install.py" --host all --scope repo --repo-root "." --apply --format text
+```
+
+2. **Doctor** until skills and the core-rules bridge are present:
+
+```powershell
+python ".\skills\.system\scripts\install.py" doctor --host all --repo-root "." --format text
+```
+
+3. **Use an alias** such as `$plan`, `$create`, `$design`, or `$check`. Load `codex-master-instructions` first.
+
+Host details: Cursor writes `.cursor/skills` plus `.cursor/rules/codexai-core.mdc`. Codex uses `.agents/skills` plus `AGENTS.md`. Claude uses `.claude/skills` plus `CLAUDE.md`.
+
+### 1. Install (advanced)
 
 **Preferred: generic CLI/IDE trust harness**
 

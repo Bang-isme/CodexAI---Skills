@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual Quality Gate"
+  short_description: "Use after UI implementation to run mechanical source checks and independent rendered review with bounded inspect/fix loops."
+  default_prompt: "Use $codex-visual-quality-gate for this task. Load it before acting."

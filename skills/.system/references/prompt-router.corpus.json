@@ -58,54 +58,58 @@
     {
       "prompt": "Make a beautiful landing page for our product",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
       "design_operation": "new",
       "surface_mode": "persuade",
-      "supporting_agents": ["ui-ux-designer", "creative-designer", "frontend-specialist", "visual-quality-reviewer"],
-      "must_include_skills": ["codex-creative-direction", "codex-ui-ux-design"]
+      "design_mode": "fast",
+      "supporting_agents": ["frontend-specialist", "visual-quality-reviewer"],
+      "must_include_skills": ["codex-frontend-design", "codex-frontend-implementation"]
     },
     {
       "prompt": "Tạo một trang landing đẹp và sáng tạo",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
       "design_operation": "new",
-      "surface_mode": "persuade"
+      "surface_mode": "persuade",
+      "design_mode": "fast"
     },
     {
       "prompt": "Redesign the marketing site visual identity",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
       "design_operation": "redesign",
-      "surface_mode": "persuade"
+      "surface_mode": "persuade",
+      "design_mode": "studio"
     },
     {
       "prompt": "Thiết kế lại nhận diện trang chủ",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
       "design_operation": "redesign",
-      "surface_mode": "persuade"
+      "surface_mode": "persuade",
+      "design_mode": "studio"
     },
     {
       "prompt": "Map the onboarding user flow and empty states",
       "intent": "build",
-      "suggested_agent": "ui-ux-designer",
+      "suggested_agent": "design-lead",
       "workflow": "plan",
-      "must_include_skills": ["codex-ui-ux-design"]
+      "must_include_skills": ["codex-frontend-design"]
     },
     {
       "prompt": "Vẽ luồng người dùng onboarding và empty state",
       "intent": "build",
-      "suggested_agent": "ui-ux-designer",
+      "suggested_agent": "design-lead",
       "workflow": "plan"
     },
     {
       "prompt": "Define information architecture for the settings area",
       "intent": "build",
-      "suggested_agent": "ui-ux-designer",
+      "suggested_agent": "design-lead",
       "workflow": "plan"
     },
     {
@@ -114,7 +118,7 @@
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
       "design_operation": "refine",
-      "must_not_include_agents": ["creative-director"]
+      "must_not_include_agents": ["design-lead"]
     },
     {
       "prompt": "Tinh chỉnh spacing và padding bảng giá",
@@ -122,32 +126,32 @@
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
       "design_operation": "refine",
-      "must_not_include_agents": ["creative-director"]
+      "must_not_include_agents": ["design-lead"]
     },
     {
       "prompt": "Implement the approved dashboard design in React",
       "intent": "build",
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
-      "must_not_include_agents": ["creative-director", "ui-ux-designer", "creative-designer"]
+      "must_not_include_agents": ["design-lead", "ui-ux-designer", "creative-designer"]
     },
     {
       "prompt": "Chỉ implement giao diện React đã duyệt, không đổi art direction",
       "intent": "build",
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
-      "must_not_include_agents": ["creative-director"]
+      "must_not_include_agents": ["design-lead"]
     },
     {
       "prompt": "Build the color system and type ramp from the chosen direction",
       "intent": "build",
-      "suggested_agent": "creative-designer",
+      "suggested_agent": "design-lead",
       "workflow": "create"
     },
     {
       "prompt": "Viết ngữ pháp component và hệ thống visual từ direction đã chọn",
       "intent": "build",
-      "suggested_agent": "creative-designer",
+      "suggested_agent": "design-lead",
       "workflow": "create"
     },
     {
@@ -239,7 +243,7 @@
       "intent": "build",
       "suggested_agent": "frontend-specialist",
       "workflow": "create",
-      "must_not_include_agents": ["creative-director"]
+      "must_not_include_agents": ["design-lead"]
     },
     {
       "prompt": "Audit threat model for the auth service",
@@ -250,10 +254,11 @@
     {
       "prompt": "Make a stunning marketing site with a clear art direction",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
       "design_operation": "new",
-      "surface_mode": "persuade"
+      "surface_mode": "persuade",
+      "design_mode": "studio"
     },
     {
       "prompt": "Review only: screenshot critique of the dashboard UI",
@@ -277,15 +282,16 @@
     {
       "prompt": "Cognitive load review of the checkout user journey",
       "intent": "build",
-      "suggested_agent": "ui-ux-designer",
+      "suggested_agent": "design-lead",
       "workflow": "plan"
     },
     {
       "prompt": "Portfolio gallery experience with immersive layout",
       "intent": "build",
-      "suggested_agent": "creative-director",
-      "workflow": "prototype",
-      "surface_mode": "experience"
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "surface_mode": "experience",
+      "design_mode": "fast"
     },
     {
       "prompt": "Write pytest coverage for the auth module using TDD",

@@ -49,6 +49,12 @@ SECTION_ALIASES = {
 }
 TOKEN_REF_PATTERN = re.compile(r"^\{([A-Za-z0-9_.-]+)\}$")
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
+OKLCH_COLOR_PATTERN = re.compile(r"^oklch\([^)]+\)$", re.IGNORECASE)
+
+
+def is_allowed_color(value: str) -> bool:
+    token = value.strip()
+    return bool(HEX_COLOR_PATTERN.fullmatch(token) or OKLCH_COLOR_PATTERN.fullmatch(token))
 
 
 def parse_args() -> argparse.Namespace:
@@ -408,8 +414,8 @@ def lint_content(content: str) -> Dict[str, Any]:
         if colors and "primary" not in colors:
             findings.append(make_finding("warning", "colors.primary", "Colors are defined but no `primary` token exists."))
         for key, value in colors.items():
-            if isinstance(value, str) and not HEX_COLOR_PATTERN.fullmatch(value):
-                findings.append(make_finding("warning", f"colors.{key}", f"Color token `{key}` should be a 6-digit hex value."))
+            if isinstance(value, str) and not is_allowed_color(value):
+                findings.append(make_finding("warning", f"colors.{key}", f"Color token `{key}` should be a 6-digit hex or oklch() value."))
     elif "colors" in tokens:
         findings.append(make_finding("error", "colors", "`colors` must be an object."))
 

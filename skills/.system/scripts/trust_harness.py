@@ -18,6 +18,7 @@ if str(SCRIPT_DIR) not in sys.path:
 import init_agents_md
 import install_claude_native
 import install_codex_native
+import install_cursor_native
 import prompt_router
 import sync_global_skills
 
@@ -87,7 +88,7 @@ def write_generic_manifest(project_root: Path, skills_target: Path, apply: bool)
             "trust_harness": "python .codexai/skills/.system/scripts/trust_harness.py --project-root . --setup generic --format json",
             "quality_gate": "python .codexai/skills/codex-execution-quality-gate/scripts/auto_gate.py --project-root . --mode quick",
         },
-        "adapters": ["generic-cli-ide", "codex-native", "claude-code", "antigravity"],
+        "adapters": ["generic-cli-ide", "codex-native", "claude-code", "antigravity", "cursor"],
         "security_policy": {
             "project_docs_untrusted": True,
             "symlinks_skipped_during_install_and_release": True,
@@ -155,6 +156,12 @@ def setup_claude(project_root: Path, skills_root: Path, apply: bool) -> dict[str
     return {"adapter": "claude", "target": str(target), "install": payload}
 
 
+def setup_cursor(project_root: Path, skills_root: Path, apply: bool) -> dict[str, Any]:
+    target = install_cursor_native.resolve_target("repo", str(project_root), "")
+    payload = install_cursor_native.install(skills_root, target, dry_run=not apply, repo_root=project_root)
+    return {"adapter": "cursor", "target": str(target), "install": payload}
+
+
 def setup_antigravity(project_root: Path, skills_root: Path, apply: bool) -> dict[str, Any]:
     plugin_root = plugin_root_from_skills(skills_root)
     installer = SCRIPT_DIR / "install_antigravity_native.py"
@@ -208,6 +215,8 @@ def run_setup(setup: str, project_root: Path, skills_root: Path, apply: bool, ch
         payloads.append(setup_codex(project_root, skills_root, apply))
     if setup in {"claude", "all"}:
         payloads.append(setup_claude(project_root, skills_root, apply))
+    if setup in {"cursor", "all"}:
+        payloads.append(setup_cursor(project_root, skills_root, apply))
     if setup in {"antigravity", "all"}:
         payloads.append(setup_antigravity(project_root, skills_root, apply))
     ok = bool(payloads) and all(adapter_setup_ok(item) for item in payloads)
@@ -297,7 +306,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run CodexAI portable trust harness and optional setup.")
     parser.add_argument("--project-root", default="", help="Target project root for generic CLI/IDE adapter setup")
     parser.add_argument("--skills-root", default="", help="Source skills root")
-    parser.add_argument("--setup", choices=("none", "generic", "codex", "claude", "antigravity", "all"), default="none")
+    parser.add_argument("--setup", choices=("none", "generic", "codex", "claude", "cursor", "antigravity", "all"), default="none")
     parser.add_argument("--apply", action="store_true", help="Apply setup changes. Default is dry-run.")
     parser.add_argument("--skip-tests", action="store_true", help="Skip pytest and smoke checks")
     parser.add_argument("--evidence", default="", help="Optional JSON evidence output path")

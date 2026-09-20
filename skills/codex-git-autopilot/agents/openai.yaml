@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Autopilot"
+  short_description: "Use when committing or pushing completed work; automates gate-aware conventional commits with optional signing and CI/CD checks."
+  default_prompt: "Use $codex-git-autopilot for this task. Load it before acting."

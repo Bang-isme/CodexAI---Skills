@@ -359,7 +359,7 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     )
     write(tmp_path / ".codex" / "context" / "genome.md", "# Project Genome\n\n## Architecture Overview\n\n## API Surface\n")
 
-    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge", write_html=True)
     html = Path(payload["html_path"]).read_text(encoding="utf-8")
     graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
 
@@ -392,6 +392,18 @@ def test_knowledge_index_writes_interactive_html_and_graph(tmp_path: Path) -> No
     assert "filesForModule(n)" in html
     assert "panel.innerHTML=html+(G.api_routes||[]).length?" not in html
     assert "Showing ${shown.length} of ${total}" in html
+
+
+def test_knowledge_index_html_dashboard_is_opt_in(tmp_path: Path) -> None:
+    write(tmp_path / "src" / "app.py", "def run():\n    return True\n")
+    default_payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    assert default_payload["html_path"] == ""
+    assert not (tmp_path / ".codex" / "knowledge" / "index.html").exists()
+    assert (tmp_path / ".codex" / "knowledge" / "INDEX.md").exists()
+    html_payload = knowledge_index.write_knowledge_artifacts(
+        tmp_path, tmp_path / ".codex" / "knowledge", write_html=True
+    )
+    assert Path(html_payload["html_path"]).exists()
 
 
 def test_dashboard_uses_graph_code_index_for_module_counts_when_codebase_index_exists(tmp_path: Path) -> None:
@@ -844,9 +856,10 @@ def test_memory_tools_fixture_smoke_stdout_and_artifacts(tmp_path: Path) -> None
         ".codex/knowledge/index.json",
         ".codex/knowledge/knowledge-graph.json",
         ".codex/knowledge/codebase-index.json",
-        ".codex/knowledge/index.html",
+        ".codex/knowledge/INDEX.md",
     ):
         assert (tmp_path / rel).exists()
+    assert not (tmp_path / ".codex/knowledge/index.html").exists()
 
     graph_cli = subprocess.run(
         [
@@ -956,7 +969,7 @@ def test_knowledge_artifacts_redact_index_graph_chunks_and_dashboard_json(tmp_pa
         text=True,
     )
 
-    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge")
+    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge", write_html=True)
     index = json.loads(Path(payload["index_path"]).read_text(encoding="utf-8"))
     graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
     markdown = Path(payload["markdown_path"]).read_text(encoding="utf-8")
@@ -990,7 +1003,9 @@ def test_knowledge_artifacts_redact_index_graph_chunks_and_dashboard_json(tmp_pa
 def test_knowledge_dashboard_warns_when_redaction_disabled(tmp_path: Path) -> None:
     write(tmp_path / "src" / "routes" / "unsafe.routes.js", "router.get('/x', token)\n")
 
-    payload = knowledge_index.write_knowledge_artifacts(tmp_path, tmp_path / ".codex" / "knowledge", redaction_enabled=False)
+    payload = knowledge_index.write_knowledge_artifacts(
+        tmp_path, tmp_path / ".codex" / "knowledge", redaction_enabled=False, write_html=True
+    )
     graph = json.loads(Path(payload["graph_path"]).read_text(encoding="utf-8"))
     html = Path(payload["html_path"]).read_text(encoding="utf-8")
 

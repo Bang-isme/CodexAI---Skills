@@ -167,6 +167,8 @@ def test_runtime_hook_prompt_format_is_compact(tmp_path: Path) -> None:
     prompt = runtime_hook.render_prompt(report)
 
     assert "Project readiness:" in prompt
+    assert "Load skill `codex-master-instructions`" in prompt
+    assert "Suggested skills:" in prompt
     assert "Recommended workflow:" in prompt
     assert "untrusted evidence" in prompt
 

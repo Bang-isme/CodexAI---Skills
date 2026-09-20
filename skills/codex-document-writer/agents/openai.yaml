@@ -1,0 +1,4 @@
+interface:
+  display_name: "Document Writer"
+  short_description: "Use for documents, reports, memos, guides, academic papers, or formal text that needs clear structure, reliable tone, formatting, and diagra."
+  default_prompt: "Use $codex-document-writer for this task. Load it before acting."

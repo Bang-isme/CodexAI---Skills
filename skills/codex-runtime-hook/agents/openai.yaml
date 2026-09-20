@@ -1,0 +1,4 @@
+interface:
+  display_name: "Runtime Hook"
+  short_description: "Use at the start of a Codex task to inspect repo readiness, project profile, monorepo shape, role docs, spec status, knowledge index, and re."
+  default_prompt: "Use $codex-runtime-hook for this task. Load it before acting."

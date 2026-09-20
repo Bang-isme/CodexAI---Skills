@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Engine"
+  short_description: "Use when a project has 50+ files, missing context, or explicit $codex-genome request; generates multi-layer project context to reduce halluc."
+  default_prompt: "Use $codex-context-engine for this task. Load it before acting."

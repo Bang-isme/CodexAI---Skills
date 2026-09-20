@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Specialist"
+  short_description: "Use for security review, audit, hardening, compliance, DevSecOps, network, infrastructure, or application security with focused references."
+  default_prompt: "Use $codex-security-specialist for this task. Load it before acting."

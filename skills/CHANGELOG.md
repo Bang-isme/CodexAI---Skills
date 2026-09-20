@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [17.0.0] - 2026-09-20
+
+### Added
+- Host loading architecture: `render_core_rules.py`, `aliases.json`, `install.py` / `install.py doctor`, Cursor-native install, and always-on core rules for Codex, Claude, Cursor, and Antigravity.
+- `codex-frontend-design` (fast default, studio on request) and `codex-frontend-implementation` (stack recipes + curated MengTo craft with provenance).
+- `design-lead` agent, `$refine` workflow, and OKLCH starters that do not default to Inter.
+- Optional Playwright full-page stitcher for the visual quality gate; single-agent fresh-eyes self-review when an independent reviewer is unavailable.
+
+### Changed
+- Thin redirects: `codex-ui-ux-design`, `codex-creative-direction`, `codex-design-system`, and the three studio agents now point at `design-lead` / `codex-frontend-design`.
+- `codex-domain-specialist` is a short router; tables live in `references/INDEX.md`; frontend catalogs moved.
+- Knowledge HTML dashboard is opt-in (`build_knowledge_index.py --html`); `INDEX.md` + JSON remain the default artifacts.
+- Master instructions slimmed; every skill description is a `Use when...` trigger.
+
+### Infrastructure
+- Bumped version: `16.0.0` -> `17.0.0`
+- Verified suite target: `435` unit tests + `87` smoke checks.
+
 ## [16.0.0] - 2026-09-04
 
 ### Added

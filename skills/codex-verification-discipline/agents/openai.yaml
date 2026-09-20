@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verification Discipline"
+  short_description: "Use when about to claim work is complete, fixed, or passing; run verification and read the output before any success claim."
+  default_prompt: "Use $codex-verification-discipline for this task. Load it before acting."

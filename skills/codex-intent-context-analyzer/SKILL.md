@@ -29,7 +29,7 @@ Always return a fenced JSON block in conversation:
   "normalized_prompt": "Clean rewrite of the user request",
   "complexity": "simple | complex",
   "needs_confirmation": true,
-  "suggested_agent": "creative-director | ui-ux-designer | creative-designer | frontend-specialist | visual-quality-reviewer | backend-specialist | security-auditor | debugger | test-engineer | devops-engineer | planner | scrum-master | null",
+  "suggested_agent": "design-lead | frontend-specialist | visual-quality-reviewer | backend-specialist | security-auditor | debugger | test-engineer | devops-engineer | planner | scrum-master | null",
   "design_operation": "extend | refine | redesign | new | null",
   "surface_mode": "persuade | operate | read | experience | null",
   "supporting_agents": [],
@@ -48,9 +48,9 @@ After classifying intent, select the best primary agent from `skills/.agents/` a
 
 | Intent | Primary Agent | Secondary |
 | --- | --- | --- |
-| build (vague new/redesign UI) | `creative-director` | `ui-ux-designer`, `creative-designer`, `frontend-specialist` |
-| build (flow/usability) | `ui-ux-designer` | `frontend-specialist` |
-| build (visual execution of a chosen direction) | `creative-designer` | `frontend-specialist` |
+| build (vague new/redesign UI) | `design-lead` | `frontend-specialist`, `visual-quality-reviewer` |
+| build (flow/usability) | `design-lead` | `frontend-specialist` |
+| build (visual execution of a chosen direction) | `design-lead` | `frontend-specialist` |
 | build (implementation-only frontend) | `frontend-specialist` | `visual-quality-reviewer` |
 | build (backend) | `backend-specialist` | `test-engineer` |
 | review (visual) | `visual-quality-reviewer` | — |
@@ -66,7 +66,7 @@ Security, debug, and deploy routing still beat design routing.
 
 - Keep the existing `intent` enum unchanged. `plan` and `scrum` are routing overlays, not new required JSON intent literals.
 - For build requests, use domain signals to choose frontend vs backend primary ownership.
-- Vague new/redesign UI loads the studio chain. Implementation-only and CSS refine do not load `creative-director`.
+- Vague new/redesign UI loads `design-lead` (fast by default, studio for `$direction` or new identity). Implementation-only and CSS refine do not load `design-lead`.
 - Separate product facts, visual authority, and art-direction choices. Do not treat missing accent color as missing product truth.
 - When a strong secondary fit exists, list it in `supporting_agents` and mention it in prose after the routing line.
 - If no confident route exists, set `suggested_agent` to `null` and continue with the normal clarification flow.
@@ -79,9 +79,10 @@ After routing to an agent, the following discipline skills activate automaticall
 | --- | --- |
 | `debugger` | `codex-systematic-debugging` (`$root-cause`) + `codex-test-driven-development` (`$tdd`) |
 | `test-engineer` | `codex-test-driven-development` (`$tdd`) |
-| `creative-director` | `codex-creative-direction` then `codex-ui-ux-design` |
-| `ui-ux-designer` | `codex-ui-ux-design` |
-| `creative-designer` | `codex-design-system` + `codex-design-md` |
+| `design-lead` | `codex-frontend-design` then `codex-frontend-implementation` |
+| `creative-director` | redirect to `design-lead` |
+| `ui-ux-designer` | redirect to `design-lead` |
+| `creative-designer` | redirect to `design-lead` |
 | `visual-quality-reviewer` | `codex-visual-quality-gate` (must not approve its own implementation) |
 | `frontend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |
 | `backend-specialist` | `codex-test-driven-development` (`$tdd`) via implement mode |
@@ -97,9 +98,7 @@ Trigger Socratic Gate for `complexity: complex` or ambiguous scope.
 ### HARD-GATE: Design Before Implementation (substantial UI or new systems)
 
 ```
-Do NOT write substantial UI or new-system code until a design contract
-exists: product facts, visual authority, and (for new/redesign) a chosen
-direction. Narrow implementation-only work may skip the studio chain.
+Do NOT write substantial UI for a new identity until a brief exists. A single page or component uses the frontend fast path: 5-line brief then build. `$spec` and `$init-docs` are not required for that scope.
 ```
 
 ### Anti-Pattern: Over-interviewing a narrow task

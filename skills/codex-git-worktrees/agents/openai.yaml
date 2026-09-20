@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Worktrees"
+  short_description: "Use when implementation needs isolation from the current workspace; creates git worktrees with safe directory selection and baseline verific."
+  default_prompt: "Use $codex-git-worktrees for this task. Load it before acting."
