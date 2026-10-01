@@ -61,8 +61,10 @@ def render_template(template_name: str, values: Dict[str, str]) -> str:
 
 def parse_roles(raw: str, manifest: Dict[str, Any]) -> List[str]:
     available = list(manifest["roles"].keys())
-    if not raw or raw.strip().lower() == "all":
+    if raw.strip().lower() == "all":
         return available
+    if not raw.strip():
+        return []
     requested = [part.strip().lower() for part in raw.split(",") if part.strip()]
     invalid = [role for role in requested if role not in manifest["roles"]]
     if invalid:
@@ -132,8 +134,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument(
         "--roles",
-        default="all",
-        help="Comma-separated roles to initialize, or 'all'. Default: all",
+        default="",
+        help="Comma-separated roles to initialize, or 'all'. Default: project brief and ADR template only",
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing docs")
     parser.add_argument("--format", choices=("json",), default="json", help="Output format")

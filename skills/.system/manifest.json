@@ -1,5 +1,5 @@
 {
-  "version": "18.0.0",
+  "version": "18.1.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -93,9 +93,17 @@
   },
   "claude_plugin": {
     "manifest": "../.claude-plugin/plugin.json",
+    "marketplace": "../.claude-plugin/marketplace.json",
     "hooks": "../hooks/hooks.json",
     "native_install_script": ".system/scripts/install_claude_native.py",
     "plugin_validator": ".system/scripts/validate_claude_plugin.py"
+  },
+  "cursor_plugin": {
+    "manifest": "../.cursor-plugin/plugin.json",
+    "marketplace": "../.cursor-plugin/marketplace.json",
+    "rules": "../.cursor/rules/codexai-core.mdc",
+    "native_install_script": ".system/scripts/install_cursor_native.py",
+    "plugin_validator": ".system/scripts/validate_cursor_plugin.py"
   },
   "antigravity_plugin": {
     "templates": "../antigravity/",

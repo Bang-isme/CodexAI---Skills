@@ -126,7 +126,7 @@ def run_install_host(
         target = expected_skills_root(host, scope, repo_root)
 
     bridge = None
-    if repo_root is not None:
+    if repo_root is not None and scope == "repo":
         bridge = init_agents_md.build_payload(repo_root, "merge", dry_run=dry_run, target=BRIDGE_BY_HOST[host])
     payload["host"] = host
     payload["scope"] = scope
@@ -141,10 +141,10 @@ PLUGIN_SOURCE_MANIFESTS = {
     "codex": ".codex-plugin/plugin.json",
     "claude": ".claude-plugin/plugin.json",
     "antigravity": "antigravity/plugin.json",
-    "cursor": ".cursor/rules/codexai-core.mdc",
+    "cursor": ".cursor-plugin/plugin.json",
 }
-# Plugin source checkout is a pass for every host. Cursor consumers still materialize
-# `.cursor/skills` with `install.py --host cursor --apply`; doctor reports that in detail.
+# Plugin source checkout is a pass for every host. Cursor also has a native plugin
+# marketplace manifest; the script installer remains available for plain skill copies.
 PLUGIN_SOURCE_STATUS = {"codex": "pass", "claude": "pass", "antigravity": "pass", "cursor": "pass"}
 
 
@@ -174,8 +174,6 @@ def doctor_host(host: str, scope: str, repo_root: Path | None) -> dict[str, Any]
                 skill_md = skills_target / "skills" / "codex-master-instructions" / "SKILL.md"
         elif source_root is not None:
             detail = f"plugin source {source_root} (host loads via {PLUGIN_SOURCE_MANIFESTS[host]})"
-            if host == "cursor":
-                detail = f"plugin source {source_root}; run install.py --host cursor --scope repo --apply to materialize {skills_target}"
             checks.append({"name": "skills_root", "status": PLUGIN_SOURCE_STATUS[host], "detail": detail})
             skill_md = source_root / "codex-master-instructions" / "SKILL.md"
         else:
@@ -194,7 +192,9 @@ def doctor_host(host: str, scope: str, repo_root: Path | None) -> dict[str, Any]
         checks.append({"name": "skills_root", "status": "fail", "detail": str(exc)})
 
     bridge_path = expected_bridge_path(host, repo_root)
-    if bridge_path is not None:
+    if scope == "user":
+        checks.append({"name": "core_bridge", "status": "skipped", "detail": "user-scope install does not write a project bridge"})
+    elif bridge_path is not None:
         present = bridge_path.exists() and render_core_rules.START_MARKER in bridge_path.read_text(encoding="utf-8", errors="replace")
         checks.append({"name": "core_bridge", "status": "pass" if present else "fail", "detail": str(bridge_path)})
     else:
@@ -226,8 +226,13 @@ def doctor_host(host: str, scope: str, repo_root: Path | None) -> dict[str, Any]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Install or diagnose CodexAI host wiring.")
     parser.add_argument("command", nargs="?", default="install", choices=("install", "doctor"))
-    parser.add_argument("--host", choices=("codex", "claude", "cursor", "antigravity", "all"), default="all")
-    parser.add_argument("--scope", choices=("user", "repo"), default="repo")
+    parser.add_argument(
+        "--host",
+        choices=("codex", "claude", "cursor", "antigravity", "all"),
+        default=None,
+        help="Host to install or diagnose. Required; choose 'all' only to install every adapter.",
+    )
+    parser.add_argument("--scope", choices=("user", "repo"), default="user")
     parser.add_argument("--source", default="", help="Source skills directory")
     parser.add_argument("--repo-root", default="", help="Target repository root")
     parser.add_argument("--apply", action="store_true", help="Copy files and write bridges. Default is dry-run.")
@@ -235,12 +240,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_hosts(host: str | None) -> tuple[str, ...]:
+    if not host:
+        raise ValueError("choose an explicit host with --host (codex, claude, cursor, antigravity); use all only intentionally")
+    return HOSTS if host == "all" else (host,)
+
+
 def main() -> int:
     args = parse_args()
     try:
         skills_root = Path(args.source).expanduser().resolve() if args.source else default_source_root()
-        repo_root = Path(args.repo_root).expanduser().resolve() if args.repo_root else Path.cwd()
-        hosts = HOSTS if args.host == "all" else (args.host,)
+        hosts = resolve_hosts(args.host)
+        repo_root = (
+            Path(args.repo_root).expanduser().resolve()
+            if args.repo_root
+            else Path.cwd() if args.scope == "repo" else None
+        )
         if args.command == "doctor":
             reports = [doctor_host(host, args.scope, repo_root) for host in hosts]
             failed = any(item["status"] == "fail" for item in reports)

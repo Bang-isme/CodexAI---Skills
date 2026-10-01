@@ -15,12 +15,12 @@ If the prompt does not name a mode, infer it from the surface. Do not mix `persu
 
 ## Change mode
 
-| Mode | Meaning | Forbidden smuggle |
+| Mode | Meaning | Decision boundary |
 | --- | --- | --- |
-| `extend` | Add a surface that must belong to the current system | New visual language |
-| `refine` | Tighten spacing, type, states, or copy | Rebrand or new layout thesis |
-| `redesign` | Replace the visual system with an explicit thesis | Silent “refresh” of tokens |
-| `new` | No incumbent system; invent one and write it down | Category-default SaaS look |
+| `extend` | Add a surface that must belong to the current system | Preserve tokens unless a documented product need requires an addition |
+| `refine` | Tighten spacing, type, states, or copy | Keep the approved visual thesis and user task |
+| `redesign` | Replace the visual system with an explicit thesis | State what changes and why before silently replacing tokens |
+| `new` | No incumbent system; invent one and write it down | Explain how the system fits this product rather than relying on category defaults |
 
 Refinement requests must not become redesigns. Redesigns must produce a direction contract before code.
 
@@ -33,7 +33,7 @@ Choose a strategy, then tokens:
 - `expressive`: color carries brand, still one primary action color.
 - `editorial`: ink, paper, and one ink-red or gold accent; photos do the rest.
 
-Never pick a palette because it is in a list. Palettes in `palettes.md` are optional starting points after strategy is chosen.
+Do not pick a palette only because it is in a list. Palettes in `palettes.md` are optional starting points after strategy is chosen.
 
 ## Composition thesis
 
@@ -58,4 +58,4 @@ Motion exists to explain change, hierarchy, or feedback. If it does not change a
 
 ## Originality boundary
 
-Reject category defaults: Inter-on-white, blue gradient hero, three identical feature cards, generic dashboard chrome. Originality means a specific thesis for *this* product, not a named aesthetic from a preset list.
+Check familiar category patterns in context: ask what the typography, hero treatment, card repetition, or dashboard chrome helps this product communicate or do. A familiar pattern becomes a quality concern when a cluster has no product rationale or weakens the user task. Originality means a specific thesis for *this* product, not a named aesthetic from a preset list.

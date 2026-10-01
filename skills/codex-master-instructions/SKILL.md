@@ -17,7 +17,11 @@ Before clarifying, exploring, editing, or answering any workflow-like request, m
 
 For a single page or component, use `codex-frontend-design` fast path. For prototype/fullstack, use spec-first `$prototype`. Documents, reports, and guides load `codex-document-writer`.
 
-If the pack is not loaded, run `python skills/.system/scripts/install.py doctor --host all`.
+## Project File Layout
+
+Before creating files or folders, inspect the repository and follow its existing conventions. Co-locate new code and tests with their owning feature; create only directories needed for the requested work. Do not scaffold every optional CodexAI area, empty placeholders, duplicate outputs, or catch-all folders such as `misc`, `output`, or `final`. Put CodexAI-owned artifacts in the documented owner paths; see `docs/project-artifact-layout.md` and `codex-domain-specialist/references/file-structure.md` when deciding structure.
+
+If the pack is not loaded, identify the installed host and run `python skills/.system/scripts/install.py doctor --host <host> --scope user`. Use `--host all` only after installing every corresponding host integration.
 
 ## Featured Aliases
 

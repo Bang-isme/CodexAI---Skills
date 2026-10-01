@@ -1,8 +1,8 @@
 ---
 name: codex-frontend-implementation
-description: Use when implementing web UI in React, Next.js, Tailwind, CSS, or GSAP against an approved or fast-path brief.
+description: Use when implementing web UI in React, Next.js, Tailwind, CSS, or GSAP against an approved design, fast-path brief, or prototype UX contract.
 load_priority: on-demand
-version: "18.0.0"
+version: "18.1.0"
 ---
 
 ## TL;DR
@@ -11,7 +11,7 @@ Implement the brief. Honor incumbent tokens and `DESIGN.md`. Load stack recipes,
 # Frontend Implementation
 
 ## Activation
-- After `codex-frontend-design` fast or studio path.
+- After `codex-frontend-design` fast, prototype, or studio path.
 - `$create` UI work routed to `frontend-specialist`.
 - Prompts naming React, Next, Tailwind, shadcn, GSAP, CSS, components.
 

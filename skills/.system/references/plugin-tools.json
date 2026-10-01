@@ -152,7 +152,45 @@
         "smoke_allowed": true,
         "description": "Static validation only."
       },
-      "wrapper_notes": "Pair with codex_plugin_validate for dual-host packaging gates.",
+      "wrapper_notes": "Pair with codex_plugin_validate and cursor_plugin_validate for static cross-host packaging gates.",
+      "smoke": {
+        "argv": ["--plugin-root", "{repo_root}", "--format", "json"],
+        "expect_exit_codes": [0],
+        "cwd": "repo_root"
+      }
+    },
+    {
+      "name": "cursor_plugin_validate",
+      "kind": "validator",
+      "script": ".system/scripts/validate_cursor_plugin.py",
+      "purpose": "Validate Cursor plugin and marketplace manifests, component paths, and version alignment.",
+      "args_schema": {
+        "type": "object",
+        "required": ["plugin_root"],
+        "properties": {
+          "plugin_root": {"type": "string"},
+          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
+        }
+      },
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
+      "exit_codes": {"success": [0], "failure": [1]},
+      "warning_policy": {
+        "mode": "none",
+        "description": "Cursor package defects fail; live Cursor host behavior is outside static validation."
+      },
+      "artifact_policy": {
+        "mode": "read_only",
+        "description": "Reads plugin manifests, skills paths, and Cursor rule paths.",
+        "paths": [".cursor-plugin/plugin.json", ".cursor-plugin/marketplace.json", ".cursor/rules/codexai-core.mdc"]
+      },
+      "safety_policy": {
+        "network": "none",
+        "writes_artifacts": false,
+        "reads_secrets": false,
+        "smoke_allowed": true,
+        "description": "Static local validation; does not launch Cursor or contact a marketplace."
+      },
+      "wrapper_notes": "A passing result validates package metadata and referenced files, not a live Cursor installation.",
       "smoke": {
         "argv": ["--plugin-root", "{repo_root}", "--format", "json"],
         "expect_exit_codes": [0],
@@ -470,7 +508,7 @@
       "name": "pipeline_run",
       "kind": "release",
       "script": ".system/scripts/pipeline.py",
-      "purpose": "Run the unified plugin pipeline (lint, contracts, test, build, doctor) in a fixed order and emit one JSON report; the same stages back CI pipeline-selfcheck.",
+      "purpose": "Run the unified local plugin pipeline (lint, contracts, test, build, doctor) in a fixed order and emit one JSON report. The repository provides local checks; consuming projects may generate their own CI workflow when requested.",
       "args_schema": {
         "type": "object",
         "properties": {
@@ -653,20 +691,21 @@
       "name": "visual_quality_gate",
       "kind": "audit",
       "script": "codex-visual-quality-gate/scripts/visual_quality_gate.py",
-      "purpose": "Run mechanical visual source checks, optional local detector, and optional Playwright full-page stitcher.",
+      "purpose": "Run contextual source signals and validate route-by-viewport screenshots, overlapping slice coverage, responsive width/clipping signals, UX flow exercise, accessibility review, provenance, and rendered review.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
         "properties": {
           "project_root": {"type": "string"},
           "files": {"type": "string"},
+          "capture_manifest": {"type": "string", "description": "Project-relative JSON manifest emitted by capture_responsive_matrix.mjs after visual inspection; absent evidence returns DEGRADED."},
           "apply": {"type": "boolean", "default": false},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
       },
       "stdout_contract": "references/tool-call-contract.md#validator-output",
       "exit_codes": {"success": [0], "failure": [1]},
-      "warning_policy": {"mode": "advisory", "description": "Non-blocking clichés are warnings; determinate mechanical issues can fail."},
+      "warning_policy": {"mode": "strict_exit", "description": "Blocking mechanical or evidence defects fail; missing screenshots, incomplete route/state/flow coverage, or unrecorded visual, functional, or accessibility review returns DEGRADED and a non-zero exit. Pattern signals are contextual prompts, not aesthetic scores."},
       "artifact_policy": {
         "mode": "optional_outputs",
         "description": "Writes .codex/design/reviews only with --apply.",
@@ -679,7 +718,7 @@
         "smoke_allowed": true,
         "description": "Never auto-installs Node; detector is available, skipped, or failed."
       },
-      "wrapper_notes": "Not an aesthetic score. Independent rendered review is host-owned.",
+      "wrapper_notes": "No aggregate AI-slop score. Review every stitched route/state/viewport image and its source slices; record checkedCaptureKeys, checked UX flows, route/state exercise, accessibility status, and evidence-linked findings; then pass --capture-manifest. Missing browser/capture/review evidence is DEGRADED.",
       "smoke": {
         "argv": ["--project-root", "{repo_root}", "--files", "README.md", "--format", "json"],
         "expect_exit_codes": [0, 1],

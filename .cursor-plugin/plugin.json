@@ -1,0 +1,19 @@
+{
+  "name": "codexai-agentic-workflow",
+  "version": "18.1.0",
+  "description": "Reusable engineering and frontend design workflows with project-local quality checks.",
+  "author": {
+    "name": "Bang Isme"
+  },
+  "homepage": "https://github.com/Bang-isme/CodexAI---Skills",
+  "repository": "https://github.com/Bang-isme/CodexAI---Skills",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "frontend-design",
+    "engineering-workflows",
+    "quality-gates"
+  ],
+  "skills": "./skills/",
+  "rules": "./.cursor/rules/codexai-core.mdc"
+}

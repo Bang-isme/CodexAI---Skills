@@ -1,12 +1,13 @@
 # Project Memory CI Release Gate
 
-Commands assume repo root `skills/` as `SKILLS_ROOT` and Python 3.10+.
+Commands assume the plugin source is checked out at the repository root and its skills live in `skills/`. The source includes local checks; hosted CI must be configured in the consuming repository.
 
 ## Release gate (recommended order)
 
 ```bash
-# 1. Focused memory/tooling tests
-python -m pytest skills/tests/test_full_cycle_hardening.py -q -k "memory_status or project_memory_tool or memory_tools_fixture"
+# 1. Checked-in Python and Node helper tests
+python -m unittest discover -s skills/tests -p "test_*.py"
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 
 # 2. Pack health (contracts + registry)
 python skills/.system/scripts/check_pack_health.py --skills-root skills --format json
@@ -40,21 +41,14 @@ python skills/codex-project-memory/scripts/build_knowledge_graph.py --project-ro
 
 Do not commit `.codex/` output; see `references/artifact-lifecycle-policy.md`.
 
-## Full skills test suite
+## Checked-in test suites
 
 ```bash
-python -m pytest skills/tests -q
+python -m unittest discover -s skills/tests -p "test_*.py"
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 ```
 
-### Windows symlink limitation
-
-On Windows without symlink privilege, one traversal test fails with `WinError 1314`:
-
-```bash
-python -m pytest skills/tests -q -k "not test_project_traversal_does_not_follow_symlinks_outside_root"
-```
-
-This is an OS/environment constraint, not a product-memory logic failure.
+The browser fixture skips when Playwright and Chromium are unavailable. A skipped browser fixture is not responsive-render verification; the visual gate must remain `DEGRADED` until real captures are reviewed.
 
 ## Strict and artifact policy flags
 
@@ -88,24 +82,15 @@ Do not scrape prose from `script-commands.md` for automation; use the JSON manif
 
 ## Scale SLA (medium → very large repos)
 
-See `references/scale-sla.md` for tier definitions, `run_scale_gate.py` report fields, and CI workflow mapping.
+See `references/scale-sla.md` for tier definitions and `run_scale_gate.py` report fields. It suggests schedules for a consuming repository; the source pack does not ship those scheduled jobs.
 
 Quick rules:
 
 - Prefer `--incremental` on repeat builds; use `--rebuild` only when invalidating caches.
-- Raise `--max-files` above the default 1000 when indexing large trees; CI medium gate uses 5000.
-- PR CI runs synthetic **2500**-file gate; weekly workflow runs **8000** files with standalone graph build.
+- Raise `--max-files` above the default 1000 when indexing large trees; choose fixture sizes that fit the available runner.
+- Run representative medium and large fixtures locally or in CI configured by the consuming repository; do not treat example sizes as measured SLA.
 - Do not treat missing `.codex/knowledge-graph.json` as failure unless `--require-standalone-graph` is set.
 
-## CI/CD checklist mapping
+## Consumer CI integration
 
-| Capability | Workflow / job | Notes |
-|------------|----------------|-------|
-| CI pipeline | `.github/workflows/ci.yml` | PR + push `main`; 386+ tests |
-| Caching | `setup-python` `cache: pip` + `requirements-dev.txt` | All Python jobs |
-| Matrix builds | `test`: OS × Python 3.12/3.13/3.14; `test-python-min`: 3.11 on `main` | Windows excludes symlink test |
-| Deployments | N/A in this repo | Project CLI may call `local_release_gate` / `promote_deploy` on user machine |
-| Plugin scale gate | `memory-at-scale-medium` / `scale-nightly.yml` | Polyglot synthetic fixtures |
-| Local release | `local_release_gate.py` | Before `git tag v*` |
-
-Supported Python: **3.11+** (3.11 verified on `main` only to limit PR matrix cost).
+Use `skills/templates/github-actions-quality-gate.yml` as a starting point, then adapt Python/Node versions, dependency installation, and the skills root path to the consuming repository. Add a scheduled scale job only after measuring an acceptable runner budget. This template is not an active workflow for the plugin repository.

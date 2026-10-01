@@ -108,9 +108,33 @@ ROUTES: list[dict[str, Any]] = [
         "signals": [
             "beautiful",
             "stunning",
+            "multi-screen prototype",
+            "multi-step prototype",
+            "full flow prototype",
+            "product flow prototype",
+            "onboarding flow prototype",
+            "checkout flow prototype",
+            "frontend prototype",
+            "product ui prototype",
+            "multi-screen",
+            "multi screen",
+            "multiple screens",
+            "multiple pages",
+            "multi-route",
+            "multi route",
+            "full product flow",
+            "end-to-end flow",
+            "prototype nhiều màn hình",
+            "nhiều màn hình",
+            "nhiều trang",
             "art direction",
             "creative direction",
             "visual identity",
+            "new brand identity",
+            "brand identity",
+            "multiple directions",
+            "three directions",
+            "design options",
             "redesign",
             "rebrand",
             "landing page",
@@ -338,7 +362,7 @@ def detect_design_operation(lowered: str) -> str | None:
         return "redesign"
     if REFINE_RE.search(lowered) and not REDESIGN_RE.search(lowered):
         return "refine"
-    if NEW_SURFACE_RE.search(lowered) or "landing page" in lowered:
+    if NEW_SURFACE_RE.search(lowered) or "landing page" in lowered or "prototype" in lowered or "nguyên mẫu" in lowered:
         return "new"
     if any(token in lowered for token in ("frontend", "ui", "giao diện", "component", "dashboard", "react", "vue")):
         return "extend"
@@ -397,7 +421,7 @@ def required_evidence_for(agent: str, design_operation: str | None) -> list[str]
         if design_operation in {"new", "redesign"}:
             evidence.extend(["design_contract", "direction_or_ux_contract"])
         if agent in {"frontend-specialist", "visual-quality-reviewer"} or design_operation in {"new", "redesign"}:
-            evidence.extend(["mechanical_visual_gate", "desktop_mobile_review"])
+            evidence.extend(["mechanical_visual_gate", "responsive_capture_matrix", "all_required_capture_review"])
     return evidence
 
 
@@ -520,8 +544,24 @@ def route_prompt(prompt: str) -> dict[str, Any]:
 
     design_mode = None
     if best["agent"] == "design-lead":
-        studio_signals = ("art direction", "visual identity", "$direction", "three direction", "nhận diện", "thiết kế lại")
-        design_mode = "studio" if any(token in lowered for token in studio_signals) or design_operation == "redesign" else "fast"
+        prototype_signals = (
+            "multi-screen prototype", "multi-step prototype", "full flow prototype", "product flow prototype",
+            "onboarding flow prototype", "checkout flow prototype", "nguyên mẫu nhiều màn hình",
+            "multi-screen", "multi screen", "multiple screens", "multiple pages",
+            "multi-route", "multi route", "end-to-end prototype", "full flow prototype", "full product flow",
+            "prototype flow", "nhiều màn hình", "nhiều trang", "nhiều route", "luồng sản phẩm đầy đủ",
+        )
+        studio_signals = (
+            "art direction", "visual identity", "$direction", "three direction", "three directions",
+            "multiple directions", "design options", "brand-new identity", "new brand identity", "nhận diện mới",
+            "thiết kế lại nhận diện", "nhiều phương án", "các hướng thiết kế",
+        )
+        if best["workflow"] != "plan" and any(token in lowered for token in prototype_signals):
+            design_mode = "prototype"
+        elif any(token in lowered for token in studio_signals):
+            design_mode = "studio"
+        elif best["workflow"] != "plan":
+            design_mode = "fast"
 
     confidence = min(0.95, 0.45 + (0.15 * len(best_matches)))
     return {

@@ -47,7 +47,7 @@ Plugin packaging:
 - Contract docs: `<SOURCE_SKILLS_ROOT>/.system/references/tool-call-contract.md`
 - GitHub CLI integration: `<SOURCE_SKILLS_ROOT>/.system/GITHUB_CLI_INTEGRATION.md`
 
-GitHub automation prerequisite:
+Optional GitHub automation prerequisite (only for workflows that call GitHub, such as PR automation):
 
 ```powershell
 winget install --id GitHub.cli -e
@@ -95,27 +95,20 @@ python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage lint,contracts
 python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage all --report-path .codex\pipeline-report.json
 ```
 
-Stages run in a fixed order: `lint` (pack health, core-rules drift via `init_agents_md.py --check`), `contracts` (tool contracts, capability audit, prompt-router corpus, Codex/Claude validators), `test` (pytest + `smoke_test.py`), `build` (Antigravity build/validate, release ZIP dry-run), `doctor` (`install.py doctor --host all`). Exit code 1 on any failing step; `--skip-tests` and `--fail-fast` are available. Alias: `$pipeline`.
+Stages run in a fixed order: `lint` (pack health and core-rules drift), `contracts` (tool contracts, capability audit, prompt-router corpus, Codex/Claude/Cursor manifest validators), `test` (Python `unittest` and Node's built-in test runner), `build` (Antigravity build/validate and release ZIP dry-run), and `doctor` (Codex host wiring). The Codex host must be installed before the doctor stage can run successfully. A `WARN` for only `session_hook` means the optional pre-prompt adapter is absent. Run the host-specific validator for other integrations. Missing Playwright/Chromium skips the browser fixture; UI capture remains unverified and the visual gate reports `DEGRADED`. Exit code 1 means a selected check failed; warnings are printed and retained in the report. `--skip-tests` and `--fail-fast` are available. Alias: `$pipeline`.
 
-CI/CD workflows:
+This source package contains local checks and release tools, but does not include hosted GitHub Actions workflows. `install_ci_gate.py` can generate a CI workflow for a consuming project when requested; that generated workflow is separate from this plugin's own validation.
 
-- `.github/workflows/ci.yml`: PR and main-branch gate for plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift, host doctor, smoke tests, `pipeline-selfcheck` (runs `pipeline.py --stage lint,contracts,build,doctor`), memory-at-scale (medium), Python matrix (3.12–3.14 × OS; 3.11 contracts), trust harness smoke, project-memory tooling, advisory pip-audit, and GitHub CLI contract checks.
-- `.github/workflows/scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with report artifact.
-- `.github/workflows/release.yml`: on tag push `v*` it verifies the tag equals `skills/VERSION`, runs `pipeline.py --stage lint,contracts,test,doctor`, runs `local_release_gate.py --apply`, uploads `dist/*.zip`, and publishes a GitHub Release with generated notes. `workflow_dispatch` builds the ZIP artifact only.
-- Windows CI excludes only `test_project_traversal_does_not_follow_symlinks_outside_root`, which requires local symlink privileges.
-
-There is **no** `deploy.yml` and no GitHub Environments for staging/production — CI validates the plugin and publishes release artifacts only.
-
-Release flow:
+Local release flow:
 
 ```powershell
-python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage all --format text
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\pipeline.py" --stage lint,contracts,test,build --format text
 python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --format json      # dry-run
-git tag v<VERSION> ; git push origin v<VERSION>                                          # triggers release.yml
+python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-root "<PLUGIN_ROOT>" --dry-run --format text
 ```
 
 Docs: `<SOURCE_SKILLS_ROOT>/.system/references/deploy-promotion.md`
-- Deployment remains explicit: this pack publishes release artifacts only; downstream consumers choose when to install or promote them.
+- These commands do not publish or push a release. Upload or distribute the reviewed archive through the chosen channel as a separate action.
 
 Legacy global sync remains available for development compatibility.
 
@@ -181,8 +174,10 @@ Do not bulk-load frontend, backend, security, and DevOps references just to disc
 If preflight reports missing role docs and the task is more than a one-off edit, initialize docs:
 
 ```powershell
-python "<SKILLS_ROOT>\codex-role-docs\scripts\init_role_docs.py" --project-root "<PROJECT_ROOT>" --roles all --format json
+python "<SKILLS_ROOT>\codex-role-docs\scripts\init_role_docs.py" --project-root "<PROJECT_ROOT>" --format json
 ```
+
+This creates only the project brief and ADR template. Add the roles relevant to the repository or current work explicitly, for example `--roles frontend,qa`; use `--roles all` only when the team has a reason to maintain every role document. See `docs/project-artifact-layout.md` for the owner and location of generated files.
 
 Then rebuild the index:
 
@@ -222,9 +217,11 @@ For "build a prototype", "MVP", "fullstack", "from scratch", or "build whole app
 python "<SKILLS_ROOT>\codex-runtime-hook\scripts\runtime_hook.py" --project-root "<PROJECT_ROOT>" --format json
 python "<SKILLS_ROOT>\codex-runtime-hook\scripts\init_profile.py" --project-root "<PROJECT_ROOT>" --format json
 python "<SKILLS_ROOT>\codex-project-memory\scripts\generate_genome.py" --project-root "<PROJECT_ROOT>"
-python "<SKILLS_ROOT>\codex-role-docs\scripts\init_role_docs.py" --project-root "<PROJECT_ROOT>" --roles all --format json
+python "<SKILLS_ROOT>\codex-role-docs\scripts\init_role_docs.py" --project-root "<PROJECT_ROOT>" --roles frontend,backend,qa --format json
 python "<SKILLS_ROOT>\codex-spec-driven-development\scripts\init_spec.py" --project-root "<PROJECT_ROOT>" --title "<FEATURE_OR_PRODUCT_NAME>" --format json
 ```
+
+Add `devops` or `admin` only if this work creates durable context for those areas.
 
 Then write `$plan`, execute with `$sdd` or inline TDD, update role docs, build the knowledge index, and run `$check-full`:
 

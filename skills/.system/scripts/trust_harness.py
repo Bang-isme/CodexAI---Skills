@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -21,6 +22,13 @@ import install_codex_native
 import install_cursor_native
 import prompt_router
 import sync_global_skills
+
+
+RESPONSIVE_TEST_FILES = (
+    "responsive_capture_stitch.test.mjs",
+    "responsive_capture_core.test.mjs",
+    "responsive_capture_browser.test.mjs",
+)
 
 
 def default_prompt_router_corpus_path() -> Path:
@@ -250,11 +258,23 @@ def run_prompt_corpus(checks: list[dict[str, Any]], corpus_path: Path | None = N
 
 def run_tests(skills_root: Path, checks: list[dict[str, Any]], skip_tests: bool) -> None:
     if skip_tests:
-        add_check(checks, "pytest", "pass", "pytest skipped by --skip-tests", skipped=True)
-        add_check(checks, "smoke", "pass", "smoke skipped by --skip-tests", skipped=True)
+        add_check(checks, "python_unittest", "warn", "Python unit tests skipped by --skip-tests", skipped=True)
+        add_check(checks, "responsive_capture_tests", "warn", "Responsive capture tests skipped by --skip-tests", skipped=True)
         return
-    pytest_result = subprocess.run(
-        [sys.executable, "-m", "pytest", str(skills_root / "tests"), "-q"],
+
+    python_command = [
+        sys.executable,
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        str(skills_root / "tests"),
+        "-p",
+        "test_*.py",
+    ]
+    python_result = subprocess.run(
+        python_command,
+        cwd=skills_root.parent,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -264,14 +284,29 @@ def run_tests(skills_root: Path, checks: list[dict[str, Any]], skip_tests: bool)
     )
     add_check(
         checks,
-        "pytest",
-        "pass" if pytest_result.returncode == 0 else "fail",
-        f"exit={pytest_result.returncode}",
-        stdout=pytest_result.stdout[-2000:],
-        stderr=pytest_result.stderr[-2000:],
+        "python_unittest",
+        "pass" if python_result.returncode == 0 else "fail",
+        f"exit={python_result.returncode}",
+        command=python_command,
+        stdout=python_result.stdout[-2000:],
+        stderr=python_result.stderr[-2000:],
     )
-    smoke = subprocess.run(
-        [sys.executable, str(skills_root / "tests" / "smoke_test.py")],
+
+    node = shutil.which("node")
+    if not node:
+        add_check(
+            checks,
+            "responsive_capture_tests",
+            "warn",
+            "Node.js is unavailable; responsive capture tests were skipped",
+            skipped=True,
+        )
+        return
+
+    node_command = [node, "--test", *(str(skills_root / "tests" / name) for name in RESPONSIVE_TEST_FILES)]
+    node_result = subprocess.run(
+        node_command,
+        cwd=skills_root.parent,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -279,13 +314,20 @@ def run_tests(skills_root: Path, checks: list[dict[str, Any]], skip_tests: bool)
         timeout=240,
         check=False,
     )
+    node_output = f"{node_result.stdout}\n{node_result.stderr}"
+    skipped_tests = "# SKIP" in node_output
+    node_status = "fail" if node_result.returncode != 0 else "warn" if skipped_tests else "pass"
+    node_detail = f"exit={node_result.returncode}"
+    if skipped_tests and node_result.returncode == 0:
+        node_detail += "; Node reported one or more skipped tests"
     add_check(
         checks,
-        "smoke",
-        "pass" if smoke.returncode == 0 else "fail",
-        f"exit={smoke.returncode}",
-        stdout=smoke.stdout[-2000:],
-        stderr=smoke.stderr[-2000:],
+        "responsive_capture_tests",
+        node_status,
+        node_detail,
+        command=node_command,
+        stdout=node_result.stdout[-2000:],
+        stderr=node_result.stderr[-2000:],
     )
 
 
@@ -308,7 +350,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skills-root", default="", help="Source skills root")
     parser.add_argument("--setup", choices=("none", "generic", "codex", "claude", "cursor", "antigravity", "all"), default="none")
     parser.add_argument("--apply", action="store_true", help="Apply setup changes. Default is dry-run.")
-    parser.add_argument("--skip-tests", action="store_true", help="Skip pytest and smoke checks")
+    parser.add_argument("--skip-tests", action="store_true", help="Skip Python and responsive Node test suites; skipped suites are warnings")
     parser.add_argument("--evidence", default="", help="Optional JSON evidence output path")
     parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args()

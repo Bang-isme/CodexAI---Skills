@@ -35,7 +35,7 @@ A good pass result should usually include:
 - little or no filler language
 
 The guard does not treat prose mentions such as "we should use git" or "python packaging matters" as verification evidence.
-For evidence credit, the command should appear as a runnable snippet such as `python skills/tests/smoke_test.py` or on its own command line.
+For evidence credit, the command should appear as a runnable snippet such as `python -m unittest discover -s skills/tests -p "test_*.py"` or on its own command line.
 
 ## Repo-Aware Grounding
 

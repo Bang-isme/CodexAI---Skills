@@ -1,0 +1,14 @@
+{
+  "name": "codexai-skills",
+  "description": "Engineering workflow and design skills for Claude Code, Codex, Cursor, and Antigravity.",
+  "owner": {
+    "name": "Bang Isme"
+  },
+  "plugins": [
+    {
+      "name": "codexai-agentic-workflow",
+      "source": "./",
+      "description": "Spec-first engineering workflows, frontend design, project memory, and evidence-based quality gates."
+    }
+  ]
+}

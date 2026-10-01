@@ -34,6 +34,9 @@ REQUIRED_DOT_DIRS = [".system", ".agents", ".workflows"]
 REQUIRED_PLUGIN_ROOT_PATHS = [
     ".codex-plugin/plugin.json",
     ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    ".cursor-plugin/plugin.json",
+    ".cursor-plugin/marketplace.json",
     ".agents/plugins/marketplace.json",
     "hooks/hooks.json",
     "antigravity/plugin.json",
@@ -196,7 +199,7 @@ def check_source(skills_root: Path) -> list[dict[str, Any]]:
         checks,
         "native_plugin_paths",
         "pass" if not missing_plugin_paths else "fail",
-        "Codex and Claude plugin metadata present" if not missing_plugin_paths else ", ".join(missing_plugin_paths),
+        "Codex, Claude, and Cursor plugin metadata present" if not missing_plugin_paths else ", ".join(missing_plugin_paths),
         missing=missing_plugin_paths,
     )
 

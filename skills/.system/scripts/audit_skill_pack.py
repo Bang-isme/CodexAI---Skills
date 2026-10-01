@@ -19,6 +19,11 @@ from typing import Any
 
 
 SCHEMA_VERSION = "1.0"
+SCOPE_NOTE = (
+    "Static pack-contract checks only: this audit checks declarations, resources, "
+    "security metadata, and verification-owner paths. It does not execute skills "
+    "or evaluate model-generated behavior or visual quality."
+)
 REQUIRED_CAPABILITY_FIELDS = (
     "skill",
     "domain",
@@ -297,6 +302,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
         f"Status: **{payload['status']}**",
         "",
+        payload.get("scope_note", SCOPE_NOTE),
+        "",
         "| Metric | Count |",
         "|---|---:|",
         f"| Skills | {summary['skills']} |",
@@ -342,7 +349,7 @@ input, select {{ width: 100%; box-sizing: border-box; padding: 8px; border: 1px 
 th, td {{ text-align: left; padding: 9px 10px; border-bottom: 1px solid #e5e9f0; vertical-align: top; }} th {{ background: #eef2f7; font-size: 12px; }}
 .ready {{ color: #146c43; }} .blocked {{ color: #b42318; }} .advisory {{ color: #8a5700; }} #empty {{ display: none; padding: 16px; }}
 </style></head><body><main>
-<h1>Skill Capability Scorecard</h1><div id="status"></div><div class="summary" id="summary"></div>
+<h1>Skill Capability Scorecard</h1><p class="scope-note">{html.escape(payload.get("scope_note", SCOPE_NOTE))}</p><div id="status"></div><div class="summary" id="summary"></div>
 <div class="filters"><input data-testid="capability-search" id="search" type="search" placeholder="Search skills, objectives, artifacts">
 <select data-testid="domain-filter" id="domain"><option value="">All domains</option></select>
 <select data-testid="risk-filter" id="risk"><option value="">All risk tiers</option></select>
@@ -557,6 +564,7 @@ def audit_skill_pack(skills_root: Path, *, output_dir: Path | None = None, write
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(UTC).isoformat(),
         "status": status,
+        "scope_note": SCOPE_NOTE,
         "summary": summary,
         "capabilities": capability_rows,
         "scripts": scripts,

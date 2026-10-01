@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [18.1.0] - 2026-10-02
+
+### Added
+- Added install instructions with equal visibility for Codex, Claude Code, Cursor, and Antigravity, with support levels and limits stated per host.
+- Added Claude Code and Cursor marketplace manifests; added static Cursor package validation to the local contract and release gates.
+- Added a project artifact map and release filtering for internal planning documents.
+
+### Changed
+- Restored the detailed README and Vietnamese guide from the prior committed documentation while removing outdated counts, unsupported CI/benchmark claims, and invalid install/test commands.
+- Made the installer require an explicit host, default to user scope, and avoid writing repo bridges during user-scope installs.
+- Made role-doc initialization minimal by default; role folders are generated only when selected.
+- Made the Codex marketplace entry install from the repository root and removed GitHub CLI from required plugin tool metadata.
+
+### Fixed
+- Cursor user-scope installs no longer infer a project root from `~/.cursor/skills` or leave an `AGENTS.md` bridge under the home directory.
+- Installer and role-doc regression tests cover the new safe defaults and minimal generated structure.
+- The local pipeline now runs the checked-in Python `unittest` and Node test suites instead of calling an unavailable `pytest` dependency and a missing smoke-test file.
+- Removed stale registry, test-count, CI-workflow, and benchmark claims from current user guides; the capability audit now states that it checks package contracts, not generated model behavior.
+- Replaced missing capability verification-owner paths with a real static skill/resource contract test and corrected the visual gate's nonexistent resource-directory declaration.
+- Added copyable PowerShell and macOS/Linux commands plus explicit Playwright/Chromium setup guidance to the responsive evidence workflow.
+- Corrected host-doctor guidance: it checks installed host wiring after installation and does not certify rendered UI.
+- Corrected host-specific doctor guidance in master instructions and the registry; `--host all` is only for installations that include every selected host.
+- Updated the trust harness to run the checked-in Python `unittest` and responsive Node suites; missing Node or skipped browser tests are warnings, not passes.
+- Made the local release gate switch standard output and error to UTF-8 so JSON reports with Vietnamese text work in legacy Windows consoles; added a `cp1252` regression test.
+
 ## [18.0.0] - 2026-09-21
 
 ### Breaking

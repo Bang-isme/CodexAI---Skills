@@ -10,6 +10,9 @@ Use when organizing project directories, defining module boundaries, naming conv
 - Keep boundaries explicit and enforceable.
 - Prefer predictable conventions over custom per-feature layouts.
 - Optimize for onboarding and safe change velocity.
+- Before adding paths, inspect the existing repository and extend its established layout instead of scaffolding a second convention.
+- Create only folders required by the task; do not add empty placeholders, `misc`/`output`/`final` catch-alls, or duplicate generated artifacts.
+- Keep generated context, review evidence, and tool reports under their documented owner directories; keep transient files out of application source.
 
 ## Common Structure Styles
 
@@ -161,3 +164,4 @@ Every feature should include:
 - Are aliases configured across all toolchains?
 - Are barrels used only for stable public APIs?
 - Is onboarding path clear from root to feature entry points?
+- Did this change avoid irrelevant folders, duplicate files, and generated scratch beside product source?

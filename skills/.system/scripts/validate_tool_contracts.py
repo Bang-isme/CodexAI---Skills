@@ -137,6 +137,7 @@ def validate_registry_shape(registry: Any, checks: list[dict[str, Any]]) -> list
             "pack_health",
             "codex_plugin_validate",
             "claude_plugin_validate",
+            "cursor_plugin_validate",
             "release_zip_dry_run",
             "memory_status",
             "memory_build_index",

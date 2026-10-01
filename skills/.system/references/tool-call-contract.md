@@ -6,7 +6,7 @@ This skills plugin publishes **machine-readable tool contracts** so a separate e
 
 | Layer | Owns |
 | --- | --- |
-| **This plugin** | `plugin-tools.json`, JSON schema, `validate_tool_contracts.py`, script stdout contracts, safety boundaries, CI smoke evidence |
+| **This plugin** | `plugin-tools.json`, JSON schema, `validate_tool_contracts.py`, script stdout contracts, safety boundaries, local smoke evidence |
 | **Project CLI (external)** | Command UX, `project-root`, distribution, auth, orchestration — runs plugin scripts locally on user repos |
 | **GitHub CLI (`gh`)** | PR automation auth via `gh auth login`, `GH_TOKEN`, or `GITHUB_TOKEN` in CI — never embedded in plugin JSON |
 
@@ -93,8 +93,10 @@ Plugin validators (`validate_codex_plugin.py`, `validate_claude_plugin.py`) and 
 Committed regression corpus for portable routing:
 
 - Path: `skills/.system/references/prompt-router.corpus.json`
-- CI: `python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json`
+- Local check: `python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json`
 - `trust_harness.py` loads the same file via `validate_corpus()`.
+
+The capability audit checks static package contracts, declared resource paths, security metadata, and verification-owner paths. It does not execute skills or evaluate model-generated behavior or visual quality.
 
 ## Verification commands
 
@@ -104,7 +106,8 @@ python skills/.system/scripts/check_pack_health.py --skills-root skills --strict
 python skills/.system/scripts/audit_skill_pack.py --skills-root skills --strict --no-write --format json
 python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
 python skills/codex-project-memory/scripts/run_scale_gate.py --tier medium --format json
-python -m pytest skills/tests/test_tool_contracts.py -q
+python -m unittest discover -s skills/tests -p "test_*.py"
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 ```
 
 ## Related docs

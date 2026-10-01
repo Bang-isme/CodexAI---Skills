@@ -98,6 +98,7 @@
       "intent": "build",
       "suggested_agent": "design-lead",
       "workflow": "plan",
+      "design_mode": null,
       "must_include_skills": ["codex-frontend-design"]
     },
     {
@@ -291,6 +292,38 @@
       "suggested_agent": "design-lead",
       "workflow": "create",
       "surface_mode": "experience",
+      "design_mode": "fast"
+    },
+    {
+      "prompt": "Build a multi-screen onboarding prototype with working steps",
+      "intent": "build",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "design_operation": "new",
+      "design_mode": "prototype",
+      "must_include_skills": ["codex-frontend-design", "codex-frontend-implementation", "codex-visual-quality-gate"]
+    },
+    {
+      "prompt": "Tạo prototype nhiều màn hình cho luồng checkout",
+      "intent": "build",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "design_operation": "new",
+      "design_mode": "prototype"
+    },
+    {
+      "prompt": "Create three visual directions for a new brand identity",
+      "intent": "build",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "design_mode": "studio"
+    },
+    {
+      "prompt": "Redesign one settings page within the existing design system",
+      "intent": "build",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "design_operation": "redesign",
       "design_mode": "fast"
     },
     {

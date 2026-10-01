@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Use this skill when a project needs durable FE/BE/DevOps/Admin/QA context. Generate `.codex/project-docs/` once, then keep role docs updated as code changes.
+Use this skill when a project needs durable FE/BE/DevOps/Admin/QA context. Initialize only the project brief by default; create role folders for the roles this project actually needs, then keep those docs current as code changes.
 
 # Codex Role Docs
 
@@ -22,7 +22,9 @@ Role docs are project-local artifacts, not always-loaded context. Read only the 
 
 ## Commands
 
-- Initialize docs: `init_role_docs.py --project-root <path>`
+- Initialize minimal docs: `init_role_docs.py --project-root <path>` (project brief + ADR template only)
+- Initialize selected roles: `init_role_docs.py --project-root <path> --roles frontend,qa`
+- Initialize every role only when needed: `init_role_docs.py --project-root <path> --roles all`
 - Update one doc: `update_role_docs.py --project-root <path> --role <role> --doc <doc-id> --summary <text> --files <csv>`
 - Check impact: `check_role_docs.py --project-root <path> --changed-files <csv>`
 - Rebuild index: `build_role_docs_index.py --project-root <path>`
@@ -50,14 +52,9 @@ Role docs are project-local artifacts, not always-loaded context. Read only the 
 
 ## Generated Structure
 
-- `PROJECT-BRIEF.md`
-- `index.json`
-- `decisions/ADR-0001-template.md`
-- `frontend/FE-*.md`
-- `backend/BE-*.md`
-- `devops/DO-*.md`
-- `admin/AD-*.md`
-- `qa/QA-*.md`
+- Always: `PROJECT-BRIEF.md` and `decisions/ADR-0001-template.md`.
+- On request: `frontend/FE-*.md`, `backend/BE-*.md`, `devops/DO-*.md`, `admin/AD-*.md`, and/or `qa/QA-*.md` for the selected roles.
+- `index.json` is created only when the index builder runs.
 
 ## Resources
 

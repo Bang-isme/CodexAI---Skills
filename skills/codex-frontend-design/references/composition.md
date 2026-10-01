@@ -20,7 +20,7 @@ Align to a grid and then correct optically: hanging punctuation, icon optical ce
 
 ## Density
 
-`operate` surfaces may be dense if grouping is strong. `persuade` surfaces need air around the claim. Equal padding on every card with equal type size is “card soup”: vary one of size, span, or media.
+`operate` surfaces may be dense if grouping is strong. `persuade` surfaces need air around the claim. Repeated cards are useful for genuinely parallel items; if items have different importance, vary hierarchy or choose a more suitable grouping instead of forcing equal tiles.
 
 ## Responsive reflow
 

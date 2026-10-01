@@ -4,29 +4,17 @@
 
 ## Current State
 
-| Metric | Value |
+| Surface | Location or behavior |
 | --- | --- |
-| Version | `18.0.0` |
-| Core Skills | 30 |
-| Entry-point Scripts | 74 |
-| Shared Helpers | 2 (`_js_parser.py`, `_scrum_agent_kit.py`) |
-| References | 190+ |
-| Starters | 29 |
-| Artifact Templates | 9 |
-| Agent Personas | 10 |
-| Workflow Aliases | 12 |
-| Short Aliases | 25+ |
-| Codex Plugin Manifest | `../.codex-plugin/plugin.json` |
-| Local Marketplace | `../.agents/plugins/marketplace.json` |
-| Claude Plugin Manifest | `../.claude-plugin/plugin.json` |
-| Claude Hooks | `../hooks/hooks.json` |
-| Antigravity templates | `../antigravity/` (native package candidate) |
-| GitHub CLI Integration | `.system/GITHUB_CLI_INTEGRATION.md` |
-| CI/CD Workflows | `../.github/workflows/ci.yml`, `../.github/workflows/release.yml` |
-| Pytest | 461/461 |
-| Smoke | 87/87 |
+| Version | `18.1.0` |
+| Codex plugin and marketplace | `../.codex-plugin/plugin.json`, `../.agents/plugins/marketplace.json` |
+| Claude Code plugin and marketplace | `../.claude-plugin/plugin.json`, `../.claude-plugin/marketplace.json`, `../hooks/hooks.json` |
+| Cursor plugin and marketplace | `../.cursor-plugin/plugin.json`, `../.cursor-plugin/marketplace.json` |
+| Local host installers and validators | `.system/scripts/install.py`, `.system/scripts/validate_*_plugin.py` |
+| Antigravity | `../antigravity/` package candidate; verify against the installed host before relying on native behavior |
+| Responsive UI evidence | `codex-visual-quality-gate` capture helper and manifest validator |
 
-18.0.0 removed the three design redirect skills and three redirect agents. `$design` / `$ux` / `$direction` load `codex-frontend-design`. `memory_status --strict` and `install.py doctor --host all` are the pack's CI-facing contracts.
+18.1.0 adds repository marketplace manifests for Claude Code and Cursor, checks Cursor packaging in local gates, and makes the default installer require a host while installing only at user scope. The role-doc initializer creates only the project brief and ADR template unless selected roles are requested. See [the install guide](../docs/INSTALL.md) for the short customer path and host-specific support limits. The host doctor checks installed wiring; it does not review rendered UI.
 
 ---
 
@@ -57,7 +45,6 @@ Reasoning Rigor
   -> Output Guard
   -> Editorial Review
   -> Run Gate (strict by default for plan/review/handoff)
-  -> Benchmark Quality (static corpus for release measurement)
   -> Quality Trend logging
 ```
 
@@ -86,20 +73,20 @@ Reasoning Rigor
 
 | Skill | Notes |
 | --- | --- |
-| `codex-frontend-design` | Fast path (page/component) or studio path (new identity); OKLCH palettes, typography, states, landing anatomy, anti-slop, refinement dials via `$refine` |
+| `codex-frontend-design` | Fast path for a page/component, full route/state prototype flow for multi-screen work, and studio when options or a new identity are requested |
 | `codex-frontend-implementation` | React, Next.js, Tailwind, shadcn, GSAP recipes; curated craft files with provenance; OKLCH starter stylesheet |
-| `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched full-page capture, fresh-eyes review with explicit `DEGRADED` marking |
+| `codex-visual-quality-gate` | Route/state responsive capture and evidence validation; missing browser or review remains `DEGRADED` |
 | `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
 | `codex-document-writer` | Report and document templates, sentence-quality rules, reliability tone, Vietnamese style, and formatting guidance |
-| `codex-domain-specialist` | 61 references and 19 starters across frontend, backend, data, DevOps, UX, and debugging |
-| `codex-security-specialist` | 30 references and 10 starters across network, infrastructure, AppSec, DevSecOps, compliance, and advanced security |
+| `codex-domain-specialist` | Focused references and starters across frontend, backend, data, DevOps, UX, and debugging |
+| `codex-security-specialist` | Focused references and starters across network, infrastructure, AppSec, DevSecOps, and compliance |
 
 ### Quality, Memory, Delivery, and Discipline
 
 | Skill | Notes |
 | --- | --- |
-| `codex-execution-quality-gate` | 17 runtime scripts including gate orchestration, security scan, smart tests, output guard, editorial review, quality trends, UX/a11y, and Lighthouse |
-| `codex-project-memory` | 12 scripts plus the `genome_builder.py` helper for genome and knowledge-index generation across Architecture, API Surface, Data Layer, Security Posture, Test Coverage, File Map, and tacit project knowledge |
+| `codex-execution-quality-gate` | Gate orchestration, security scan, smart tests, output guard, editorial review, quality trends, UX/a11y, and Lighthouse tools |
+| `codex-project-memory` | Genome and knowledge-index generation across architecture, API surface, data, security, test coverage, file map, and tacit project knowledge |
 | `codex-docs-change-sync` | Code-to-docs impact mapper |
 | `codex-role-docs` | 4 scripts for role-doc initialization, updates, indexing, and advisory changed-file coverage checks |
 | `codex-git-autopilot` | Commit automation with gate awareness |
@@ -218,28 +205,14 @@ Workflow aliases are shorthand entry points that load `skills/.workflows/*.md` b
 
 ## Testing Strategy
 
-### Unit tests
+### Test runners
 
-Current suite coverage includes:
+The checked-in tests use Python's standard-library `unittest` discovery and Node's built-in test runner. The browser capture fixture is skipped when Playwright and Chromium are unavailable; that skip does not count as browser verification.
 
-- parsing and routing behavior
-- output rigor and editorial rubric
-- strict-output gate logic
-- quality-trend aggregation
-- role-doc initialization, changed-file mapping, indexing, and advisory gate behavior
-- Scrum installer, validator, diff, update, and native agent rendering
-- docs encoding and mojibake regression guards
-- skill validation and pre-commit hardening
-
-### Smoke tests
-
-Smoke checks verify:
-
-- all codex skill directories expose `SKILL.md`
-- critical scripts respond to `--help`
-- selected JSON-returning CLIs run real happy paths
-- the DESIGN.md wrapper reports runtime health through `design_contract.py doctor`
-- workflow routing contract exists and is valid
+```bash
+python -m unittest discover -s skills/tests -p "test_*.py"
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
+```
 
 ---
 
@@ -265,22 +238,20 @@ Review these together:
 - `scripts/editorial_review.py`
 - `scripts/run_gate.py`
 - `scripts/quality_trend.py`
-- `tests/test_output_rigor.py`
-- `tests/test_parsing.py`
-- `tests/smoke_test.py`
+- `skills/tests/test_prompt_router_design_scope.py`
+- `skills/tests/test_visual_quality_gate_evidence.py`
 
 ---
 
 ## Commands Worth Remembering
 
 ```bash
-python skills/tests/smoke_test.py
-python -m pytest skills/tests -q
+python -m unittest discover -s skills/tests -p "test_*.py"
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 python skills/codex-execution-quality-gate/scripts/run_gate.py --project-root <repo>
 python skills/codex-execution-quality-gate/scripts/output_guard.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/editorial_review.py --file <deliverable.md>
 python skills/codex-execution-quality-gate/scripts/quality_trend.py --project-root <repo> --report
-python skills/tests/benchmark_quality.py
 python skills/codex-design-md/scripts/design_contract.py scaffold --name <brand-or-product>
 python skills/codex-design-md/scripts/design_contract.py lint DESIGN.md
 ```

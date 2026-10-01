@@ -76,6 +76,34 @@ def check_manifest(root: Path, checks: list[dict[str, Any]]) -> dict[str, Any]:
     return manifest
 
 
+def check_marketplace(root: Path, plugin_name: str, checks: list[dict[str, Any]]) -> None:
+    path = root / ".claude-plugin" / "marketplace.json"
+    if not path.exists():
+        add(checks, "claude_marketplace", "fail", str(path))
+        return
+    try:
+        marketplace = read_json(path)
+    except Exception as exc:
+        add(checks, "claude_marketplace", "fail", f"invalid JSON: {exc}")
+        return
+    owner = marketplace.get("owner")
+    plugins = marketplace.get("plugins")
+    matching = [item for item in plugins if isinstance(item, dict) and item.get("name") == plugin_name] if isinstance(plugins, list) else []
+    failures: list[str] = []
+    if not PLUGIN_NAME_RE.fullmatch(str(marketplace.get("name", ""))):
+        failures.append("marketplace name missing or invalid")
+    if not isinstance(owner, dict) or not str(owner.get("name", "")).strip():
+        failures.append("owner.name missing")
+    if not matching:
+        failures.append(f"plugin entry {plugin_name or '(missing name)'} not found")
+    else:
+        source = str(matching[0].get("source", ""))
+        resolved = (root / source).resolve()
+        if source != "./" or resolved != root.resolve():
+            failures.append("single-plugin source must be ./ and resolve to the plugin root")
+    add(checks, "claude_marketplace", "pass" if not failures else "fail", "marketplace entry valid" if not failures else "; ".join(failures))
+
+
 def check_skills(root: Path, checks: list[dict[str, Any]]) -> None:
     skills_root = root / "skills"
     if not skills_root.is_dir():
@@ -185,7 +213,8 @@ def validate(plugin_root: Path, strict: bool = False) -> dict[str, Any]:
     add(checks, "plugin_root", "pass" if root.is_dir() else "fail", str(root))
     if not root.is_dir():
         return summarize(checks, strict)
-    check_manifest(root, checks)
+    manifest = check_manifest(root, checks)
+    check_marketplace(root, str(manifest.get("name", "")), checks)
     check_skills(root, checks)
     check_hooks(root, checks)
     return summarize(checks, strict)

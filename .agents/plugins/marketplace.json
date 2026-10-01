@@ -1,28 +1,20 @@
 {
-  "name": "local-codexai-plugins",
+  "name": "codexai-skills",
   "interface": {
-    "displayName": "Local CodexAI Plugins"
+    "displayName": "CodexAI Skills"
   },
   "plugins": [
     {
       "name": "codexai-agentic-workflow",
       "source": {
-        "source": "local",
-        "path": "./"
+        "source": "url",
+        "url": "https://github.com/Bang-isme/CodexAI---Skills"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity",
-      "integrations": {
-        "github": {
-          "cli": "gh",
-          "authentication": "ON_INSTALL",
-          "authCommand": "gh auth login",
-          "credentialPolicy": "Use GitHub CLI credential storage; never persist tokens in plugin files."
-        }
-      }
+      "category": "Productivity"
     }
   ]
 }

@@ -25,7 +25,7 @@ Use this shape for Vietnamese reports:
 
 Examples:
 
-- `Nhóm phát hành cần chạy python skills/tests/smoke_test.py trước khi cập nhật changelog để số liệu phát hành dựa trên kết quả kiểm chứng mới nhất.`
+- `Nhóm phát hành cần chạy python -m unittest discover -s skills/tests -p "test_*.py" trước khi cập nhật changelog để ghi đúng trạng thái kiểm chứng.`
 - `Báo cáo nên đặt phần khuyến nghị trước bối cảnh kỹ thuật vì người duyệt cần quyết định ngân sách trước khi đọc chi tiết triển khai.`
 
 ## Filler To Remove

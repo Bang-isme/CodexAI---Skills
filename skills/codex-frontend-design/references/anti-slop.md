@@ -1,41 +1,63 @@
-# Anti-Slop
+# Contextual UI Quality Audit
 
-Mechanical symptoms that usually mean generic UI. These are evidence categories, not taste scores.
+This is an evidence-based review method, not a blacklist, style preference, or numerical “AI slop” score. A familiar technique is not a defect by itself. Inspect the actual product, route, viewport, and state before judging it.
 
-## Card soup
+## 1. Establish the reference frame
 
-Three or more sibling cards with the same heading size, padding, radius, and icon treatment. Fix by changing span, media, or hierarchy, or by not using cards.
+Before calling something generic or gimmicky, identify:
 
-## Missing hierarchy tokens
+- **Product job:** what users need to understand, decide, or do here.
+- **Surface mode:** persuade, operate, read, or experience; use the contract and existing product as authority.
+- **Hierarchy thesis:** what should attract attention first, what supports it, and what should remain quiet.
+- **Observed evidence:** exact route, state, viewport, and source location or capture key.
 
-Headings skip levels, or body/label/caption all use the same size and color. Fix with a type ramp tied to tokens or explicit sizes.
+Do not infer product fit from a trendy technique or a screenshot in isolation. If product context is missing, describe the uncertainty instead of presenting taste as fact.
 
-## Arbitrary spacing and radius
+## 2. Separate defects from pattern risk
 
-Many unique `px`/`rem` values for gap, padding, or radius in one surface. Fix with a scale.
+### High-confidence defects
 
-## Default-font and gradient clichés
+Fix before handoff, or record a concrete product/accessibility constraint explaining the exception:
 
-System UI font only, or Inter/Roboto/Arial with a blue-to-purple hero gradient and a glassy card. Fix by choosing a strategy from `grammar.md` and an incumbent or authored pair.
+- Content or controls are clipped, overlap, or cause unintended horizontal scrolling.
+- The primary task/action is hidden, ambiguous, unreachable, or loses its hierarchy at a required viewport.
+- A visible control promises an action but does nothing, has no feedback, or has an unreachable focus state.
+- Content, error, empty, loading, or success states contradict the UX contract.
+- Text or essential icons are unreadable; keyboard/focus order is broken; meaningful imagery lacks accessible text.
+- Page failure, missing asset/font, or responsive transition prevents task completion.
 
-## Competing CTAs
+Tie each finding to an image/route/state/viewport or interaction and say what user task it harms. Mechanical source heuristics may point to a place to inspect; a heuristic warning alone does not prove an aesthetic defect.
 
-Two or more same-weight primary buttons in the first viewport. Fix by promoting one and demoting the rest.
+### Contextual pattern risk
 
-## Absent responsive, reduced-motion, or state coverage
+Treat a pattern as a question, not a verdict. Ask whether the specific choice:
 
-No breakpoint, no `prefers-reduced-motion`, or interactive components with only a default style. Fix in source before visual review.
+1. Communicates product identity, hierarchy, status, grouping, feedback, or task structure?
+2. Helps the intended user complete this task at this viewport?
+3. Has sufficient contrast, restraint, performance, and accessibility for its role?
+4. Would removing or replacing it make the task clearer without losing needed meaning?
 
-## Category default
+If it has a clear job and survives these checks, keep it even if it is common. If no product job can be named, simplify it. Record product-specific reasons for exceptions.
 
-SaaS landing that could be any product: navy hero, three features, logo cloud, pricing toggle, footer. Originality requires a composition thesis that would be wrong for a different product.
+## 3. Look for unsupported clusters
 
-## Extra DON'T fingerprints (from MengTo/Skills frontend-design)
+One common choice is weak evidence. Raise a stronger “template/gimmick” concern when several choices appear together without a reason tied to this product, for example:
 
-- Overused fonts: Inter, Roboto, Arial, Open Sans, system defaults as the only type
-- Identical card grids with icon + heading + text
-- Center everything
-- Glassmorphism, glow borders, or custom cursors used as decoration
-- Bounce/elastic easing
-- Gray text on colored backgrounds
-- The 2024-2025 "AI palettes": cyan-on-dark, purple-to-blue gradients, neon on dark
+- A generic hero claim, decorative glow/gradient, repeated equal feature cards, and pill CTAs all appear unchanged across a product that needs operational clarity.
+- Every group is placed in a rounded card with equal padding, even though groups have different relationships or importance.
+- Motion, parallax, custom cursor, glass, or hover spectacle competes with task feedback or adds no information.
+- Center alignment or asymmetric collage is applied everywhere without serving reading order, content, or navigation.
+- A type/color/material combination is selected from a trend label while ignoring an existing system or audience.
+
+These are examples of combinations to interrogate, not forbidden styles. Identify the cluster, cite the render, and explain the product mismatch. Avoid comments such as “looks AI-generated” without observable evidence.
+
+## 4. Evidence record
+
+For each material finding include:
+
+- `captureKey` or source file/line, plus route, state, and viewport;
+- observed behavior/appearance (not an inference stated as fact);
+- user impact and severity;
+- action: fixed, accepted with product rationale, or still open.
+
+Do not average findings into a score. A visual review is complete only after every required capture was inspected. See `responsive-evidence.md` for coverage and `.codex/design/reviews/` for the project evidence convention.

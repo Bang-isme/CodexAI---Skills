@@ -16,6 +16,17 @@ SKILLS_ROOT = SCRIPT_DIR.parents[1]
 PLUGIN_ROOT = SKILLS_ROOT.parent
 
 
+def force_utf8_stdio() -> None:
+    """Keep reports printable on Windows consoles using legacy code pages."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def run_step(label: str, args: list[str], *, cwd: Path | None = None) -> dict[str, Any]:
     cmd = [sys.executable, *args]
     result = subprocess.run(
@@ -55,6 +66,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    force_utf8_stdio()
     args = parse_args()
     project_root = Path(args.project_root).expanduser().resolve() if args.project_root else PLUGIN_ROOT
     skills_root = Path(args.skills_root).expanduser().resolve() if args.skills_root else project_root / "skills"
@@ -132,6 +144,17 @@ def main() -> int:
             "claude_plugin",
             [
                 str(SCRIPT_DIR / "validate_claude_plugin.py"),
+                "--plugin-root",
+                str(project_root),
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
+            "cursor_plugin",
+            [
+                str(SCRIPT_DIR / "validate_cursor_plugin.py"),
                 "--plugin-root",
                 str(project_root),
                 "--format",

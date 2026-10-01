@@ -2,16 +2,16 @@
 
 # CodexAI Skill Pack
 
-> Production-ready instruction framework for Codex - deterministic workflows, deliberate reasoning, domain routing, strict quality gates, and persistent project memory.
+> An AI agent workflow pack with host integrations for Codex, Claude Code, Cursor, and Antigravity: intent analysis, task routing, implementation guidance, quality checks, and project context.
 
-[![Version](https://img.shields.io/badge/version-18.0.0-blue)]() [![Tests](https://img.shields.io/badge/pytest-461%2F461%20passed-green)]() [![Smoke](https://img.shields.io/badge/smoke-87%2F87%20passed-green)]() [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-18.1.0-blue)](skills/VERSION) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 ## Overview
 
-CodexAI Skill Pack turns Codex from an ad-hoc code assistant into a structured engineering partner.
-Instead of relying on prompt luck, the pack enforces a repeatable flow:
+CodexAI Skill Pack gives an AI coding agent reusable, written workflows for engineering tasks.
+Instead of relying on prompt luck, the pack guides the model through a repeatable flow when the task calls for it:
 
 `Intent -> Spec -> Plan -> Route -> Implement -> Verify -> Persist -> Commit`
 
@@ -21,31 +21,9 @@ The pack is designed for 3 outcomes:
 - stronger workflow discipline
 - deliverables that read more like accountable human engineering work
 
-### Current Stats
-
-| Metric | Value |
-| --- | --- |
-| Core Skills | 30 |
-| Entry-point Scripts | 74 |
-| Shared Helpers | 2 |
-| Reference Docs | 190+ |
-| Starter Templates | 29 |
-| Artifact Templates | 9 |
-| Agent Personas | 10 |
-| Workflow Aliases | 12 |
-| Verification | 461 unit + 87 smoke = 548 tests |
-| Codex Native Plugin | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` |
-| Claude Code Plugin | `.claude-plugin/plugin.json` + `hooks/hooks.json` |
-| Cursor / Codex session hook | tracked `.codex/hooks.json` (relative `runtime_hook.py`) |
-| Antigravity Plugin | `antigravity/` templates + native **package candidate** (IDE + CLI) |
-| GitHub Automation | GitHub CLI (`gh`) + `gh auth login` for PR/release workflows |
-| CI/CD | `.github/workflows/ci.yml` + `.github/workflows/release.yml` |
-
----
-
 ## What's new in 18.0.0
 
-18.0.0 is a breaking cleanup. The pack's value is **fail-closed scripts** (pipeline, doctor, memory `--strict`, corpus router), not extra skill names.
+18.0.0 is a breaking cleanup. Its changes are listed below; see the changelog for the full version history.
 
 **Breaking**
 
@@ -55,11 +33,9 @@ The pack is designed for 3 outcomes:
 
 **What got more reliable**
 
-- `memory_status --strict` is usable in CI: graph coherence compares the `LANGUAGE_REGISTRY` subset of the codebase index. Indexer-only extras (`.md`, `Dockerfile`, tests the graph skipped) are `coherence.expected_extras`, not a false fail.
-- CI Python matrix is 3.12–3.14 on Linux and Windows. The 3.11 contract job is unchanged.
-- Tracked portable `.codex/hooks.json` so `install.py doctor --host all` passes on this plugin source checkout, including Cursor.
+- `memory_status --strict` compares the `LANGUAGE_REGISTRY` subset of the codebase index. Indexer-only extras (`.md`, `Dockerfile`, tests the graph skipped) are `coherence.expected_extras`, not a false fail.
 
-Install with `install.py --host cursor --apply` (or `--host all`). Then `$plan`, `$design`, `$check`, `$pipeline`. Full notes: [skills/CHANGELOG.md](skills/CHANGELOG.md).
+The 18.1.0 package and host setup are documented in [docs/INSTALL.md](docs/INSTALL.md). Common Codex entry points include `$plan`, `$design`, `$check`, and `$pipeline`. Full version notes: [skills/CHANGELOG.md](skills/CHANGELOG.md).
 
 ---
 
@@ -67,46 +43,38 @@ Install with `install.py --host cursor --apply` (or `--host all`). Then `$plan`,
 
 | Weakness in default AI workflows | What this pack adds |
 | --- | --- |
-| Vague task interpretation | `codex-intent-context-analyzer` locks goal, scope, and ambiguity before code |
+| Vague task interpretation | `codex-intent-context-analyzer` helps make the goal, scope, and ambiguity explicit before code |
 | Plans that sound good but do not guide execution | `codex-plan-writer` creates verifiable, dependency-aware task breakdowns |
 | Design output drifts between sessions | `codex-frontend-design` plus `codex-design-md` turn design intent into a brief and a lintable `DESIGN.md`; product/surface context lives under `.codex/design/` |
 | Vague “make it look great” UI prompts | `design-lead` + `codex-frontend-design` fast path, then `codex-frontend-implementation` and `$visual-gate` |
-| Generic output with no proof | `codex-reasoning-rigor` plus `output_guard.py` force evidence-backed deliverables |
+| Generic output with no proof | `codex-reasoning-rigor` and `output_guard.py` guide and check for evidence-backed deliverables when used |
 | AI-safe writing that still feels synthetic | `editorial_review.py` scores tone, decision clarity, tradeoffs, and scanability |
-| Documents that make readers infer too much | `codex-document-writer` forces purpose, audience, structure, complete sentences, and reliability wording |
-| No final gate before declaring done | `codex-execution-quality-gate` runs lint, tests, security, output quality, editorial quality, UX, and trend tracking |
+| Documents that make readers infer too much | `codex-document-writer` guides purpose, audience, structure, complete sentences, and reliability wording |
+| No final gate before declaring done | `codex-execution-quality-gate` can run lint, tests, security, output quality, editorial quality, UX, and trend checks |
 | Context lost between sessions | `codex-role-docs` preserves role-scoped project docs, while `codex-project-memory` stores decisions, summaries, genome, handoffs, and changelog inputs |
 | Tacit knowledge stays invisible | `build_knowledge_index.py` turns genome, role docs, decisions, commits, and configs into `.codex/knowledge/INDEX.md` |
-| Fullstack prototypes start from vague prompts | `codex-spec-driven-development` forces spec-first acceptance criteria before `$plan` and implementation |
+| Fullstack prototypes start from vague prompts | `codex-spec-driven-development` provides a spec-first workflow with acceptance criteria before `$plan` and implementation |
 | Scrum roles live only in people's heads | `codex-scrum-subagents` installs project `.agent` kits and native `.codex/agents` custom agents |
-| Skills only work in one agent app | Dual Codex + Claude plugin metadata plus an Antigravity **native package candidate** (`agy plugin install` when the binary exists) |
+| Skills only work in one agent app | Host-specific manifests and adapters; see [docs/INSTALL.md](docs/INSTALL.md) for each host's package and verification status |
 
 ---
 
-## GitHub CLI Prerequisite
+## Optional GitHub CLI
 
-Pull request and release automation use GitHub CLI (`gh`). Install and authenticate once before using commit/PR helpers or wrapping this pack in a project CLI:
+GitHub CLI (`gh`) is optional for normal skill use. Install and authenticate it only for workflows that interact with GitHub, such as PR automation:
 
 ```bash
 gh auth login
 gh auth status
 ```
 
-Use GitHub CLI credential storage locally, or `GH_TOKEN` / `GITHUB_TOKEN` in CI. Never commit tokens into plugin manifests, skill docs, generated artifacts, or source files.
+Use GitHub CLI credential storage locally. Never commit tokens into plugin manifests, skill docs, generated artifacts, or source files.
 
 ---
 
-## CI/CD Baseline
+## Local Quality Pipeline
 
-The repository ships a senior baseline GitHub Actions setup:
-
-- `ci.yml`: plugin validators, pack health, tool contracts, prompt-router corpus, core-rules drift check, host doctor, smoke tests, a `pipeline-selfcheck` job that runs `pipeline.py`, memory-at-scale (medium), Python 3.12–3.14 × Linux/Windows matrix, Python 3.11 contracts, trust harness smoke, advisory security scan, and GitHub CLI contract checks.
-- `scale-nightly.yml`: weekly large-tier memory scale gate (8000 synthetic files) with JSON report artifact.
-- `release.yml`: on tag push `v*` it verifies the tag matches `skills/VERSION`, runs the pipeline and `local_release_gate.py --apply`, then publishes a **GitHub Release** with the ZIP attached. `workflow_dispatch` still builds the ZIP as an artifact only.
-
-CI validates **this plugin pack** only. CI/CD scripts and `plugin-tools.json` are **capabilities for your Project CLI** to invoke locally against any `project-root` — not a production deploy pipeline for this repo.
-
-**Unified local pipeline** (same gates as CI, one command; alias `$pipeline`):
+The local pipeline runs the selected lint, contract, test, build, and doctor stages; it does not certify generated model behavior.
 
 ```bash
 python skills/.system/scripts/pipeline.py --stage all --format text            # lint, contracts, test, build, doctor
@@ -114,14 +82,7 @@ python skills/.system/scripts/pipeline.py --stage lint,contracts --format text #
 python skills/.system/scripts/pipeline.py --stage all --report-path .codex/pipeline-report.json
 ```
 
-**Release** (after the pipeline is green):
-
-```bash
-python skills/.system/scripts/local_release_gate.py --format json   # dry-run
-git tag v18.0.0 && git push origin v18.0.0                           # triggers release.yml
-```
-
-See `skills/.system/OPERATION_RUNBOOK.md` and `skills/.system/references/deploy-promotion.md`.
+See `skills/.system/OPERATION_RUNBOOK.md` for the operator workflow.
 
 ---
 
@@ -142,7 +103,7 @@ See `skills/.system/OPERATION_RUNBOOK.md` and `skills/.system/references/deploy-
 6. Implementation
    Execute with bounded scope and explicit evidence.
 7. `codex-execution-quality-gate`
-   Enforce lint, tests, security, output rigor, editorial review, and trend logging.
+   Run configured lint, tests, security, output rigor, editorial review, and trend checks.
 8. `codex-role-docs` + `codex-project-memory` + `codex-git-autopilot`
    Persist what matters, then commit and ship with discipline.
 
@@ -160,7 +121,7 @@ Agents are optional. If you never set `suggested_agent`, routing still goes thro
 
 ## Role Documentation System
 
-`codex-role-docs` creates durable project-local docs under `.codex/project-docs/` so each specialist can preserve the context it owns:
+`codex-role-docs` can create durable project-local docs under `.codex/project-docs/` so each specialist can preserve the context it owns. By default, `$init-docs` creates a project brief and ADR template; role folders are created for selected roles:
 
 - Frontend: UI/UX, design system, design tokens, reusable components, routing, accessibility, frontend tests.
 - Backend: architecture, API contracts, database design, domain model, auth/security, integrations, logging, backend tests.
@@ -189,7 +150,7 @@ This makes requirements, acceptance criteria, FE/BE/data/QA impact, and verifica
 | `$review` | `skills/.workflows/review.md` | `workflow-review.md` + output-guard + editorial |
 | `$deploy` | `skills/.workflows/deploy.md` | `workflow-deploy.md` + full gate |
 | `$handoff` | `skills/.workflows/handoff.md` | `workflow-handoff.md` + session summary |
-| `$design` / `$ux` / `$direction` | `codex-frontend-design` | Fast path for a page/component; studio only for a new identity |
+| `$design` / `$ux` / `$direction` | `codex-frontend-design` | Fast for a page/component; prototype for multi-screen product flows; studio for requested alternatives or a new identity |
 | `$check` | `auto_gate.py --mode quick` | Advisory pre-commit gate |
 | `$pipeline` | `pipeline.py --stage all` | Lint, contracts, test, build, doctor |
 
@@ -197,15 +158,13 @@ Aliases are shortcuts, not replacements. All legacy triggers such as `$codex-pla
 
 ## Human-Quality Output Layer
 
-This is the biggest differentiator of the pack today:
+The output-quality workflows include:
 
-- `codex-reasoning-rigor` forces task contracts, evidence ladders, and monitoring loops.
-- `codex-logical-decision-layer` forces compact option comparison before ambiguous decisions.
+- `codex-reasoning-rigor` guides task contracts, evidence ladders, and monitoring loops.
+- `codex-logical-decision-layer` guides compact option comparison before ambiguous decisions.
 - `codex-document-writer` turns reports, memos, guides, and Vietnamese documents into structured reader-first artifacts.
 - `output_guard.py` rejects deliverables that are too generic or weakly grounded.
 - `editorial_review.py` checks whether the writing sounds decisive, accountable, and scanable instead of model-safe.
-- `benchmark_quality.py` now measures output score, editorial score, quality index, and expectation hit rate across a 12-case static corpus.
-- Benchmark corpus loading returns structured JSON errors for invalid corpus files, so release measurement failures are easier to diagnose.
 - `run_gate.py` now treats `plan`, `review`, and `handoff` as strict deliverables by default.
 - `quality_trend.py` tracks gate pass rate, output score, and editorial score over time.
 
@@ -232,14 +191,14 @@ This is the biggest differentiator of the pack today:
 
 ### Knowledge Packs
 
-| Skill | Coverage | Refs | Starters |
-| --- | --- | ---: | ---: |
-| `codex-frontend-design` | Fast path for a page/component or studio path for a new identity; OKLCH palettes, type, states, landing anatomy, anti-slop, refinement dials | 20 | 0 |
-| `codex-frontend-implementation` | React/Next/Tailwind/shadcn/GSAP recipes, 17 curated craft files with provenance, OKLCH starter without Inter | 8 | 1 |
-| `codex-design-md` | Durable `DESIGN.md` contracts, lint/diff/export workflows, and design-token source of truth | 3 | 1 |
-| `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched capture, fresh-eyes review with `DEGRADED` marking | 0 | 0 |
-| `codex-domain-specialist` | Full-stack engineering | 61 | 19 |
-| `codex-security-specialist` | Network, infra, AppSec, DevSecOps, compliance | 30 | 10 |
+| Skill | Coverage |
+| --- | --- |
+| `codex-frontend-design` | Fast path for a page/component, prototype workflow for multi-screen product flows, or studio path for requested alternatives/new identity; layout, type, states, anti-slop, and refinement guidance |
+| `codex-frontend-implementation` | React/Next/Tailwind/shadcn/GSAP recipes, craft guidance with provenance, and implementation starters |
+| `codex-design-md` | Durable `DESIGN.md` contracts, lint/diff/export workflows, and design-token source of truth |
+| `codex-visual-quality-gate` | Mechanical UI source checks, optional Playwright stitched capture, fresh-eyes review with `DEGRADED` marking |
+| `codex-domain-specialist` | Focused references for full-stack engineering |
+| `codex-security-specialist` | Focused references for network, infrastructure, AppSec, DevSecOps, and compliance |
 
 ### Quality and Delivery
 
@@ -256,34 +215,33 @@ This is the biggest differentiator of the pack today:
 
 ## Quick Start
 
-1. **Install** for the host you use:
+1. **Install** for one host. This example uses Cursor; replace `cursor` with `codex`, `claude`, or `antigravity` when needed:
 
 ```powershell
-python ".\skills\.system\scripts\install.py" --host cursor --scope repo --repo-root "." --apply --format text
-python ".\skills\.system\scripts\install.py" --host all --scope repo --repo-root "." --apply --format text
+python ".\skills\.system\scripts\install.py" --host cursor --scope user --apply --format text
 ```
 
-2. **Doctor** until skills and the core-rules bridge are present:
+2. **Verify** the selected host wiring after installation:
 
 ```powershell
-python ".\skills\.system\scripts\install.py" doctor --host all --repo-root "." --format text
+python ".\skills\.system\scripts\install.py" doctor --host cursor --scope user --format text
 ```
 
 3. **Use an alias** such as `$plan`, `$create`, `$design`, or `$check`. Load `codex-master-instructions` first.
 
-Host details: Cursor writes `.cursor/skills` plus `.cursor/rules/codexai-core.mdc`. Codex uses `.agents/skills` plus `AGENTS.md`. Claude uses `.claude/skills` plus `CLAUDE.md`. This repo tracks `.codex/hooks.json` so `install.py doctor` can pass on the plugin source checkout without a consumer install.
+Replace `cursor` with the host you use. Host installation steps and support limits are listed in [docs/INSTALL.md](docs/INSTALL.md). The doctor checks host wiring; it does not certify rendered UI or model behavior.
 
 ### 1. Install (advanced)
 
 **Preferred: generic CLI/IDE trust harness**
 
-Use this when the agent app is not Codex or Claude Code, or when you want one command that installs a portable project adapter and writes evidence:
+Use this when you want a generic project adapter scaffold and a JSON report. The generated pre-prompt hook is a descriptor for a host integration; the host must support and run that hook for automatic routing to occur:
 
 ```powershell
 python ".\skills\.system\scripts\trust_harness.py" --project-root "." --skills-root ".\skills" --setup generic --apply --evidence ".\.codexai\evidence\trust-harness.json" --format text
 ```
 
-For a dry-run that does not write files, omit `--apply`. The generic adapter creates `.codexai/skills`, merges a bounded `AGENTS.md` bridge, writes `.codexai/hooks/pre_prompt.json` for host IDE/CLI pre-prompt integration, validates Codex/Claude packaging, runs the prompt-router corpus, checks release packaging, and stores JSON evidence.
+For a dry-run that does not write files, omit `--apply`. The generic setup creates `.codexai/skills`, merges a bounded `AGENTS.md` bridge, writes `.codexai/hooks/pre_prompt.json`, validates package contracts, runs the prompt-router corpus, the Python unit suite, responsive Node tests when Node.js is available, and a release-package dry run. Missing Node.js or skipped Node tests (for example, a browser fixture without Playwright/Chromium) are reported as warnings. These checks do not establish that an arbitrary IDE or CLI executes the hook.
 
 **Preferred: Codex-native user install**
 
@@ -328,7 +286,7 @@ python ".\skills\.system\scripts\install_antigravity_native.py" --plugin-root ".
 python ".\skills\.system\scripts\validate_antigravity_plugin.py" --package-dir ".\dist\antigravity-plugin" --format json
 ```
 
-Workspace install lands in `.agents/plugins/codexai-agentic-workflow/`. User IDE uses `%USERPROFILE%\.gemini\config\plugins\`. User CLI uses `%USERPROFILE%\.gemini\antigravity-cli\plugins\`. If `agy` is missing, smoke records `skipped: binary unavailable`. Do not call this fully native until live IDE and CLI smoke exists.
+Workspace install lands in `.agents/plugins/codexai-agentic-workflow/`. User IDE uses `%USERPROFILE%\.gemini\config\plugins\`. User CLI uses `%USERPROFILE%\.gemini\antigravity-cli\plugins\`. If `agy` is missing, the validator records its CLI probe as skipped. A successful CLI probe does not establish that the plugin works in the IDE; keep this package labeled a candidate until both host surfaces are exercised.
 
 See `docs/design-knowledge-provenance.md` and `THIRD_PARTY_NOTICES.md`.
 
@@ -354,11 +312,11 @@ The legacy sync commands copy dot directories such as `.system`, `.agents`, and 
 # Everything in one command (lint, contracts, test, build, doctor)
 python skills/.system/scripts/pipeline.py --stage all --format text
 
-# Unit tests
-python -m pytest skills/tests -q
+# Python unit tests
+python -m unittest discover -s skills/tests -p "test_*.py"
 
-# Smoke checks
-python skills/tests/smoke_test.py
+# Responsive capture tests
+node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 
 # Pack operation health
 python skills/.system/scripts/check_pack_health.py --skills-root skills --format text
@@ -383,7 +341,7 @@ python skills/.system/scripts/build_release_zip.py --project-root . --apply --fo
 | `$health` | Check pack manifest, registry, aliases, dot directories, global sync, and markdown encoding |
 | `$init-profile` | Create `.codex/profile.json` for stable routing and user preferences |
 | `$think` / `$decide` | Build compact multi-option decision surface |
-| `$codex-reasoning-rigor` | Force deeper, less generic reasoning |
+| `$codex-reasoning-rigor` | Guide more specific, evidence-backed reasoning |
 | `$role-docs` | Load role documentation workflow |
 | `$init-docs` | Initialize `.codex/project-docs/` |
 | `$check-docs` | Check role-doc coverage and suggested updates |

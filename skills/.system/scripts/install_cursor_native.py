@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install CodexAI skills into Cursor-native skill locations and write the core rule."""
+"""Install CodexAI skills into Cursor-native skill locations."""
 from __future__ import annotations
 
 import argparse
@@ -47,11 +47,10 @@ def install(source_root: Path, target_root: Path, dry_run: bool, backup_dir: Pat
     payload = sync_global_skills.sync(source_root, target_root, dry_run=dry_run, backup_dir=backup_dir)
     payload["cursor_target"] = str(target_root)
     payload["cursor_install"] = True
-    bridge_root = repo_root
-    if bridge_root is None and target_root.name == "skills" and target_root.parent.name == ".cursor":
-        bridge_root = target_root.parent.parent
-    if bridge_root is not None:
-        payload["core_rule"] = init_agents_md.build_payload(bridge_root, "merge", dry_run=dry_run, target="cursor")
+    # A bridge belongs to an explicitly selected repository. Never infer a
+    # project root from the global ~/.cursor/skills installation path.
+    if repo_root is not None:
+        payload["core_rule"] = init_agents_md.build_payload(repo_root, "merge", dry_run=dry_run, target="cursor")
     return payload
 
 

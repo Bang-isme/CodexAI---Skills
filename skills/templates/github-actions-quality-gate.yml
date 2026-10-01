@@ -27,13 +27,13 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pytest PyYAML
+        run: python -m pip install --upgrade pip PyYAML
 
-      - name: Run smoke test
-        run: python "$SKILLS_ROOT/tests/smoke_test.py"
+      - name: Run Python contract tests
+        run: python -m unittest discover -s "$SKILLS_ROOT/tests" -p "test_*.py"
 
-      - name: Run unit tests
-        run: python -m pytest "$SKILLS_ROOT/tests" -q
+      - name: Run responsive capture helper tests
+        run: node --test "$SKILLS_ROOT/tests/responsive_capture_stitch.test.mjs" "$SKILLS_ROOT/tests/responsive_capture_core.test.mjs" "$SKILLS_ROOT/tests/responsive_capture_browser.test.mjs"
 
       - name: Quick quality gate
         run: python "$SKILLS_ROOT/codex-execution-quality-gate/scripts/auto_gate.py" --project-root . --mode quick

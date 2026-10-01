@@ -12,7 +12,7 @@ Use this default shape:
 
 Examples:
 
-- Good: `The release owner should run python skills/tests/smoke_test.py before publishing the changelog so the release note reflects verified behavior.`
+- Good: `The release owner should run python -m unittest discover -s skills/tests -p "test_*.py" before publishing the changelog so the release note reflects the checks actually run.`
 - Weak: `Run checks to ensure quality.`
 
 ## Complete Meaning Checklist

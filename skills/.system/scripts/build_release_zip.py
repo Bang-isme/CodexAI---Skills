@@ -28,6 +28,9 @@ EXCLUDED_FILE_NAMES = {
     ".coverage",
     ".codex-system-skills.marker",
 }
+EXCLUDED_RELATIVE_PREFIXES = {
+    "docs/superpowers/",
+}
 EXCLUDED_SUFFIXES = {
     ".pyc",
     ".pyo",
@@ -40,6 +43,7 @@ DEFAULT_ALLOWED_TOP_LEVEL = {
     ".agents",
     ".claude-plugin",
     ".codex-plugin",
+    ".cursor-plugin",
     ".coveragerc",
     "antigravity",
     "THIRD_PARTY_NOTICES.md",
@@ -69,6 +73,9 @@ def rel_posix(root: Path, path: Path) -> str:
 
 
 def is_excluded(relative_path: str) -> bool:
+    normalized = relative_path.replace("\\", "/")
+    if any(normalized.startswith(prefix) for prefix in EXCLUDED_RELATIVE_PREFIXES):
+        return True
     parts = relative_path.split("/")
     if any(part in EXCLUDED_DIR_NAMES for part in parts[:-1]):
         return True

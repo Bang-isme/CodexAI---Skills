@@ -1,0 +1,24 @@
+{
+  "name": "codexai-skills",
+  "owner": {
+    "name": "Bang Isme"
+  },
+  "metadata": {
+    "description": "Reusable engineering and frontend design workflows for Cursor."
+  },
+  "plugins": [
+    {
+      "name": "codexai-agentic-workflow",
+      "source": ".",
+      "description": "Spec-first engineering workflows, frontend design, project memory, and quality gates.",
+      "version": "18.1.0",
+      "author": {
+        "name": "Bang Isme"
+      },
+      "homepage": "https://github.com/Bang-isme/CodexAI---Skills",
+      "repository": "https://github.com/Bang-isme/CodexAI---Skills",
+      "license": "MIT",
+      "keywords": ["agent-skills", "frontend-design", "engineering-workflows"]
+    }
+  ]
+}

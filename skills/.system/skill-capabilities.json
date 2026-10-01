@@ -11,7 +11,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Instruction-only surface; do not expose secrets in handoffs."},
-      "verification": {"owner": "tests/test_workflow_linkage.py", "command": "python -m pytest tests/test_workflow_linkage.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Route to the selected workflow and preserve the active evidence set."
     },
     {
@@ -24,7 +24,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Analysis is evidence-based and never logs private prompt content."},
-      "verification": {"owner": "tests/test_runtime_hook_and_decision_layer.py", "command": "python -m pytest tests/test_runtime_hook_and_decision_layer.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Pass the intent, constraints, and missing evidence to the decision layer."
     },
     {
@@ -37,7 +37,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Context must retain provenance and omit secret values."},
-      "verification": {"owner": "tests/test_full_cycle_hardening.py", "command": "python -m pytest tests/test_full_cycle_hardening.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Provide the compact context plus source provenance to the selected specialist."
     },
     {
@@ -50,7 +50,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Plans identify risk and verification without inventing evidence."},
-      "verification": {"owner": "tests/test_workflow_linkage.py", "command": "python -m pytest tests/test_workflow_linkage.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Send approved steps and ownership boundaries to the execution workflow."
     },
     {
@@ -63,7 +63,7 @@
       "tool_classes": ["project_write"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Write artifacts only to an explicit project-local output path."},
-      "verification": {"owner": "tests/test_workflow_linkage.py", "command": "python -m pytest tests/test_workflow_linkage.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return the workflow state, evidence links, and next verified action."
     },
     {
@@ -76,7 +76,7 @@
       "tool_classes": ["code_generation", "project_write"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Generated briefs are written only to requested project-local paths."},
-      "verification": {"owner": "tests/test_output_rigor.py", "command": "python -m pytest tests/test_output_rigor.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Attach assumptions, rejected alternatives, and verification evidence to the plan or decision."
     },
     {
@@ -89,7 +89,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Document content is derived from supplied and local evidence only."},
-      "verification": {"owner": "tests/test_document_writer_skill.py", "command": "python -m pytest tests/test_document_writer_skill.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Pass the document, source list, and unresolved questions to docs sync or review."
     },
     {
@@ -102,7 +102,7 @@
       "tool_classes": ["code_generation", "project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Shell helpers must receive explicit paths and generated docs remain project-local."},
-      "verification": {"owner": "tests/test_role_docs.py", "command": "python -m pytest tests/test_role_docs.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return changed role docs, index status, and stale-document findings."
     },
     {
@@ -115,33 +115,33 @@
       "tool_classes": ["project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Spec and tickets may be created only under .codex/specs or an explicit project-local path."},
-      "verification": {"owner": "tests/test_spec_driven_development.py", "command": "python -m pytest tests/test_spec_driven_development.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return the spec path, ticket IDs or sections, evidence sources, and open risks."
     },
     {
       "skill": "codex-frontend-design",
       "domain": "frontend",
-      "objective": "Run the fast or studio frontend design path: brief, tokens, UX contract, and anti-slop before implementation.",
-      "triggers": ["landing page", "visual identity", "UX contract", "$design", "$refine"],
+      "objective": "Run the fast single-surface, multi-route prototype, or studio direction workflow with a contextual visual audit and responsive evidence before handoff.",
+      "triggers": ["landing page", "visual identity", "UX contract", "multi-screen prototype", "product flow", "$design", "$refine"],
       "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["design brief", "UX contract", "direction set"],
+      "output_artifacts": ["design brief", "route/state UX contract", "direction and tokens", "responsive capture and review evidence"],
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance only; file writes go through design_context.py with --apply."},
-      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
+      "verification": {"owner": "tests/test_prompt_router_design_scope.py", "command": "python -m unittest discover -s skills/tests -p test_prompt_router_design_scope.py"},
       "handoff": "Pass the brief or chosen direction to frontend-specialist and visual-quality-reviewer."
     },
     {
       "skill": "codex-frontend-implementation",
       "domain": "frontend",
-      "objective": "Implement web UI from an approved or fast-path brief using stack recipes and curated craft files.",
+      "objective": "Implement web UI from an approved design, fast-path brief, or prototype UX contract using stack recipes and curated craft files.",
       "triggers": ["React", "Next.js", "Tailwind", "shadcn", "GSAP", "CSS"],
       "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": ["starters"]},
       "output_artifacts": ["UI implementation", "token stylesheet"],
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance and starters only; does not fetch or vendor third-party runtimes."},
-      "verification": {"owner": "tests/test_frontend_consolidation.py", "command": "python -m pytest tests/test_frontend_consolidation.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return implemented UI and request $visual-gate."
     },
     {
@@ -154,20 +154,20 @@
       "tool_classes": ["project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Generated reports stay within the selected project output directory."},
-      "verification": {"owner": "tests/test_design_md.py", "command": "python -m pytest tests/test_design_md.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Provide contract findings and artifact paths to frontend implementation or QA."
     },
     {
       "skill": "codex-visual-quality-gate",
       "domain": "quality",
-      "objective": "Collect mechanical visual evidence and bound independent rendered review without fake aesthetic scores.",
-      "triggers": ["visual quality", "UI review", "screenshot critique"],
-      "resources": {"scripts": ["scripts"], "references": [], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["mechanical visual report", ".codex/design/reviews"],
+      "objective": "Validate responsive route/state capture coverage, source signals, flow/accessibility review, and evidence-grounded visual review without an aggregate aesthetic score.",
+      "triggers": ["visual quality", "UI review", "screenshot critique", "responsive capture matrix", "full-page evidence"],
+      "resources": {"scripts": ["scripts"],"references": [],"assets": [],"agents": [],"templates": [],"starters": []},
+      "output_artifacts": ["mechanical visual report", "responsive capture manifest", ".codex/design/reviews"],
       "tool_classes": ["project_write", "shell_execution", "read_only", "network"],
       "risk_tier": "enforced",
       "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Never installs Node packages. Optional Playwright capture uses a user-supplied URL; detector is local-only; writes only with --apply."},
-      "verification": {"owner": "tests/test_design_native.py", "command": "python -m pytest tests/test_design_native.py"},
+      "verification": {"owner": "tests/test_visual_quality_gate_evidence.py", "command": "python -m unittest discover -s skills/tests -p test_visual_quality_gate_evidence.py"},
       "handoff": "Return determinate mechanical failures and DEGRADED review limits to implementation."
     },
     {
@@ -180,7 +180,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Routing confidence is evidence-based and security routing is mandatory for high-risk actions."},
-      "verification": {"owner": "tests/test_domain_specialist_integrity.py", "command": "python -m pytest tests/test_domain_specialist_integrity.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Send scope, evidence, risk tier, and expected artifacts to the chosen specialists."
     },
     {
@@ -193,7 +193,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Findings require evidence and never claim a vulnerability without it."},
-      "verification": {"owner": "tests/test_full_cycle_hardening.py", "command": "python -m pytest tests/test_full_cycle_hardening.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Escalate enforced-risk actions with controls, evidence, and residual risks."
     },
     {
@@ -206,7 +206,7 @@
       "tool_classes": ["network", "project_write", "read_only", "shell_execution", "secret_sensitive"],
       "risk_tier": "enforced",
       "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "External/browser checks are opt-in; local writes use explicit output paths; LLM judge reads CODEX_JUDGE_API_KEY/OPENAI_API_KEY and all logs redact secret-like values."},
-      "verification": {"owner": "tests/test_auto_gate.py", "command": "python -m pytest tests/test_auto_gate.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return blocking failures, advisory findings, selected tests, and artifact paths."
     },
     {
@@ -219,7 +219,7 @@
       "tool_classes": ["code_generation", "project_write", "read_only", "shell_execution", "network"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Artifacts are self-contained and offline; traversal does not escape project root and redaction runs before persistence. Optional localhost dashboard HTTP in build_knowledge_index.py is not an outbound client."},
-      "verification": {"owner": "tests/test_memory_at_scale.py", "command": "python -m pytest tests/test_memory_at_scale.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return compact context for AI plus dashboard and provenance paths for human review."
     },
     {
@@ -232,7 +232,7 @@
       "tool_classes": ["project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Diff inspection and generated reports are limited to the requested repository."},
-      "verification": {"owner": "tests/test_docs_encoding.py", "command": "python -m pytest tests/test_docs_encoding.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Provide documentation impact, owners, and unresolved drift to the document workflow."
     },
     {
@@ -245,7 +245,7 @@
       "tool_classes": ["project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Never force-push or expose credentials; remote actions require explicit user authorization."},
-      "verification": {"owner": "tests/test_full_cycle_hardening.py", "command": "python -m pytest tests/test_full_cycle_hardening.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return staged scope, verification evidence, commit hash, and any remote-action requirement."
     },
     {
@@ -258,7 +258,7 @@
       "tool_classes": ["code_generation", "project_write", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Renderers accept explicit local files and write only to controlled output paths."},
-      "verification": {"owner": "tests/test_auto_gate.py", "command": "python -m pytest tests/test_auto_gate.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return rendered artifact paths and visual verification findings."
     },
     {
@@ -271,7 +271,7 @@
       "tool_classes": ["code_generation", "project_write", "read_only", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Generated agent files and artifacts remain in explicit project-local locations."},
-      "verification": {"owner": "tests/test_scrum_subagents.py", "command": "python -m pytest tests/test_scrum_subagents.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return role assignment, artifact path, blocked items, and next specialist action."
     },
     {
@@ -284,7 +284,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance requires real behavior tests and avoids secret-bearing fixtures."},
-      "verification": {"owner": "tests/test_workflow_discipline_matrix.py", "command": "python -m pytest tests/test_workflow_discipline_matrix.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Attach the red-green evidence to implementation and final verification."
     },
     {
@@ -297,7 +297,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Diagnostic evidence is redacted before it is retained or handed off."},
-      "verification": {"owner": "tests/test_workflow_discipline_matrix.py", "command": "python -m pytest tests/test_workflow_discipline_matrix.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Pass the confirmed root cause, reproduction, and smallest safe fix to implementation."
     },
     {
@@ -310,7 +310,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Briefs minimize context and prohibit credentials or unrestricted tool authority."},
-      "verification": {"owner": "tests/test_agent_system.py", "command": "python -m pytest tests/test_agent_system.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Provide acceptance criteria, owned files, evidence, and explicit stop conditions."
     },
     {
@@ -323,7 +323,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance requires ignored worktree locations and explicit integration choices."},
-      "verification": {"owner": "tests/test_workflow_discipline_matrix.py", "command": "python -m pytest tests/test_workflow_discipline_matrix.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Record worktree path, branch, base branch, and integration status."
     },
     {
@@ -336,7 +336,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Evidence summaries omit sensitive command output and credentials."},
-      "verification": {"owner": "tests/test_workflow_discipline_matrix.py", "command": "python -m pytest tests/test_workflow_discipline_matrix.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Attach executed commands, outcomes, and known limits to the final handoff."
     },
     {
@@ -349,7 +349,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Integration remains explicit; no destructive or remote action is implied by guidance."},
-      "verification": {"owner": "tests/test_workflow_linkage.py", "command": "python -m pytest tests/test_workflow_linkage.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return the chosen integration path with fresh test evidence."
     },
     {
@@ -362,7 +362,7 @@
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Status summaries must distinguish evidence from inference and redact sensitive details."},
-      "verification": {"owner": "tests/test_output_rigor.py", "command": "python -m pytest tests/test_output_rigor.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Pass prioritized risks, evidence, and next actions to the active workflow."
     },
     {
@@ -375,7 +375,7 @@
       "tool_classes": ["project_write", "read_only"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Profile and hook files are validated against schemas and remain inside .codex or an explicit project path."},
-      "verification": {"owner": "tests/test_runtime_hook_and_decision_layer.py", "command": "python -m pytest tests/test_runtime_hook_and_decision_layer.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return profile status, detected domains, confidence, and routing inputs."
     },
     {
@@ -388,7 +388,7 @@
       "tool_classes": ["code_generation"],
       "risk_tier": "enforced",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Generated matrices retain evidence links and never include secret values."},
-      "verification": {"owner": "tests/test_runtime_hook_and_decision_layer.py", "command": "python -m pytest tests/test_runtime_hook_and_decision_layer.py"},
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"},
       "handoff": "Return selected route, confidence, evidence, and conditions that require escalation."
     }
   ],
@@ -399,7 +399,7 @@
       "tool_classes": ["code_generation", "network", "project_write", "read_only", "shell_execution"],
       "risk_tier": "enforced",
       "security_policy": {"network": "optional_external", "path_scope": "project_root_only", "redact_outputs": true, "notes": "System tooling validates paths, uses explicit output locations, and never persists credentials."},
-      "verification": {"owner": "tests/test_tool_contracts.py", "command": "python -m pytest tests/test_tool_contracts.py"}
+      "verification": {"owner": "tests/test_skill_capability_contracts.py", "command": "python -m unittest discover -s skills/tests -p test_skill_capability_contracts.py"}
     }
   ]
 }

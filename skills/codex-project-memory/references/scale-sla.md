@@ -4,12 +4,12 @@ Service-level expectations when running project-memory tooling on repositories f
 
 ## Tiers
 
-| Tier | Typical size | CI coverage | Recommended flags |
+| Tier | Typical size | Suggested local check | Recommended flags |
 |------|----------------|-------------|-------------------|
-| Small | &lt; 1,000 tracked files | Default `memory-tooling` on plugin repo | Default traversal (`max_files` 1000) |
-| Medium | 1,000–10,000 files | PR gate `memory-at-scale-medium` (2500 synthetic files) | `--max-files 5000`, `--incremental` |
-| Large | 10,000–50,000+ files | Weekly `scale-nightly` (8000 synthetic files) | `--max-files 10000`, `--incremental`, monitor duration |
-| Monorepo / huge | 50,000+ files | Not fully simulated in CI | Incremental only; raise caps deliberately; shard by path |
+| Small | &lt; 1,000 tracked files | Default scale-gate run | Default traversal (`max_files` 1000) |
+| Medium | 1,000–10,000 files | Synthetic fixture and representative project sample | `--max-files 5000`, `--incremental` |
+| Large | 10,000–50,000+ files | Larger synthetic fixture; measure on the target machine | `--max-files 10000`, `--incremental`, monitor duration |
+| Monorepo / huge | 50,000+ files | No broad performance claim; profile a representative checkout | Incremental only; raise caps deliberately; shard by path |
 
 ## Commands
 
@@ -53,21 +53,20 @@ The scale gate fixture rotates extensions aligned with `codebase_indexer.py` `CO
 | `.sql`, `.md`, `.yaml` | `structured-text-regex` or `line-window` | Docs/config paths |
 | `package.json`, `tsconfig.json`, `Dockerfile` | Config discovery | Via `--include-package-json` |
 
-CI medium/large tiers use polyglot fixtures so gates exercise multi-parser indexing, not Python-only trees.
+Use polyglot fixtures so a local gate exercises multi-parser indexing, not Python-only trees. Fixture size is a test input, not a performance guarantee.
 
 ## Operator guidance
 
 - Do **not** commit `.codex/` output; see `references/artifact-lifecycle-policy.md`.
-- On Windows CI, exclude symlink traversal test when lacking privilege (see `ci-readiness.md`).
 - After a fresh index+graph build, `memory_status --strict` should exit 0. Indexer-only extras (`.md`, `.toml`, `Dockerfile`) are `expected_extras`, not warnings.
 - External CLI wrappers should read `skills/.system/references/plugin-tools.json` entry `memory_scale_gate` instead of shell-scripting individual memory commands.
 
-## CI workflows
+## Suggested schedule for a consuming repository
 
-| Workflow | Job | When |
+| Check | Suggested frequency | Notes |
 |----------|-----|------|
-| `ci.yml` | `memory-at-scale-medium` | Every PR / push to `main` |
-| `scale-nightly.yml` | `memory-at-scale-large` | Weekly + manual dispatch |
-| `ci.yml` | `memory-tooling` | Real plugin repo integration |
+| Medium fixture | Pull request or release candidate | Keep the run bounded and save the JSON report |
+| Large fixture | Scheduled or on-demand | Measure runtime and memory on the actual runner |
+| Project memory checks | After index/graph generation | Treat stale inputs and strict warnings explicitly |
 
-Release packaging (`release.yml`) relies on PR gates; it does not run the large tier gate to keep tag builds fast.
+These are recommendations only. This pack source does not ship scheduled GitHub Actions workflows.

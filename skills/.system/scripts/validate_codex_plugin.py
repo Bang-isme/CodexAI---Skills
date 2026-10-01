@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 PLUGIN_NAME_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
@@ -131,13 +132,28 @@ def check_marketplace(plugin_root: Path, plugin_name: str, checks: list[dict[str
     entry = matching[0]
     failures: list[str] = []
     source = entry.get("source", {})
-    source_path = str(source.get("path", "")) if isinstance(source, dict) else ""
-    if not isinstance(source, dict) or source.get("source") != "local":
-        failures.append("source.source must be local")
-    try:
-        resolve_plugin_path(plugin_root, source_path)
-    except Exception as exc:
-        failures.append(str(exc))
+    if not isinstance(source, dict):
+        failures.append("source must be an object")
+    elif source.get("source") == "local":
+        try:
+            resolve_plugin_path(plugin_root, str(source.get("path", "")))
+        except Exception as exc:
+            failures.append(str(exc))
+    elif source.get("source") == "url":
+        source_url = str(source.get("url", ""))
+        parsed_url = urlparse(source_url)
+        if parsed_url.scheme != "https" or not parsed_url.netloc or not parsed_url.path.strip("/"):
+            failures.append("source.url must be an HTTPS URL to a Git repository")
+        manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
+        try:
+            manifest_repository = str(read_json(manifest_path).get("repository", "")).rstrip("/").removesuffix(".git")
+        except Exception:
+            manifest_repository = ""
+        normalized_source = source_url.rstrip("/").removesuffix(".git")
+        if manifest_repository and normalized_source != manifest_repository:
+            failures.append("source.url must match the plugin manifest repository")
+    else:
+        failures.append("source.source must be local or url")
     policy = entry.get("policy", {})
     if not isinstance(policy, dict):
         failures.append("policy must be an object")

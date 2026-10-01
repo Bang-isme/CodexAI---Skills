@@ -5,7 +5,8 @@
  * date=2026-09-20
  * license=unspecified-in-source
  *
- * Portable capture helper. Prefer Playwright fullPage when Node+Playwright exist.
+ * Legacy single-page helper retained for compatibility. It is not visual-gate evidence.
+ * Use capture_responsive_matrix.mjs for route/state coverage and overlapping slice capture.
  * If Playwright is missing, print DEGRADED JSON and exit 2. Does not install packages.
  */
 import { spawn } from "node:child_process";

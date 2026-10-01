@@ -3,12 +3,10 @@
 
 Stages (run in this order when selected):
   lint      pack health (strict) + core-rules drift check
-  contracts tool contracts, capability audit, prompt-router corpus, Codex/Claude validators
-  test      pytest suite + smoke_test.py
+  contracts tool contracts, capability audit, prompt-router corpus, Codex/Claude/Cursor validators
+  test      Python unittest suite + Node's built-in test runner
   build     Antigravity build/validate + release ZIP dry-run
-  doctor    install.py doctor --host all
-
-The same stages back the GitHub Actions `pipeline-selfcheck` job so local and CI stay aligned.
+  doctor    install.py doctor --host codex
 """
 from __future__ import annotations
 
@@ -16,6 +14,7 @@ import argparse
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,9 +29,6 @@ PLUGIN_ROOT = SKILLS_ROOT.parent
 
 STAGE_ORDER = ("lint", "contracts", "test", "build", "doctor")
 PASS_STATUSES = {"pass", "dry_run", "generated", "warn", "ok", "built"}
-SYMLINK_TEST = "test_project_traversal_does_not_follow_symlinks_outside_root"
-
-
 def force_utf8_stdio() -> None:
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
@@ -50,21 +46,6 @@ def child_env() -> dict[str, str]:
     return env
 
 
-def symlinks_available() -> bool:
-    """Windows without developer mode cannot create symlinks; mirror the CI exclusion."""
-    if platform.system() != "Windows":
-        return True
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            target = Path(tmp) / "target"
-            target.write_text("x", encoding="utf-8")
-            link = Path(tmp) / "link"
-            os.symlink(target, link)
-            return link.exists()
-    except (OSError, NotImplementedError):
-        return False
-
-
 def run_step(
     name: str,
     args: list[str],
@@ -72,8 +53,9 @@ def run_step(
     cwd: Path,
     expect_json: bool = True,
     timeout: int = 900,
+    use_python: bool = True,
 ) -> dict[str, Any]:
-    cmd = [sys.executable, *args]
+    cmd = [sys.executable, *args] if use_python else args
     started = time.perf_counter()
     try:
         result = subprocess.run(
@@ -163,17 +145,54 @@ def stage_contracts(project_root: Path, rel_skills: str, skills_root: Path) -> l
             [script("validate_claude_plugin.py"), "--plugin-root", str(project_root), "--format", "json"],
             cwd=project_root,
         ),
+        run_step(
+            "cursor_plugin",
+            [script("validate_cursor_plugin.py"), "--plugin-root", str(project_root), "--format", "json"],
+            cwd=project_root,
+        ),
     ]
 
 
-def stage_test(project_root: Path, rel_skills: str, skills_root: Path) -> list[dict[str, Any]]:
-    pytest_args = ["-m", "pytest", f"{rel_skills}/tests", "-q"]
-    if not symlinks_available():
-        pytest_args.extend(["-k", f"not {SYMLINK_TEST}"])
-    return [
-        run_step("pytest", pytest_args, cwd=project_root, expect_json=False, timeout=1800),
-        run_step("smoke_test", [str(skills_root / "tests" / "smoke_test.py")], cwd=project_root, expect_json=False),
+def stage_test(project_root: Path, skills_root: Path) -> list[dict[str, Any]]:
+    test_dir = skills_root / "tests"
+    steps = [
+        run_step(
+            "python_unittest",
+            ["-m", "unittest", "discover", "-s", str(test_dir), "-p", "test_*.py"],
+            cwd=project_root,
+            expect_json=False,
+            timeout=1800,
+        )
     ]
+    js_tests = sorted(test_dir.glob("*.test.mjs"))
+    if js_tests:
+        node = shutil.which("node")
+        if node:
+            steps.append(
+                run_step(
+                    "node_tests",
+                    [node, "--test", *[str(path) for path in js_tests]],
+                    cwd=project_root,
+                    expect_json=False,
+                    timeout=1800,
+                    use_python=False,
+                )
+            )
+        else:
+            steps.append(
+                {
+                    "name": "node_tests",
+                    "ok": False,
+                    "exit_code": 127,
+                    "duration_s": 0,
+                    "command": ["node", "--test", *[str(path) for path in js_tests]],
+                    "payload": {
+                        "status": "fail",
+                        "reason": "Node.js is required to run the responsive capture test suite.",
+                    },
+                }
+            )
+    return steps
 
 
 def stage_build(project_root: Path) -> list[dict[str, Any]]:
@@ -217,7 +236,7 @@ def stage_doctor(project_root: Path) -> list[dict[str, Any]]:
     return [
         run_step(
             "install_doctor",
-            [script("install.py"), "doctor", "--host", "all", "--repo-root", str(project_root), "--format", "json"],
+            [script("install.py"), "doctor", "--host", "codex", "--repo-root", str(project_root), "--format", "json"],
             cwd=project_root,
         )
     ]
@@ -249,7 +268,7 @@ def run_pipeline(project_root: Path, skills_root: Path, stages: list[str], fail_
     runners: dict[str, Callable[[], list[dict[str, Any]]]] = {
         "lint": lambda: stage_lint(project_root, rel_skills),
         "contracts": lambda: stage_contracts(project_root, rel_skills, skills_root),
-        "test": lambda: stage_test(project_root, rel_skills, skills_root),
+        "test": lambda: stage_test(project_root, skills_root),
         "build": lambda: stage_build(project_root),
         "doctor": lambda: stage_doctor(project_root),
     }
@@ -259,10 +278,16 @@ def run_pipeline(project_root: Path, skills_root: Path, stages: list[str], fail_
     for stage in stages:
         steps = runners[stage]()
         stage_ok = all(step["ok"] for step in steps)
+        stage_has_warnings = any(
+            str(step.get("payload", {}).get("status", "")).lower() == "warn"
+            for step in steps
+        )
+        stage_status = "fail" if not stage_ok else "warn" if stage_has_warnings else "pass"
         stage_reports.append(
             {
                 "name": stage,
                 "ok": stage_ok,
+                "status": stage_status,
                 "duration_s": round(sum(step["duration_s"] for step in steps), 2),
                 "steps": [step["name"] for step in steps],
             }
@@ -271,9 +296,21 @@ def run_pipeline(project_root: Path, skills_root: Path, stages: list[str], fail_
         if fail_fast and not stage_ok:
             break
     failures = [step["name"] for step in all_steps if not step["ok"]]
+    warnings = [
+        step["name"]
+        for step in all_steps
+        if step["ok"] and str(step.get("payload", {}).get("status", "")).lower() == "warn"
+    ]
     skipped = [stage for stage in stages if stage not in {item["name"] for item in stage_reports}]
+    status = "fail" if failures else "warn" if warnings else "pass"
+    if failures:
+        next_step = f"fix failing step(s): {', '.join(failures)}"
+    elif warnings:
+        next_step = f"review warning(s): {', '.join(warnings)}; run local_release_gate.py before publishing"
+    else:
+        next_step = "selected checks passed; review their reports and run local_release_gate.py before publishing"
     return {
-        "status": "pass" if not failures else "fail",
+        "status": status,
         "artifact_type": "codexai.pipeline.report",
         "schema_version": "1.0",
         "project_root": str(project_root),
@@ -284,8 +321,9 @@ def run_pipeline(project_root: Path, skills_root: Path, stages: list[str], fail_
         "stages_skipped": skipped,
         "steps": all_steps,
         "failures": failures,
+        "warnings": warnings,
         "duration_s": round(time.perf_counter() - started, 2),
-        "next": "ready: run local_release_gate.py --apply then git tag vX.Y.Z" if not failures else f"fix failing step(s): {', '.join(failures)}",
+        "next": next_step,
     }
 
 
@@ -321,18 +359,19 @@ def main() -> int:
     if args.format == "text":
         print(f"status={report['status']} duration={report['duration_s']}s stages={','.join(stages)}")
         for stage in report["stages"]:
-            print(f"[{'ok' if stage['ok'] else 'FAIL'}] {stage['name']} ({stage['duration_s']}s)")
+            print(f"[{stage['status'].upper()}] {stage['name']} ({stage['duration_s']}s)")
         for step in report["steps"]:
-            marker = "ok" if step["ok"] else "FAIL"
+            payload_status = str(step.get("payload", {}).get("status", "")).lower()
+            marker = "FAIL" if not step["ok"] else "WARN" if payload_status == "warn" else "ok"
             print(f"  - {step['name']}: {marker} exit={step['exit_code']} {step['duration_s']}s")
-            if not step["ok"]:
+            if not step["ok"] or marker == "WARN":
                 payload = step["payload"]
                 detail = payload.get("stderr_tail") or payload.get("stdout_tail") or json.dumps(payload, ensure_ascii=False)[:800]
                 print(f"    {str(detail).strip()[-800:]}")
         print(report["next"])
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["status"] == "pass" else 1
+    return 0 if report["status"] in {"pass", "warn"} else 1
 
 
 if __name__ == "__main__":
