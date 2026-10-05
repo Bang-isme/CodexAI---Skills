@@ -34,6 +34,19 @@ For at least two plausible structural candidates, ask:
 
 Choose the one with the clearest task flow and strongest content fit. State one composition thesis and a short rationale in the direction file. Do not change only the palette and call that a different layout.
 
+## Explore creatively without losing the layout
+
+For a substantial visual or structural change, record a compact **layout contract** in the existing direction file or UX contract. Do not create another document for it. Separate:
+
+- **Must hold:** primary task and action, route/navigation behavior, content meaning and reading order, control semantics, data behavior, keyboard access, and product-specific elements users rely on.
+- **Safe to explore:** grid geometry, column proportions, density, grouping, typographic scale, chart/data presentation, imagery, and surface treatment when the content and product purpose support the choice.
+
+Choose one **signature move** that makes the product more recognizable or the task easier to understand. Name its expected user benefit and evidence. It can be a distinctive data composition, a stronger editorial hierarchy, a purposeful asymmetry, or a more useful navigation/workspace arrangement. Avoid novelty whose only benefit is looking different. Keep the established shell and familiar patterns around the new move when they help users stay oriented.
+
+For the contract, state the desktop and narrow-screen content order; what may stack, collapse, or move; and how long labels, dense data, and media wrap, crop, or scroll. Derive breakpoints from the real styles and content fit. During exploration, vary one major layout decision at a time so a comparison can reveal what helped or hurt. Keep the best product-fit move and discard variants that weaken an invariant or fail at a target width.
+
+Use this depth only for a substantial layout change. For a narrow refinement, make the smallest supported adjustment and record only a short rationale when needed.
+
 ## Adapt and customize
 
 - Name tokens for roles (`surface`, `text-muted`, `action-primary`, `space-section`) rather than visual trends.

@@ -22,6 +22,22 @@ Align to a grid and then correct optically: hanging punctuation, icon optical ce
 
 `operate` surfaces may be dense if grouping is strong. `persuade` surfaces need air around the claim. Repeated cards are useful for genuinely parallel items; if items have different importance, vary hierarchy or choose a more suitable grouping instead of forcing equal tiles.
 
+## Distinctiveness without visual clutter
+
+For a substantial redesign, give the page one product-fit signature: for example, a data visualization that explains change, an editorial split that pairs a decision with its evidence, or a workspace arrangement that keeps a frequent task in reach. State what it helps the user notice or do. Let the rest of the composition support that move with a clear hierarchy and familiar interaction patterns. Creative structure can come from scale, alignment, negative space, grouping, or information geometry; it does not need extra cards, gradients, shadows, or motion. Keep any device whose product job is clear, and simplify the rest.
+
+Before accepting a new composition, check the same hierarchy in realistic short and long content. Long labels, controls, data, and media must reflow or use a deliberate local scroll/crop behavior; they must not overlap neighboring content or hide the primary task. See `layout-decision-framework.md` for the layout contract and `layout-adaptation.md` for content-safe responsive behavior.
+
+## Narrative sequence when it serves the user
+
+Use narrative structure for content-led experiences when staged understanding improves the task: a launch story, editorial explanation, learning flow, onboarding, or a product journey with meaningful discovery. Before arranging sections, write a compact spine in the existing brief or UX contract:
+
+`user question → essential context/proof → discovery or decision → useful next action`
+
+Expand that spine into only the beats the product needs. Each beat should answer a distinct user question, contribute new evidence or meaning, and make the next step easier to anticipate. Connect sections through information and visual continuity when that relationship helps comprehension. Use contrast and breathing room to pace attention; resolve any question the page raises, and keep essential details such as safety, price, or caveats visible rather than hiding them for suspense.
+
+If a user skips to a later section, the heading and nearby context should still orient them. If the experience is primarily operational, use its task sequence, current state, feedback, and next action as the structure. Do not force an emotional arc or a cinematic climax onto a utility-heavy surface.
+
 ## Responsive reflow
 
 Desktop and a narrow viewport are both first-class. Reflow must preserve hierarchy: the primary action stays reachable; secondary nav collapses; tables get a stacked or scroll plan. Do not hide the only CTA behind a hamburger without a visible substitute.

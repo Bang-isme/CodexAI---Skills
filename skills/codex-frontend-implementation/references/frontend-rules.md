@@ -33,11 +33,26 @@ Out of scope:
 - Optimize developer experience with clear naming and colocated tests.
 - Respect existing project conventions before introducing new patterns.
 
+## Maintainable Structure and Change Boundaries
+
+Before changing folders or extracting modules, inspect the existing structure, route and feature boundaries, aliases/imports, shared consumers, styling and asset conventions, tests, and project commands. Identify what is coherent, inconsistent, or demonstrably causing maintenance cost. Preserve coherent conventions; do not impose a folder template or architecture methodology just because it is familiar.
+
+Choose the simplest architecture that fits the product, codebase size, and team:
+
+- Keep route-specific composition with its route and feature-specific UI, state, data, and types near their feature owner, following the repo's established pattern.
+- Promote code to shared only for real cross-feature reuse or a behavior that must stay consistent. Shared code must not import feature-specific code.
+- Keep types, data, constants, utilities, styles, and assets near their owner unless they are genuinely cross-cutting. Feature-only assets may live with the feature when the build supports it; brand-wide assets follow the existing shared asset convention. Use names that make important asset use discoverable, and follow `../../codex-frontend-design/references/imagery.md` for provenance.
+- Keep dependency direction predictable and avoid circular imports. Use public barrels only when they clarify a module's supported API; do not add re-exports that hide cycles or expose internals.
+
+Split a file or component when it has a meaningful responsibility, reuse boundary, independent state/effect lifecycle, test boundary, or change locality. A large file is not automatically a problem: raw line count alone is not a reason to split. Do not split a component merely to reduce its size or create wrappers, hooks, utilities, or shared abstractions without a clear owner and consumer.
+
+Treat broad restructuring as its own scoped change. Name the maintenance problem and affected consumers first; migrate incrementally, preserve behavior and public imports where needed, and remove old files only after confirming they have no remaining consumers. Run the relevant type/lint checks, focused and affected tests, and build; inspect UI behavior and responsive renders when the change can alter them. Do not bundle unrelated cleanup into a visual change. Record material architecture decisions in an existing project document when one exists; create a new architecture document only when a lasting team convention or handoff genuinely needs it. Narrow UI changes need no architecture dossier.
+
 ## Decision Tree
 
 ### Decision Tree A: Component and State Placement
 
-- If logic is purely presentational and reused across pages, create reusable UI component.
+- If presentation or behavior is repeated across pages and must stay consistent, consider a shared UI component after checking its actual consumers.
 - If logic is presentational but unique to one page, colocate component with page feature folder.
 - If state is local and ephemeral, use local state (`useState` or equivalent).
 - If state spans siblings with same lifecycle, lift state to closest common parent.
@@ -58,8 +73,8 @@ Out of scope:
 
 ## Implementation Patterns
 
-- Use feature folders that colocate UI, hooks, tests, and docs by concern.
-- Split container and presentational responsibilities when component complexity grows.
+- Keep UI, hooks, tests, and docs with their existing route or feature owner; feature folders are one option when they fit the repo, not a required migration.
+- Split container and presentational responsibilities when that makes ownership or behavior clearer; do not split by file size alone.
 - Use typed props and avoid implicit `any` through strict component interfaces.
 - For forms, centralize validation rules and unify error display semantics.
 - Prefer custom hooks for side-effect orchestration and data synchronization.
@@ -69,19 +84,21 @@ Out of scope:
 - Use virtualization for long lists and large table datasets.
 - Set route-level budget targets for bundle size and interaction latency.
 - Lazy-load route-level chunks and non-critical components.
-- Keep design tokens centralized and avoid magic spacing/color values.
+- Reuse incumbent design tokens. Add semantic tokens when shared values or product roles need consistent change; do not force a universal scale or extract every one-off value.
 - Use CSS variables or theme object for dark/light and brand variants.
 - Add explicit empty-state content and actionable recovery options.
 - Use optimistic updates only when rollback strategy exists.
 - Capture analytics and telemetry at meaningful UX milestones.
-- **Viewport-fit sections**: Each page section must fit within one viewport (`100vh` / `100dvh`) at 100% zoom. Use `clamp()` for font sizes and padding. If a section overflows, split content or restructure to horizontal layout. See `ui-ux-design-principles.md` section 6 for Content Budget Table.
-- Use `min-height: 100dvh` for full-viewport sections, `clamp(2rem, 5vh, 5rem)` for responsive vertical padding, and `clamp(2rem, 5vw + 1rem, 5rem)` for heading font sizes.
+- Let content determine section height. Use `min-height: 100svh` or `100dvh` only when a full-viewport composition serves the task; do not force every section into one screen or split content to satisfy an arbitrary height. Test realistic short and long content at narrow and wide viewports.
+- Use fluid values such as `clamp()` when they improve the chosen responsive system, not as mandatory formulas. Existing product tokens and the selected visual direction remain authoritative.
 
 ## Visual Design System
 
+The token scales and CSS examples below illustrate organization and naming, not a required palette, typeface, spacing rhythm, component size, or visual preset. Inspect the incumbent design system and follow the product-specific direction before introducing tokens.
+
 ### Design Tokens
 
-Use centralized design tokens for all visual values. Never use magic numbers.
+Reuse semantic tokens for repeated or shared visual roles. Centralize a value when it needs consistent evolution; keep an intentional one-off local when naming it would add indirection without reuse. Avoid duplicating raw values that represent the same product role.
 
 #### Spacing Scale (8px grid)
 
@@ -275,8 +292,8 @@ Font families: do not default to Inter, Roboto, Arial, or system-ui-only. Prefer
 
 ## Anti-Patterns
 
-1. ❌ Bad: Building 300+ line components with mixed responsibilities.
-   ✅ Good: Split the component into container, presentational view, and custom hook with clear interfaces.
+1. ❌ Bad: Keeping unrelated responsibilities tightly coupled in one component.
+   ✅ Good: Split only where a clear ownership, reuse, lifecycle, or test boundary makes the code easier to change. Line count alone is not the trigger.
 
 2. ❌ Bad: Passing props through many levels when composition can remove drilling.
    ✅ Good: Use composition slots or localized context selectors near consumers instead of deep prop chains.
@@ -322,6 +339,8 @@ Font families: do not default to Inter, Roboto, Arial, or system-ui-only. Prefer
 - [ ] Yes/No: Does this change stay within the scope and triggers defined in this reference?
 - [ ] Yes/No: Is each major decision traceable to an explicit if/then or matrix condition in the Decision Tree section?
 - [ ] Yes/No: Are ownership boundaries and dependencies explicit?
+- [ ] Yes/No: Does the change follow coherent incumbent conventions, and does shared code avoid feature-specific imports?
+- [ ] Yes/No: Does each new layer or abstraction solve a demonstrated need rather than imagined future reuse?
 - [ ] Yes/No: Are high-risk failure paths guarded by validations, limits, or fallbacks?
 - [ ] Yes/No: Is there a documented rollback or containment path if production behavior regresses?
 - [ ] Yes/No: Is component architecture split by responsibility (container, view, hook) where needed?
@@ -332,26 +351,16 @@ Font families: do not default to Inter, Roboto, Arial, or system-ui-only. Prefer
 
 ## Testing and Verification Checklist
 
-- [ ] Yes/No: Is there at least one positive-path test that verifies intended behavior?
-- [ ] Yes/No: Is there at least one negative-path test that verifies rejection/failure handling?
-- [ ] Yes/No: Is a regression test added for the highest-risk scenario touched?
-- [ ] Yes/No: Do tests cover boundary inputs and edge conditions relevant to this change?
-- [ ] Yes/No: Are integration boundaries verified where this change crosses module/service/UI layers?
-- [ ] Yes/No: Do UI tests cover loading, error, empty, and success states for changed screens?
-- [ ] Yes/No: Are form validation and recovery paths tested with real user interactions?
-- [ ] Yes/No: Are render-performance-sensitive paths tested for large lists or frequent updates?
-- [ ] Yes/No: Do accessibility checks pass for modified components and pages?
-- [ ] Yes/No: Do end-to-end tests verify localized async updates without full-page blocking indicators?
+Choose checks that exercise the changed contract and risk: focused unit or component tests for local behavior, integration tests at changed boundaries, and interaction/accessibility/responsive checks for affected UI. Cover relevant success and failure paths; add a regression test for a reproduced or high-risk defect. Run performance or end-to-end checks when the changed path or project gate calls for them, not as a ritual for unrelated code. Record checks actually run and any unavailable coverage.
 
 ## Cross-References
 
 - `react-patterns.md` for hooks architecture and rendering control.
 - `nextjs-patterns.md` for App Router and server/client boundaries.
-- `typescript-rules.md` for strict component and DTO typing.
-- `performance-rules.md` for profiling, budgets, and optimization policy.
-- `accessibility-rules.md` for WCAG and assistive tech expectations.
-- `seo-rules.md` for metadata and crawlability implications.
-- `testing-rules.md` for unit, integration, and e2e strategy.
+- `css-architecture.md` for styling ownership and responsive CSS.
+- `accessibility-rules.md` for semantic interaction and assistive technology.
+- `gsap-mastery.md` for GSAP lifecycle and motion implementation.
+- `../../codex-frontend-design/references/imagery.md` for asset ownership and provenance.
 
 ### Scenario Walkthroughs
 
@@ -367,7 +376,7 @@ Font families: do not default to Inter, Roboto, Arial, or system-ui-only. Prefer
 
 ### Delivery Notes
 
-- Record major frontend architecture decisions in project decision journal.
+- Record material architecture decisions in the project's existing decision or architecture docs; create a new record only when a lasting convention or handoff needs it.
 - For high-risk refactors, split work into behavior-preserving phases.
 - Require visual and interaction regression checks for shared components.
 - Pair UI changes with docs updates when user behavior is altered.

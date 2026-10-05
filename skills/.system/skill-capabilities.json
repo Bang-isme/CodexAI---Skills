@@ -121,10 +121,10 @@
     {
       "skill": "codex-frontend-design",
       "domain": "frontend",
-      "objective": "Run the fast single-surface, multi-route prototype, or studio direction workflow with a contextual visual audit and responsive evidence before handoff.",
-      "triggers": ["landing page", "visual identity", "UX contract", "multi-screen prototype", "product flow", "$design", "$refine"],
+      "objective": "Route single-surface work, multi-route prototypes, studio directions, and evidence-based audits of existing products to the matching FE workflow.",
+      "triggers": ["landing page", "visual identity", "UX contract", "multi-screen prototype", "product flow", "existing product audit", "redesign existing product", "frontend quality audit", "$design", "$refine"],
       "resources": {"scripts": [], "references": ["references"], "assets": [], "agents": [], "templates": [], "starters": []},
-      "output_artifacts": ["design brief", "route/state UX contract", "direction and tokens", "responsive capture and review evidence"],
+      "output_artifacts": ["design brief", "route/state UX contract", "direction and tokens", "scoped existing-product findings when the request warrants a persistent audit", "responsive capture and review evidence"],
       "tool_classes": ["read_only"],
       "risk_tier": "advisory",
       "security_policy": {"network": "none", "path_scope": "project_root_only", "redact_outputs": true, "notes": "Guidance only; file writes go through design_context.py with --apply."},
