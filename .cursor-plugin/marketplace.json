@@ -11,7 +11,7 @@
       "name": "codexai-agentic-workflow",
       "source": ".",
       "description": "Spec-first engineering workflows, frontend design, project memory, and quality gates.",
-      "version": "18.1.0",
+      "version": "18.1.1",
       "author": {
         "name": "Bang Isme"
       },

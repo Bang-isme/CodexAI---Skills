@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [18.1.1] - 2026-10-05
+
+### Added
+- Added a context-led scroll narrative workflow that maps user progression and communication goals to motion scenes before choosing effects.
+- Added implementation guidance for scene ownership, responsive and reduced-motion behavior, lifecycle cleanup, and purposeful GSAP pinning or scrubbing.
+
+### Changed
+- Connected the frontend design, implementation, architecture, and visual review guidance into a clearer route from UX contract to working prototype.
+- Extended visual evidence review to capture material scroll checkpoints that fall between stitched page slices.
+
 ## [18.1.0] - 2026-10-02
 
 ### Added

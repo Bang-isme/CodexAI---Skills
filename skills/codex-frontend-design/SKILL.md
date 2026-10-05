@@ -2,7 +2,7 @@
 name: codex-frontend-design
 description: Use when designing, auditing, or redesigning a web UI; select fast, prototype, or studio from the requested scope.
 load_priority: on-demand
-version: "18.1.0"
+version: "18.1.1"
 ---
 
 ## TL;DR

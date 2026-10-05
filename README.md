@@ -4,7 +4,7 @@
 
 > An AI agent workflow pack with host integrations for Codex, Claude Code, Cursor, and Antigravity: intent analysis, task routing, implementation guidance, quality checks, and project context.
 
-[![Version](https://img.shields.io/badge/version-18.1.0-blue)](skills/VERSION) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-18.1.1-blue)](skills/VERSION) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -21,6 +21,10 @@ The pack is designed for 3 outcomes:
 - stronger workflow discipline
 - deliverables that read more like accountable human engineering work
 
+## What's new in 18.1.1
+
+18.1.1 improves the frontend workflow from experience planning through implementation and visual review. It adds context-led guidance for narrative scroll motion, scene lifecycle and reduced-motion behavior, and asks the visual gate to inspect important checkpoints that fall between capture slices. See [the changelog](skills/CHANGELOG.md) for the full release notes.
+
 ## What's new in 18.0.0
 
 18.0.0 is a breaking cleanup. Its changes are listed below; see the changelog for the full version history.
@@ -35,7 +39,7 @@ The pack is designed for 3 outcomes:
 
 - `memory_status --strict` compares the `LANGUAGE_REGISTRY` subset of the codebase index. Indexer-only extras (`.md`, `Dockerfile`, tests the graph skipped) are `coherence.expected_extras`, not a false fail.
 
-The 18.1.0 package and host setup are documented in [docs/INSTALL.md](docs/INSTALL.md). Common Codex entry points include `$plan`, `$design`, `$check`, and `$pipeline`. Full version notes: [skills/CHANGELOG.md](skills/CHANGELOG.md).
+The 18.1.1 package and host setup are documented in [docs/INSTALL.md](docs/INSTALL.md). Common Codex entry points include `$plan`, `$design`, `$check`, and `$pipeline`. Full version notes: [skills/CHANGELOG.md](skills/CHANGELOG.md).
 
 ---
 

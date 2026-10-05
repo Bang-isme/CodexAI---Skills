@@ -1,5 +1,5 @@
 {
   "name": "codexai-agentic-workflow",
-  "version": "18.1.0",
+  "version": "18.1.1",
   "description": "Native package candidate: spec-first CodexAI workflow, design roles, and quality gates for Antigravity IDE and CLI."
 }

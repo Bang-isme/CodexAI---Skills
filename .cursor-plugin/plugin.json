@@ -1,6 +1,6 @@
 {
   "name": "codexai-agentic-workflow",
-  "version": "18.1.0",
+  "version": "18.1.1",
   "description": "Reusable engineering and frontend design workflows with project-local quality checks.",
   "author": {
     "name": "Bang Isme"

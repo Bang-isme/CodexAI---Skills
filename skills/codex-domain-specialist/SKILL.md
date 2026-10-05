@@ -2,7 +2,7 @@
 name: codex-domain-specialist
 description: Use when frontend, backend, mobile, data, DevOps, or security work needs domain routing and at most four focused references.
 load_priority: on-demand
-version: "18.1.0"
+version: "18.1.1"
 ---
 
 ## TL;DR

@@ -1,6 +1,6 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `18.1.0` | Cập nhật: 2026-10-02
+> Phiên bản: `18.1.1` | Cập nhật: 2026-10-05
 
 ## 1. Giới Thiệu
 

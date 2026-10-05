@@ -6,7 +6,7 @@
 
 | Surface | Location or behavior |
 | --- | --- |
-| Version | `18.1.0` |
+| Version | `18.1.1` |
 | Codex plugin and marketplace | `../.codex-plugin/plugin.json`, `../.agents/plugins/marketplace.json` |
 | Claude Code plugin and marketplace | `../.claude-plugin/plugin.json`, `../.claude-plugin/marketplace.json`, `../hooks/hooks.json` |
 | Cursor plugin and marketplace | `../.cursor-plugin/plugin.json`, `../.cursor-plugin/marketplace.json` |
@@ -14,7 +14,9 @@
 | Antigravity | `../antigravity/` package candidate; verify against the installed host before relying on native behavior |
 | Responsive UI evidence | `codex-visual-quality-gate` capture helper and manifest validator |
 
-18.1.0 adds repository marketplace manifests for Claude Code and Cursor, checks Cursor packaging in local gates, and makes the default installer require a host while installing only at user scope. The role-doc initializer creates only the project brief and ADR template unless selected roles are requested. See [the install guide](../docs/INSTALL.md) for the short customer path and host-specific support limits. The host doctor checks installed wiring; it does not review rendered UI.
+In 18.1.0, the pack added repository marketplace manifests for Claude Code and Cursor, checked Cursor packaging in local gates, and made the default installer require a host while installing only at user scope. The role-doc initializer creates only the project brief and ADR template unless selected roles are requested.
+
+18.1.1 strengthens the frontend workflow with context-led scroll narrative planning, safer motion lifecycle and reduced-motion guidance, and checkpoint-aware visual evidence review. See [the install guide](../docs/INSTALL.md) for host support limits. The host doctor checks installed wiring; it does not review rendered UI.
 
 ---
 
