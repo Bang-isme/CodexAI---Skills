@@ -7,9 +7,25 @@ Use this reference when:
 - Working with GSAP plugins: `ScrollTrigger`, `SplitText`, `ScrollSmoother`, `Observer`, `Flip`, `MotionPath`, `MorphSVG`, `DrawSVG`, `CustomEase`.
 - Keywords: `gsap`, `scrolltrigger`, `splittext`, `scrollsmoother`, `timeline`, `tween`, `scrub`, `pin`, `stagger`.
 
-**Important (2024+)**: All GSAP plugins (previously paid: SplitText, ScrollSmoother, MorphSVG, DrawSVG, Flip, etc.) are now **free** after the Webflow acquisition. Use them without license concerns.
+**License**: GSAP's current Standard License permits no-charge commercial use in websites and apps, with restrictions for competing visual animation-builder products. Check the [current terms](https://gsap.com/community/standard-license/) for the product you are building.
 
-**Relationship to `creative-ui-ux.md`**: That reference covers the *design philosophy* (storytelling, mindset). This reference covers the *engineering discipline* (how to write GSAP code that is performant, maintainable, and bug-free).
+**Relationship to the design brief**: `../../codex-frontend-design/references/motion.md` defines the user-facing reason, experience contract, and fallback. This reference covers implementation choices and lifecycle; it does not make a pin, horizontal section, or GSAP dependency a design default.
+
+## Scroll-story implementation contract
+
+Start from the mapped UX-contract scene. Keep native document flow and the semantic version as the source of essential content. If the scene does not need controlled progression, use ordinary CSS or no motion.
+
+Treat motion as progressive enhancement: essential content is visible and controls work before the animation initializes and if it fails. Do not leave key copy hidden in baseline CSS waiting for JavaScript to reveal it.
+
+- For one coordinated pinned/scrubbed scene, use a **single timeline or progress controller** as its source of truth. Drive child motion from that normalized progress and timeline labels; avoid unrelated ScrollTriggers that compete for the same elements or scene.
+- Derive the pin span from meaningful mapped stages and the actual content. There is no default `300%` length. Prefer no pin when a simple reveal, sticky layout, or native sequence carries the same information.
+- Scrub is directly linked when `scrub: true`; a numeric scrub intentionally adds catch-up lag. Select based on the scene and device, then verify it does not feel disconnected from the user's input. Scroll-linked tweens commonly use `ease: "none"` for predictable progress; ordinary time-based UI motion can use a purposeful easing curve.
+- Snapping is opt-in. Keep it subtle and interruptible, and preserve ordinary scroll and direct navigation.
+- Use `gsap.matchMedia()` when separate responsive or `prefers-reduced-motion` setups are needed. Keep the same story and controls in a stable reduced-motion mode; desktop choreography may be simplified or replaced on mobile. Avoid duplicating setup when only a small value changes.
+- Give each component/scene local ownership. For component cleanup in React, use the project's supported `useGSAP()` or a scoped GSAP context; clean it up with `context.revert()` (or the hook's cleanup). Remove event listeners and custom render loops in the same owner. Do not kill every ScrollTrigger on route leave unless this module owns every instance.
+- Refresh measurements after a layout/content change that affects trigger positions; do not call global refresh on every render. Keep development markers/debug progress out of production.
+
+These lifecycle APIs are documented by GSAP: [matchMedia](https://gsap.com/docs/v3/GSAP/gsap.matchMedia/), [context](https://gsap.com/docs/v3/GSAP/gsap.context/), and [ScrollTrigger](https://gsap.com/docs/v3/Plugins/ScrollTrigger/).
 
 ---
 
@@ -76,7 +92,7 @@ const tl = gsap.timeline({
 
 ## 2. The Easing Bible
 
-Easing is the **single most important factor** in perceived animation quality. Wrong easing = cheap feel.
+Easing is one craft choice among purpose, timing, distance, and hierarchy. Choose it for the motion goal; do not use a named curve as a substitute for a clear interaction.
 
 ### Easing Selection Matrix
 
@@ -109,8 +125,7 @@ CustomEase.create("slowReveal", "0.22, 1, 0.36, 1");
 
 ### The Golden Rule of Easing
 
-> **Out easing for entrances. In easing for exits. InOut easing for transitions.**
-> Never use `linear` for UI animations. Never use `ease-in` for elements appearing (they look sluggish).
+> Out easing often suits entrances, in easing often suits exits, and in-out easing often suits transitions. Linear is appropriate for direct scroll scrubbing or constant-rate motion. Treat these as starting points and verify against the actual interaction.
 
 ---
 
@@ -132,6 +147,8 @@ gsap.registerPlugin(ScrollTrigger);
 | **Scrub** | `scrub: true` or `scrub: 1` (smoothed) | Animation progress = scroll position |
 | **Pin** | `pin: true` | Lock element while animation plays |
 | **Snap** | `snap: 1 / sectionCount` | Snap to discrete positions |
+
+These are API modes, not a recipe to combine them. In particular, do not add pinning or snapping unless the scene contract explains the user benefit and how users can leave or bypass it.
 
 ### ScrollTrigger Patterns
 
@@ -168,7 +185,7 @@ gsap.to(".bg-layer", {
 });
 ```
 
-#### Pattern C: Horizontal Scroll Section
+#### Pattern C: Horizontal Scroll Section (only for spatial/sequence content)
 
 ```javascript
 const sections = gsap.utils.toArray(".horizontal-panel");
@@ -180,13 +197,13 @@ gsap.to(sections, {
     trigger: ".horizontal-container",
     pin: true,
     scrub: 1,
-    snap: 1 / (sections.length - 1),
+    // Add snap only if the sequence needs discrete stopping points and remains interruptible.
     end: () => "+=" + document.querySelector(".horizontal-container").offsetWidth,
   },
 });
 ```
 
-#### Pattern D: Pinned Storytelling (Apple-style)
+#### Pattern D: Pinned Storytelling (only when the mapped stages earn a pin)
 
 ```javascript
 const storytl = gsap.timeline({
@@ -195,7 +212,7 @@ const storytl = gsap.timeline({
     pin: true,
     scrub: 0.5,
     start: "top top",
-    end: "+=300%",       // 3x viewport height of scroll distance
+    end: "bottom top",    // derive the scene's span from its real layout; avoid copied 300% durations
   },
 });
 
@@ -380,6 +397,8 @@ const smoother = ScrollSmoother.create({
 
 Detects mouse wheel, touch swipe, pointer drag, and scroll in a unified API:
 
+Using `preventDefault` to replace native page scrolling is a high-friction pattern, not a default. Reserve it for a requested, genuinely spatial full-screen interface with a clear way to navigate, keyboard support, reduced-motion behavior, and an ordinary content path.
+
 ```javascript
 import { Observer } from "gsap/Observer";
 gsap.registerPlugin(Observer);
@@ -504,11 +523,13 @@ gsap.to(".rocket", {
 
 ## 10. Performance & Optimization
 
-### The GPU Acceleration Rule
+### Performance and property cost
 
-Only these properties are GPU-composited (no layout/paint cost):
+Transform and opacity are often good starting points because they can avoid layout. They are not a blanket law, and `filter`, large layers, image sequences, canvas, and WebGL can still be expensive. Profile the actual scene on representative devices; animate layout-affecting properties only when the intended effect warrants the cost and layout remains stable.
 
-| Property | GSAP Shorthand | Cost |
+Typical tendency only: compositor promotion varies by browser and device, so inspect actual layout/paint work when performance matters.
+
+| Property | GSAP Shorthand | Typical cost |
 | --- | --- | --- |
 | `transform: translateX/Y` | `x`, `y` | ✅ Composited |
 | `transform: scale` | `scale`, `scaleX`, `scaleY` | ✅ Composited |
@@ -521,15 +542,15 @@ Only these properties are GPU-composited (no layout/paint cost):
 | `border-radius` | — | ❌ Paint only |
 | `background-color` | — | ❌ Paint only |
 
-**Rule**: Animate ONLY `x`, `y`, `scale`, `rotation`, `opacity`. Everything else causes jank.
+Prefer `x`, `y`, `scale`, `rotation`, and `opacity` for continuous motion when they preserve the desired visual result. There is no universally safe property list; inspect paint/layout cost and visual quality for the actual effect.
 
 ### `will-change` Management
 
 ```javascript
-// GSAP auto-adds will-change during animation. For manual control:
+// Use will-change only when profiling shows a benefit; avoid promoting many layers.
 gsap.set(".animated-el", { willChange: "transform, opacity" });
 
-// IMPORTANT: Remove will-change AFTER animation completes
+// Remove will-change when the temporary optimization is no longer needed.
 tl.eventCallback("onComplete", () => {
   gsap.set(".animated-el", { willChange: "auto" });
 });
@@ -566,8 +587,8 @@ ScrollTrigger.batch(".reveal-item", {
 // Refresh after dynamic content load
 ScrollTrigger.refresh();
 
-// Kill all on page leave (SPA cleanup)
-ScrollTrigger.getAll().forEach(st => st.kill());
+// On route leave, revert the owning component/route context.
+// Avoid a global kill when other components own their own ScrollTriggers.
 ```
 
 ---
@@ -613,7 +634,7 @@ useEffect(() => {
 }, []);
 ```
 
-**Rule**: **Always** use either `useGSAP` or `gsap.context()` in React. Never create bare `gsap.to()` calls in `useEffect` — they leak and cause bugs on re-render.
+In React, scope animations with the project's supported `useGSAP` hook or a `gsap.context()` and clean them up on teardown. Keep DOM event listeners and non-GSAP resources in the same component lifecycle; an animation created later by an event handler must also be added to the owning context when needed.
 
 ---
 
@@ -793,27 +814,26 @@ const setY = gsap.quickSetter(".dot", "y", "px");
 3. ❌ **Bad**: Bare `gsap.to()` in React `useEffect` without cleanup.
    ✅ **Good**: Use `useGSAP()` hook or `gsap.context()` with `.revert()` on unmount.
 
-4. ❌ **Bad**: Animating `width`, `height`, `top`, `left` (causes layout thrashing).
-   ✅ **Good**: Animate `x`, `y`, `scale`, `rotation`, `opacity` only.
+4. ❌ **Bad**: Repeatedly animating layout-affecting properties without checking reflow cost or content stability.
+   ✅ **Good**: Prefer transforms/opacity for continuous movement when they preserve the intended result; profile other effects instead of forbidding them categorically.
 
-5. ❌ **Bad**: Using `scrub: true` (instant, jerky) for complex scroll animations.
-   ✅ **Good**: Use `scrub: 0.5` or `scrub: 1` for smoothed scrub with momentum.
+5. ❌ **Bad**: Treating numeric `scrub` as automatically smoother or better.
+   ✅ **Good**: Use `scrub: true` for direct mapping or numeric scrub only when intentional catch-up lag fits the scene; verify both fast and slow input.
 
 6. ❌ **Bad**: Leaving `will-change` on elements permanently.
    ✅ **Good**: Set `willChange: "auto"` in `onComplete` callback after animation finishes.
 
-7. ❌ **Bad**: Forgetting `ScrollTrigger.refresh()` after dynamic content changes (AJAX, SPA route change).
-   ✅ **Good**: Call `ScrollTrigger.refresh()` after DOM mutations; call `.kill()` on route leave.
+7. ❌ **Bad**: Leaving stale measurements after a layout/content change or globally killing triggers owned elsewhere.
+   ✅ **Good**: Refresh after changes that affect start/end positions; use local component cleanup on route leave.
 
-8. ❌ **Bad**: Using `SplitText` without `autoSplit: true` (breaks on font load / resize).
-   ✅ **Good**: Always set `autoSplit: true` and use the `onSplit` callback to re-run animations.
+8. ❌ **Bad**: Assuming split lines remain valid after relevant font or width changes.
+   ✅ **Good**: For responsive SplitText layouts, re-split after those changes and clean up/rebuild the associated animation.
 
 ---
 
 ## Cross-References
 
-- `creative-ui-ux.md` for high-level creative direction, storytelling, and mindset.
-- `ui-ux-design-principles.md` for visual hierarchy and color theory.
-- `performance-rules.md` for profiling, budgets, and optimization.
-- `frontend-rules.md` for component architecture.
-- `css-architecture.md` for design tokens and animation variables.
+- `../../codex-frontend-design/references/motion.md` for user-facing motion intent and fallback.
+- `../../codex-frontend-design/references/prototype-pipeline.md` for the UX contract and scene map.
+- `../../codex-frontend-design/references/responsive-evidence.md` for route/state/viewport capture and review.
+- `frontend-rules.md` for component ownership and dependency direction.

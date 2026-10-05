@@ -26,6 +26,10 @@ Define the happy path and at least the failure or recovery paths that matter to 
 
 For a content-led journey that benefits from staged understanding, add a compact **narrative beats** table to this same UX contract: beat/section, user question, content or proof, what the user learns or does, and the transition to the next beat. Use only relevant stages; a utility-heavy product follows its task and feedback sequence. Do not create a separate storyboard file or hide essential information behind a reveal.
 
+Coordinate the five design lenses only where the scope needs them: **product and architecture** set facts, constraints, and invariants; **narrative** defines the user question and progression; **visual assets** provide a justified anchor; **scroll motion** expresses a meaningful change; **maintainability** keeps code and lifecycle ownership clear. These are not mandatory phases, personas, technologies, or deliverables. Keep their decisions connected through this UX contract and the existing direction, implementation, and visual-gate references.
+
+If a journey uses a substantial pinned, scrubbed, or horizontal scene, add its scene contract here: intent and user question; visual anchor; signature/supporting effect hierarchy; entry/orientation, exploration/build, transformation/reveal/peak (the climax), and release; payoff and next question; mobile version; reduced-motion version; performance strategy; and verification method. Keep scene beats in the same UX contract; do not create a separate storyboard.
+
 Include realistic short and long content, navigation transitions, page titles/landmarks, focus order, responsive reflow, reduced-motion needs, and accessibility constraints. Avoid new visual decisions in this file.
 
 ## Stage 3 — One visual thesis and reusable system

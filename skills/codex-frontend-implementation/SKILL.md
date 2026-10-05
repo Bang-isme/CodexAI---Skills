@@ -22,6 +22,8 @@ Implement the selected brief. Honor incumbent tokens and `DESIGN.md`. Load stack
 4. Optional craft file from `craft/` matching the requested effect
 5. Starter tokens: `starters/design-system.css` (OKLCH, no Inter default)
 
+For GSAP, ScrollTrigger, scrubbed, or pinned scenes, also load `references/gsap-mastery.md` and follow the scene intent in the approved UX contract. Do not treat its API examples as design defaults.
+
 ## Rules
 - Match the brief. Do not swap palettes to look busy.
 - “Do not invent a new art direction” applies after a direction has been selected. The design task may establish a distinctive, product-fit direction first; then carry it through implementation without quietly flattening or changing it.
@@ -34,7 +36,7 @@ Implement the selected brief. Honor incumbent tokens and `DESIGN.md`. Load stack
 - Separate data, state, presentation, and behavior only when that improves clarity; reuse shared components for consistent product behavior, and avoid duplicate implementations or abstractions that only add configuration.
 - Do not substitute static demo data for an existing working integration. If the requested artifact is a prototype and must mock a service, label the mock clearly and report that end-to-end behavior is unverified.
 - Implement real control outcomes and the loading, empty, error, success, and disabled states required by the product. Do not leave visible controls inert or silently remove difficult functionality.
-- Prefer transform/opacity motion; honor `prefers-reduced-motion`.
+- Prefer transform/opacity when they fit the effect; honor `prefers-reduced-motion` with a content-equivalent state.
 - When assets affect the page, follow `../codex-frontend-design/references/imagery.md`: keep controls, copy, and states semantic; implement the stated crop and responsive behavior; preserve a fallback; and review the asset at its actual rendered size in the component.
 - Every control needs states from `../codex-frontend-design/references/component-states.md`.
 - Product facts > anti-slop > wow recipes.

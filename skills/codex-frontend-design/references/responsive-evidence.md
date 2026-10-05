@@ -90,7 +90,7 @@ All dimensions are CSS pixels at `deviceScaleFactor: 1`. These are browser viewp
 
 ## 4. Inspect and record the evidence
 
-Open and inspect **every** `stitched.png` and its numbered `slice-*.png` files. Slices reveal fixed/sticky repetition and details that a long stitched image can obscure. Confirm the top, middle, bottom, all sections, footer, overlays, navigation, and state-specific content. If the last image looks clipped, verify the final slice against the document height.
+Open and inspect **every** `stitched.png` and its numbered `slice-*.png` files. Slices reveal fixed/sticky repetition and details that a long stitched image can obscure. Confirm the top, middle, bottom, all sections, footer, overlays, navigation, and state-specific content. For a scroll-driven scene, compare slices' `sourceScrollY` values to the scene progress map. A stitched page is not proof of a particular animated frame; when a material entry/build/peak/release checkpoint falls between slices, capture an extra viewport PNG at that mapped scroll position and record its project-relative path, route, state, viewport, and scroll position with the review. If the last image looks clipped, verify the final slice against the document height.
 
 Edit the emitted `capture-manifest.json` review section after inspection:
 

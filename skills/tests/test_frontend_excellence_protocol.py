@@ -17,6 +17,7 @@ MOTION_GUIDE = SKILLS_ROOT / "codex-frontend-design" / "references" / "motion.md
 IMAGERY_GUIDE = SKILLS_ROOT / "codex-frontend-design" / "references" / "imagery.md"
 IMPLEMENTATION_SKILL = SKILLS_ROOT / "codex-frontend-implementation" / "SKILL.md"
 FRONTEND_RULES = SKILLS_ROOT / "codex-frontend-implementation" / "references" / "frontend-rules.md"
+GSAP_GUIDE = SKILLS_ROOT / "codex-frontend-implementation" / "references" / "gsap-mastery.md"
 VISUAL_GATE_SKILL = SKILLS_ROOT / "codex-visual-quality-gate" / "SKILL.md"
 CAPABILITY_MATRIX = SKILLS_ROOT / ".system" / "skill-capabilities.json"
 DESIGN_UI_METADATA = SKILLS_ROOT / "codex-frontend-design" / "agents" / "openai.yaml"
@@ -327,6 +328,99 @@ class FrontendExcellenceProtocolTests(unittest.TestCase):
         ):
             with self.subTest(concept=concept):
                 self.assertIn(concept, gate)
+
+    def test_scroll_choreography_serves_the_user_story_and_keeps_quiet_space(self):
+        motion = MOTION_GUIDE.read_text(encoding="utf-8").lower()
+        design = DESIGN_SKILL.read_text(encoding="utf-8").lower()
+
+        self.assertTrue("scroll narrative" in design and "references/motion.md" in design)
+        self.assertTrue("before choosing gsap" in design)
+
+        for concept in (
+            "meaningful progression, comparison, spatial relationship, reveal, or transformation",
+            "one signature mechanism",
+            "quiet section",
+            "quiet",
+            "payoff",
+            "utility-heavy",
+            "scroll hijacking",
+        ):
+            with self.subTest(concept=concept):
+                self.assertTrue(concept in motion, f"missing scroll guidance phrase: {concept}")
+
+    def test_complex_scroll_scene_is_mapped_in_existing_ux_contract(self):
+        pipeline = PROTOTYPE_PIPELINE.read_text(encoding="utf-8").lower()
+
+        for concept in (
+            "same ux contract",
+            "user question",
+            "orientation",
+            "exploration",
+            "transformation",
+            "climax",
+            "release",
+            "mobile version",
+            "reduced-motion version",
+            "performance strategy",
+            "verification method",
+            "do not create a separate storyboard",
+        ):
+            with self.subTest(concept=concept):
+                self.assertTrue(concept in pipeline, f"missing UX contract field: {concept}")
+
+    def test_complex_gsap_scenes_have_one_owner_progress_and_clean_responsive_lifecycle(self):
+        gsap = GSAP_GUIDE.read_text(encoding="utf-8").lower()
+
+        for concept in (
+            "normalized progress",
+            "single timeline or progress controller",
+            "avoid unrelated scrolltriggers",
+            "gsap.matchmedia",
+            "context.revert()",
+            "reduced-motion",
+            "component cleanup",
+            "local ownership",
+        ):
+            with self.subTest(concept=concept):
+                self.assertTrue(concept in gsap, f"missing GSAP engineering rule: {concept}")
+
+    def test_gsap_guide_references_available_design_and_implementation_guides(self):
+        gsap = GSAP_GUIDE.read_text(encoding="utf-8")
+        references = re.findall(r"`([^`]+\.md)`", gsap)
+
+        self.assertTrue(references)
+        for reference in references:
+            with self.subTest(reference=reference):
+                self.assertTrue((GSAP_GUIDE.parent / reference).resolve().is_file())
+
+    def test_visual_gate_exercises_scroll_progress_and_scene_release(self):
+        gate = VISUAL_GATE_SKILL.read_text(encoding="utf-8").lower()
+
+        for concept in (
+            "intermediate progress",
+            "scene entry",
+            "scene release",
+            "paused, fast, and backward scrolling",
+            "reduced-motion static state",
+            "mobile/tablet scene treatment",
+        ):
+            with self.subTest(concept=concept):
+                self.assertTrue(concept in gate, f"missing scroll QA evidence: {concept}")
+
+    def test_five_design_lenses_remain_a_conditional_coordinated_workflow(self):
+        pipeline = PROTOTYPE_PIPELINE.read_text(encoding="utf-8").lower()
+
+        for concept in (
+            "product and architecture",
+            "narrative",
+            "visual assets",
+            "scroll motion",
+            "maintainability",
+            "not mandatory",
+            "same ux contract",
+        ):
+            with self.subTest(concept=concept):
+                self.assertTrue(concept in pipeline, f"missing cross-layer workflow rule: {concept}")
 
 
 if __name__ == "__main__":
