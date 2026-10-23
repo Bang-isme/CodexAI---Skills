@@ -1,233 +1,54 @@
-﻿# Database Rules
+﻿# Database Architecture, Indexing & Transaction Rules
 
 ## Scope and Triggers
 
-Use this reference for schema modeling, indexing, migrations, transaction design, and query performance safeguards.
+Use this reference for relational (PostgreSQL/MySQL/SQLite) and document (MongoDB) schema modeling, composite/partial indexing, zero-downtime migrations, transaction isolation, and query performance safeguards.
 
 Primary triggers:
-- schema creation or alteration
-- migration planning and rollback concerns
-- query performance degradation or lock contention
-- consistency and transaction boundary decisions
+- schema creation, alteration, or `SILC-002` persistence contract definition
+- migration planning, lock-contention prevention, and rollback safety
+- slow query optimization (`EXPLAIN ANALYZE`), N+1 elimination, and deadlock resolution
 
-Secondary triggers:
-- ORM model refactor affecting persistence contracts
-- data backfill and historical correction tasks
+---
 
-Out of scope:
-- purely in-memory application logic with no persistence impact
+## 1. Core Persistence Principles
 
-## Core Principles
+1. **Enforce Invariants in the Schema, Not Just Application Code:** Use `NOT NULL`, `UNIQUE`, `CHECK` constraints, foreign keys, and strict domain types (`BIGINT` cents for money, `TIMESTAMPTZ` for UTC timestamps) so bad data cannot be persisted even if a service bug occurs.
+2. **Workload-Driven Indexing (`ESR` Rule: Equality -> Sort -> Range):** Every query in a request path must be backed by an index aligned to its `WHERE` equality predicates, `ORDER BY` sort columns, and range filters.
+3. **Zero-Downtime Expand-and-Contract Migrations:** Never rename, drop, or add an un-defaulted `NOT NULL` column in a single deployment step while old application instances are still running.
+4. **Short, Deterministic Transactions:** Never perform network calls, file uploads, or LLM invocations inside an open database transaction. Acquire row locks in a consistent primary-key order to prevent deadlocks.
+5. **Eliminate N+1 Queries at the Repository Layer:** Use explicit joins, `WHERE id = ANY($1)`, or DataLoader batching—never execute a query inside a `for`/`map` loop.
 
-- Model data around access patterns and invariants.
-- Keep schema evolution additive and reversible where possible.
-- Treat indexing as workload-driven, not guesswork.
-- Use transactions only where consistency requires atomicity.
-- Keep read and write paths observable with query metrics.
-- Preserve data integrity with constraints, not application hopes.
-- Minimize lock duration and contention hotspots.
-- Plan migrations with failure recovery and backfill strategy.
-- Separate operational maintenance from request-critical paths.
-- Validate performance under realistic production data volumes.
+---
 
-## Decision Tree
+## 2. Indexing & Query Optimization Matrix
 
-### Decision Tree A: Schema and Migration Strategy
-
-- If adding optional field, deploy additive migration first.
-- If adding required field, use phased migration with backfill then enforce constraint.
-- If changing field semantics, create parallel field and migrate gradually.
-- If table is large, split migration into chunked batches with checkpoints.
-- If migration is irreversible, require explicit backup and rollback plan.
-- If foreign key constraints may fail, repair data before constraint enforcement.
-
-### Decision Tree B: Query and Index Matrix
-
-| Query Pattern | Preferred Index Strategy | Avoid |
+| Access Pattern | Optimal Index Strategy | PostgreSQL Example |
 | --- | --- | --- |
-| point lookup by unique key | unique index on lookup key | full table scan |
-| range scan by time | composite index with time-leading or partitioning | non-selective multi-column index |
-| filtered list with sort | index aligned to filter + sort order | sort on unindexed large dataset |
-| join across large tables | indexes on join keys + selective prefilters | cross joins without constraints |
-| soft-delete aware query | partial index on active rows | scanning deleted and active rows together |
-| frequent aggregates | summary table/materialized view as needed | heavy aggregate per request |
+| Tenant-scoped list sorted by newest | Composite B-Tree (`Equality, Sort`) | `CREATE INDEX CONCURRENTLY idx_orders_tenant_created ON orders (tenant_id, created_at DESC, id DESC);` |
+| Active-only records (soft delete / queue) | **Partial Index** (smaller, faster in-memory footprint) | `CREATE INDEX CONCURRENTLY idx_jobs_pending ON jobs (scheduled_at) WHERE status = 'pending' AND deleted_at IS NULL;` |
+| High-throughput read avoiding heap lookup | **Covering Index** (`INCLUDE`) | `CREATE INDEX CONCURRENTLY idx_users_email_cover ON users (email) INCLUDE (id, tenant_id, password_hash);` |
+| JSONB / Array containment | **GIN Index** on specific path | `CREATE INDEX CONCURRENTLY idx_events_tags_gin ON events USING GIN (tags);` |
+| Idempotency key deduplication | **Composite Unique Constraint** | `CREATE UNIQUE INDEX CONCURRENTLY uq_idempotency_tenant_key ON idempotency_keys (tenant_id, key);` |
 
-## Implementation Patterns
+Always verify critical queries with `EXPLAIN (ANALYZE, BUFFERS)` and confirm `Index Scan` or `Index Only Scan` rather than `Seq Scan` on large tables.
 
-- Define primary keys and uniqueness constraints explicitly.
-- Use foreign keys where integrity boundaries are clear.
-- Normalize up to clarity, denormalize only for measured read benefits.
-- Keep migration files immutable after release.
-- Use dual-write or backfill patterns for risky schema transitions.
-- Add migration idempotency and retry-safe behavior.
-- Use query plans (`EXPLAIN`) for critical read/write paths.
-- Add covering indexes for high-volume endpoints when justified.
-- Track slow query logs and set investigation thresholds.
-- Use connection pooling with bounded concurrency.
-- Use transaction isolation level appropriate to business invariants.
-- Keep long-running maintenance jobs off peak request windows.
-- Add archival strategy for unbounded growth tables.
-- Validate data quality with consistency checks after migration.
-- Document schema ownership and change history.
+---
 
-## Advanced Patterns
+## 3. Transaction Isolation & Concurrency Patterns
 
-### MongoDB Schema Design (Document Model)
-
-#### Embedding vs Referencing Decision
-
-| Criteria | Embed | Reference |
+| Concurrency Hazard | Recommended Control | Implementation Pattern |
 | --- | --- | --- |
-| Read together always | Yes | |
-| Data changes independently | | Yes |
-| Array may grow unbounded | | Yes (or bucket) |
-| Need atomic updates | Yes | |
-| Many-to-many relationship | | Yes |
-| Document > 16MB risk | | Yes |
+| **Lost Update** (two requests overwrite same row) | Optimistic Locking (`version` integer) | `UPDATE accounts SET balance_cents = $1, version = version + 1 WHERE id = $2 AND version = $3` (0 rows affected -> `409 Conflict`) |
+| **Double Spend / Inventory Oversell** | Pessimistic Row Lock (`FOR UPDATE`) or Conditional Atomic Update | `UPDATE inventory SET reserved = reserved + $1 WHERE sku = $2 AND (available - reserved) >= $1 RETURNING *` |
+| **Queue Worker Contention** | Skip Locked (`FOR UPDATE SKIP LOCKED`) | `SELECT id FROM outbox_events WHERE status = 'pending' ORDER BY created_at LIMIT 50 FOR UPDATE SKIP LOCKED` |
+| **Deadlock under Concurrent Batch Writes** | Deterministic Lock Ordering | Sort all target row IDs ascending (`ids.sort()`) before executing multi-row updates in a transaction |
 
-#### Index Strategy
+---
 
-```javascript
-// Compound index: most selective field first
-db.employees.createIndex({ departmentId: 1, lastName: 1 });
+## 4. Database Anti-Patterns to Reject
 
-// Covered query with partial filter
-db.employees.createIndex(
-  { status: 1, createdAt: -1 },
-  { partialFilterExpression: { status: 'active' } }
-);
-
-// Text search
-db.employees.createIndex({ firstName: 'text', lastName: 'text' });
-```
-
-### SQL Schema Design (Relational)
-
-#### Normalization Rules
-
-1. 1NF: No repeating groups, atomic values.
-2. 2NF: No partial dependencies on composite key.
-3. 3NF: No transitive dependencies.
-
-Denormalize only for proven performance needs with materialized views or summary tables.
-
-#### Migration Safety
-
-```sql
--- SAFE: additive change
-ALTER TABLE employees ADD COLUMN middle_name VARCHAR(100);
-
--- UNSAFE: requires backfill + deploy coordination
-ALTER TABLE employees ALTER COLUMN email SET NOT NULL;
-
--- SAFE pattern for unsafe change:
--- 1. Add column nullable
--- 2. Backfill data
--- 3. Add NOT NULL constraint
--- 4. Update application code
-```
-
-#### Query Optimization
-
-- Run `EXPLAIN ANALYZE` for queries touching more than 1000 rows.
-- Avoid `SELECT *`; specify columns explicitly.
-- Use cursor-based pagination for large datasets instead of `OFFSET`.
-- Batch operations in chunks of 1000-5000 rows.
-- Use connection pooling (min: 5, max: 20 per service).
-
-## Anti-Patterns
-
-1. ❌ Bad: Running destructive migrations without staged plan.
-   ✅ Good: Use expand-migrate-contract: add new structures first, migrate data safely, then remove old structures later.
-
-2. ❌ Bad: Adding indexes blindly without workload evidence.
-   ✅ Good: Create indexes from measured query plans and re-measure latency after deployment.
-
-3. ❌ Bad: Using wide transactions for unrelated writes.
-   ✅ Good: Keep transaction scope narrow to one business unit and commit quickly.
-
-4. ❌ Bad: Ignoring lock waits and deadlock signals.
-   ✅ Good: Track lock wait metrics, set lock timeouts, and retry deadlocks with bounded backoff.
-
-5. ❌ Bad: Storing inconsistent enum-like values without constraints.
-   ✅ Good: Enforce allowed values with enum or check constraints at schema level.
-
-6. ❌ Bad: Backfilling large tables in one blocking transaction.
-   ✅ Good: Backfill in small batches with checkpoints and throttle to protect production load.
-
-7. ❌ Bad: Coupling ORM models directly to unstable external contracts.
-   ✅ Good: Map persistence models to external DTOs through adapters to isolate schema changes.
-
-8. ❌ Bad: Treating query latency as app-layer concern only.
-   ✅ Good: Use `EXPLAIN ANALYZE` and index/query rewrites before adding app-layer caching.
-
-9. ❌ Bad: Dropping columns before consumers are migrated.
-   ✅ Good: Deprecate old columns in code first, verify no reads remain, then drop in a later migration.
-
-10. ❌ Bad: Using offset pagination on very large mutable datasets.
-   ✅ Good: Switch to cursor pagination on indexed keys such as `id` or `created_at,id`.
-
-11. ❌ Bad: Ignoring nullability semantics during schema evolution.
-   ✅ Good: Roll nullability changes in phases with defaults, data cleanup, and final constraints.
-
-12. ❌ Bad: Allowing duplicate logical keys without unique constraints.
-   ✅ Good: Add unique indexes for business keys and handle conflict errors explicitly.
-
-13. ❌ Bad: Skipping post-migration verification checks.
-   ✅ Good: Run post-migration checks for row counts, constraints, and critical query behavior.
-
-14. ❌ Bad: Assuming local dataset performance equals production behavior.
-   ✅ Good: Benchmark migration and query performance on production-like dataset sizes and distributions.
-
-## Code Review Checklist
-
-- [ ] Yes/No: Does this change stay within the scope and triggers defined in this reference?
-- [ ] Yes/No: Is each major decision traceable to an explicit if/then or matrix condition in the Decision Tree section?
-- [ ] Yes/No: Are ownership boundaries and dependencies explicit?
-- [ ] Yes/No: Are high-risk failure paths guarded by validations, limits, or fallbacks?
-- [ ] Yes/No: Is there a documented rollback or containment path if production behavior regresses?
-- [ ] Yes/No: Does each migration include forward and rollback steps with explicit order?
-- [ ] Yes/No: Are new indexes justified by observed slow queries or query-plan evidence?
-- [ ] Yes/No: Are lock and transaction scopes minimized with timeout and retry strategy?
-- [ ] Yes/No: Are integrity constraints (unique, foreign key, check, nullability) correctly defined?
-- [ ] Yes/No: Is large data backfill planned in chunks with throttle and monitoring?
-
-## Testing and Verification Checklist
-
-- [ ] Yes/No: Is there at least one positive-path test that verifies intended behavior?
-- [ ] Yes/No: Is there at least one negative-path test that verifies rejection/failure handling?
-- [ ] Yes/No: Is a regression test added for the highest-risk scenario touched?
-- [ ] Yes/No: Do tests cover boundary inputs and edge conditions relevant to this change?
-- [ ] Yes/No: Are integration boundaries verified where this change crosses module/service/UI layers?
-- [ ] Yes/No: Has migration been rehearsed on a production-like snapshot before deployment?
-- [ ] Yes/No: Does rollback migration execute successfully in staging?
-- [ ] Yes/No: Are post-migration integrity checks automated and passing?
-- [ ] Yes/No: Are before/after query plans captured for modified queries?
-- [ ] Yes/No: Is pagination correctness verified under concurrent write load?
-
-## Cross-References
-
-- `backend-rules.md` for service-layer consistency and retries.
-- `api-design-rules.md` for pagination and contract implications.
-- `performance-rules.md` for hotspot diagnosis and budgets.
-- `testing-rules.md` for migration and concurrency test strategy.
-- `devops-rules.md` for rollout sequencing and recovery operations.
-- `security-rules.md` for sensitive data handling and access controls.
-
-### Scenario Walkthroughs
-
-- Scenario: Add a non-null column to a 200M-row table.
-  - Action: Add the column nullable, backfill in batches, then enforce `NOT NULL` after verification.
-  - Action: Monitor lock time and replication lag during each backfill wave.
-- Scenario: Query latency spikes after introducing new report filters.
-  - Action: Capture `EXPLAIN ANALYZE` for top slow queries and add targeted composite indexes.
-  - Action: Re-run load test and compare p95 latency before approving rollout.
-- Scenario: Migration drops legacy column still used by one service.
-  - Action: Restore column compatibility via view/alias and re-open migration with deprecation window.
-  - Action: Add consumer-read checks to block future destructive migration until usage is zero.
-
-### Delivery Notes
-
-- Keep this reference aligned with project conventions and postmortems.
-- Update checklists when recurring defects reveal missing guardrails.
-- Prefer incremental adoption over large risky rewrites.
+1. **Floating-Point Currency (`FLOAT` / `REAL`):** Always store monetary amounts as integer minor units (`BIGINT` cents) or `NUMERIC(19, 4)`.
+2. **Naive `OFFSET` Pagination on Large Tables:** `OFFSET 50000 LIMIT 25` forces the database to scan and discard 50,000 rows. Use keyset/cursor pagination (`WHERE (created_at, id) < ($1, $2)`).
+3. **Unbounded `SELECT *` on Wide Tables:** Project only the columns required by the DTO or domain operation.
+4. **Blocking Table Locks in Production Migrations:** In PostgreSQL, use `CREATE INDEX CONCURRENTLY` and add foreign keys with `NOT VALID` followed by `VALIDATE CONSTRAINT` so live reads/writes are not blocked.

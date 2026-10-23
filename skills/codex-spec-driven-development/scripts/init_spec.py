@@ -103,6 +103,23 @@ Domains: {domains_text}
 - R4: Domain routing must explain primary domain, secondary signals, loaded references, skipped references, and tool usage when applicable.
 - R5: Specs must include implementation tickets when the work spans multiple files, acceptance criteria, domains, or delivery roles.
 - R6: Specs must document security assets, trust boundaries, attacker-controlled inputs, abuse cases, and validation when the work changes a security-relevant surface.
+- R7: Cross-domain or multi-module work must lock System Integration Contracts (`SILC-###`) before coding so Frontend, Backend, Data, and Infrastructure seams never drift.
+
+## System Integration Contracts (SILC)
+- [ ] SILC-001: Primary interface / API seam contract (FE <-> BE or Caller <-> Callee).
+  - Seam: Client/UI caller <-> Backend API or module boundary.
+  - Producer: Backend controller/service or upstream module.
+  - Consumer: Frontend view/hook or downstream caller.
+  - Payload / Schema Contract: Exact route/signature, request parameters, and response DTO fields (no untyped raw database documents).
+  - Error / Fallback Contract: Deterministic error envelope (`code`, `message`, `fieldErrors`), status codes, and UI recovery state (`loading`, `empty`, `error`, `retry`).
+  - Verification: Contract test, integration test, or end-to-end request/response check.
+- [ ] SILC-002: Persistence, state, and runtime configuration seam (BE <-> DB / Auth / Infra).
+  - Seam: Service layer <-> Database schema, migrations, auth session, and environment config.
+  - Producer: Database schema/migration and environment config loader.
+  - Consumer: Domain repository/service and runtime entrypoint.
+  - Payload / Schema Contract: Required tables/columns, constraints, indexes, idempotency keys, and required env vars.
+  - Error / Fallback Contract: Transaction rollback on failure, fail-fast config validation at boot, and safe migration rollback path.
+  - Verification: Migration check, repository integration test, or runtime preflight command.
 
 ## Acceptance Criteria
 - [ ] AC-001: Primary user flow works end to end.
@@ -119,26 +136,26 @@ Domains: {domains_text}
   - Validation: Record focused security checks, threat-model notes, or a justified no-security-surface statement.
 
 ## Implementation Tickets
-- [ ] TICKET-001: Establish requirements and evidence baseline.
+- [ ] TICKET-001: Establish requirements, SILC integration contracts, and evidence baseline.
   - Domain: planning, QA
-  - Linked AC: AC-001, AC-003
-  - Intent: Inspect the repository, identify relevant files, record tool evidence, and confirm the smallest viable implementation path.
+  - Linked AC: AC-001, AC-003, SILC-001
+  - Intent: Inspect the repository, identify relevant files, lock SILC seam contracts, record tool evidence, and confirm the smallest viable implementation path.
   - Likely Files: `.codex/specs/<slug>/SPEC.md`, project docs, tests, and files discovered by repo search.
   - Dependencies: None.
   - Security Notes: Capture assets, trust boundaries, and attacker-controlled inputs before implementation when applicable.
   - Validation: Run the focused tests or manual checks named in the Validation Matrix.
-- [ ] TICKET-002: Implement domain-specific behavior.
+- [ ] TICKET-002: Implement domain-specific behavior and verify SILC seams.
   - Domain: {domains_text}
-  - Linked AC: AC-001, AC-002
-  - Intent: Make the smallest code or document change that satisfies the accepted workflow and preserves existing behavior.
+  - Linked AC: AC-001, AC-002, SILC-001, SILC-002
+  - Intent: Make the smallest code or document change that satisfies the accepted workflow, honors the locked SILC contracts, and preserves existing behavior.
   - Likely Files: To be narrowed after evidence collection.
   - Dependencies: TICKET-001.
   - Security Notes: Apply proportional controls only when the changed surface affects auth, secrets, user input, deployment, CI, or sensitive data.
-  - Validation: Run focused tests for changed modules and record the exact command.
-- [ ] TICKET-003: Verify, trace, and hand off.
+  - Validation: Run focused unit and SILC integration tests for changed modules and record the exact command.
+- [ ] TICKET-003: Verify end-to-end integration, update traceability, and hand off.
   - Domain: QA, documentation
-  - Linked AC: AC-003, SEC-001
-  - Intent: Update traceability, run final verification, and record residual risks or follow-up work.
+  - Linked AC: AC-003, SEC-001, SILC-001, SILC-002
+  - Intent: Update traceability, run final verification across all touched seams, and record residual risks or follow-up work.
   - Likely Files: `.codex/specs/<slug>/SPEC.md`, test files, role docs, handoff notes if used.
   - Dependencies: TICKET-002.
   - Security Notes: Include security validation evidence or a clear explanation of why no security surface changed.

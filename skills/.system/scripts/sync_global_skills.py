@@ -36,7 +36,6 @@ PROTECTED_RELATIVE_PREFIXES = {
     ".system/openai-docs",
     ".system/plugin-creator",
     ".system/skill-creator",
-    ".system/skill-installer",
 }
 
 

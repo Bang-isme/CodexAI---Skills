@@ -8,7 +8,6 @@
 |------|------|
 | `skills/codex-project-memory/references/*.schema.json` | JSON Schema for artifacts and tool manifest |
 | `skills/codex-project-memory/references/project-memory-tools.json` | Machine-readable CLI/tool harness contract |
-| `skills/codex-project-memory/scripts/dashboard_template.html` | Dashboard HTML template baked into builds |
 | `skills/codex-project-memory/references/*.md` | Human specs and command docs |
 
 ## Generated at runtime (do not commit)
@@ -18,10 +17,11 @@
 | `.codex/knowledge/index.json` | `build_knowledge_index.py` | Primary knowledge index (schema v2) |
 | `.codex/knowledge/knowledge-graph.json` | `build_knowledge_index.py` | In-knowledge-dir graph copy |
 | `.codex/knowledge/codebase-index.json` | `build_knowledge_index.py` | Symbol/chunk index |
-| `.codex/knowledge/index.html` | `build_knowledge_index.py --html` | Offline dashboard (opt-in only; not checked by `memory_status.py`) |
 | `.codex/knowledge/index-progress.json` | `build_knowledge_index.py` | Incremental build progress |
 | `.codex/knowledge-graph.json` | `build_knowledge_graph.py` | Standalone graph (optional for `memory_status`) |
 | `.codex/context/genome.md` | `generate_genome.py` | Project genome |
+| `.codex/sessions/*.md` | `generate_session_summary.py` | Git snapshot plus task-state details completed by the agent; private checkpoints for the same repository state |
+| `.codex/sessions/archive/**` | `compact_context.py` | Compact older session history; not a replacement for an active checkpoint |
 | `.codex/feedback/*.md` | `track_feedback.py` | Feedback logs |
 
 Root `.gitignore` already ignores `.codex/`, so these paths are verification evidence only unless a maintainer explicitly snapshots examples for docs.

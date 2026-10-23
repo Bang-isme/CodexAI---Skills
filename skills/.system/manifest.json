@@ -1,5 +1,5 @@
 {
-  "version": "18.1.1",
+  "version": "18.1.0",
   "skills": [
     "codex-master-instructions",
     "codex-intent-context-analyzer",
@@ -70,7 +70,7 @@
     "matrix": ".system/skill-capabilities.json",
     "schema": ".system/references/skill-capabilities.schema.json",
     "audit": ".system/scripts/audit_skill_pack.py",
-    "scorecard": ".codex/quality/skill-scorecard.html"
+    "scorecard": ".codex/quality/SKILL-SCORECARD.md"
   },
   "codex_plugin": {
     "manifest": "../.codex-plugin/plugin.json",

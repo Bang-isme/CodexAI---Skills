@@ -68,20 +68,17 @@ Every durable JSON artifact produced by `build_knowledge_index.py` and `build_kn
 | Script | `status` on success | Key fields |
 | --- | --- | --- |
 | `decision_logger.py` | `"logged"` | `path`, `title` |
-| `generate_session_summary.py` | `"generated"` | `path`, `commits`, `files_changed` |
+| `generate_session_summary.py` | `"generated"` | `path`, `branch`, `git_root`, `head`, `checkpoint_created`, `history_range`, `commits`, `files_changed`, `working_tree_files`, `staged_files`, `unstaged_files`, `untracked_files` |
 | `generate_handoff.py` | `"generated"` | `path`, `sections` |
 | `generate_changelog.py` | `"generated"` | `path`, `entries` |
-| `generate_growth_report.py` | `"generated"` | `path`, `metrics` |
 | `analyze_patterns.py` | `"generated"` | `path`, `patterns` |
 | `build_knowledge_graph.py` | `"generated"` | `path`, artifact metadata, `stats`, `code_index`, `ai_context`, `human_context` |
-| `build_knowledge_index.py` | `"built"` | artifact metadata, `index_path`, `markdown_path`, `graph_path`, `html_path`, `sources`, `graph_stats` |
+| `build_knowledge_index.py` | `"built"` | artifact metadata, `index_path`, `markdown_path`, `graph_path`, `sources`, `graph_stats` |
 | `build_knowledge_index.py --query` | `"queried"` | `query`, `top_k`, `codebase_index_path`, `results` |
 | `generate_genome.py` | `"generated"` | `genome_path`, `sections_scanned`, `total_files`, `total_lines` |
 | `memory_status.py` | `"pass"`, `"warn"`, or `"fail"` | `policy`, `artifacts`, `coherence`, `warnings`, `failures` |
 | `track_feedback.py` (log) | `"logged"` | `path`, `category` |
 | `track_feedback.py` (aggregate) | `"aggregated"` | `total`, `by_category` |
-| `track_skill_usage.py` (record) | `"recorded"` | `skill`, `outcome` |
-| `track_skill_usage.py` (report) | `"report_ready"` | `total_usages`, `by_skill` |
 | `compact_context.py` | `"compacted"` | `sessions_archived`, `feedback_archived`, `bytes_freed` |
 
 #### Detailed Examples
@@ -89,8 +86,10 @@ Every durable JSON artifact produced by `build_knowledge_index.py` and `build_kn
 #### generate_session_summary.py
 
 ```json
-{"status": "generated", "path": "<file>", "commits": <int>, "files_changed": <int>}
+{"status": "generated", "path": "<file>", "branch": "<branch-or-detached-HEAD>", "git_root": "<repository-root>", "head": "<short-commit-or-unborn>", "checkpoint_created": "<iso8601>", "history_range": "<commit-range-or-date-cutoff>", "commits": <int>, "files_changed": <int>, "working_tree_files": <int>, "staged_files": <int>, "unstaged_files": <int>, "untracked_files": <int>}
 ```
+
+`checkpoint_created` is captured when generation starts to whole-second precision and is also written in the Markdown summary. When a prior checkpoint has a committed `head`, the CLI uses `head..HEAD` for commit history; this captures descendant commits even when their dates are older than the checkpoint. If the checkpoint HEAD is `unborn`, `history_range` covers all commits reachable from current HEAD. With no prior checkpoint or another date-based cutoff, `history_range` reports the date window. `git_root` and `branch` scope checkpoint lookup, the recorded `head` must be an ancestor of the current HEAD, and incomplete generated or legacy summaries are rejected as a boundary. Legacy summaries without a timestamp use midnight on the date in the filename for date-based fallback; they still need a matching branch, valid HEAD or `unborn`, and complete task-state fields. Rootless legacy summaries are accepted only from an output directory inside the current repository. Output filenames are reserved exclusively to avoid concurrent overwrites. `last-session` is branch-wide, not a task selector; match the in-progress summary by Goal when resuming a specific task. `files_changed` counts paths in the reported history range; `working_tree_files` counts unique currently staged, unstaged, and untracked paths. The three working-tree counts can overlap when one path has both staged and unstaged changes. `head` is `unborn` when the repository has no commit yet.
 
 #### generate_handoff.py
 
@@ -102,12 +101,6 @@ Every durable JSON artifact produced by `build_knowledge_index.py` and `build_kn
 
 ```json
 {"status": "generated", "version": "<string>", "since": "<string>", "total_commits": <int>, "categories": {<object>}, "path": "<file-or-empty>", "changelog_markdown": "<markdown>"}
-```
-
-#### generate_growth_report.py
-
-```json
-{"status": "generated", "path": "<file>", "improvement_areas": <int>, "sessions_analyzed": <int>, "warnings": [<string>]}
 ```
 
 #### analyze_patterns.py
@@ -128,18 +121,6 @@ Aggregate mode:
 {"status": "aggregated", "total_feedback": <int>, "by_category": {<object>}, "by_severity": {<object>}, "top_files": [<object>], "recent": [<object>], "patterns": "<string>"}
 ```
 
-#### track_skill_usage.py
-
-```json
-{"status": "recorded", "path": "<file>", "entry": {"date": "<YYYY-MM-DD>", "skill": "<name>", "task": "<task>", "outcome": "<success|partial|failed>", "notes": "<string>", "duration_estimate": "<string>"}, "skills_root": "<path>"}
-```
-
-Report mode:
-
-```json
-{"status": "report_ready", "total_usages": <int>, "period": {"from": "<YYYY-MM-DD>", "to": "<YYYY-MM-DD>"}, "by_skill": {<object>}, "unused_skills": [<string>], "most_effective": "<string>", "least_effective": "<string>", "recommendations": [<string>], "trends": {"overall_success_rate": <float>, "direction": "<improving|stable|declining>"}, "warnings": [<string>]}
-```
-
 #### build_knowledge_graph.py
 
 CLI payload:
@@ -157,7 +138,7 @@ The written `knowledge-graph.json` artifact contains the same fields except `sta
 CLI payload:
 
 ```json
-{"status": "built", "schema_version": "2.0", "artifact_type": "knowledge-build-payload", "generated_at": "<iso8601>", "project_root": "<path>", "index_path": "<file>", "markdown_path": "<file>", "graph_path": "<file>", "html_path": "<file>", "codebase_index_path": "<file>", "progress_path": "<file>", "progress_fetch_url": "<relative-url>", "stats": {<object>}, "warnings": [<string>], "redaction": {<object>}, "sources": {<object>}, "graph_stats": {<object>}, "codebase_stats": {<object>}, "coverage": {<object>}, "risk_signals": <int>, "redaction_applied": <bool>, "redaction_patterns_version": "<semver>", "redaction_counts": {<object>}}
+{"status": "built", "schema_version": "2.0", "artifact_type": "knowledge-build-payload", "generated_at": "<iso8601>", "project_root": "<path>", "index_path": "<file>", "markdown_path": "<file>", "graph_path": "<file>", "codebase_index_path": "<file>", "progress_path": "<file>", "stats": {<object>}, "warnings": [<string>], "redaction": {<object>}, "sources": {<object>}, "graph_stats": {<object>}, "codebase_stats": {<object>}, "coverage": {<object>}, "risk_signals": <int>, "redaction_applied": <bool>, "redaction_patterns_version": "<semver>", "redaction_counts": {<object>}}
 ```
 
 The written `index.json` artifact contains `artifact_type: "knowledge-index"`, metadata, `sources`, `architecture_seams`, `domain_vocabulary`, `decisions`, `recent_commits`, `package`, and `tacit_knowledge`. It does not contain `status`, `path`, or the path-specific CLI fields.

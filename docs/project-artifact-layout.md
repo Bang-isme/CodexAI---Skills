@@ -11,11 +11,23 @@ Use this map when a workflow needs to create durable project context. These fold
 | `.codex/project-docs/` | Role-doc initializer | Human-owned project brief and selected role docs. Default init creates only the brief and ADR template; add role folders only when needed. |
 | `.codex/specs/` | Spec workflow | Human-reviewed feature requirements and acceptance criteria. |
 | `.codex/design/` | Frontend design and visual gate | Product/surface contracts, visual direction, route/state manifests, and review evidence. Keep captures under `reviews/`. |
-| `.codex/knowledge/` | Knowledge index builder | Generated indexes and graph; regenerate with the owning script. Optional HTML is created only when requested. |
+| `.codex/knowledge/` | Knowledge index builder | Generated indexes and graph; regenerate with the owning script. |
 | `.codex/knowledge-graph.json` | Standalone graph builder | Optional legacy standalone graph output. Prefer the normal `.codex/knowledge/` index workflow for routine project context. |
 | `.codex/quality/`, `.codex/state/` | Quality trend and execution gate | Reports and gate state; machine-generated, safe to regenerate. |
 | `.codex/sessions/` | Session summary workflow | Human-readable session handoffs; retain only summaries useful to the project. |
-| `.codex/decisions/`, `.codex/feedback/`, `.codex/skill-usage/` | Project memory tools | Append-only decision, feedback, and usage records. Use only when the project needs that history. |
+| `.codex/decisions/`, `.codex/feedback/` | Project memory tools | Append-only decision and feedback records. Use only when the project needs that history. |
+| `.codex/pulse/` | Project pulse | Sprint state, priority queue, blockers, milestones, and daily brief. |
+
+## Unified 4-Tier Read & Authority Order
+
+When multiple `.codex/` artifacts exist, follow `skills/codex-project-memory/references/unified-memory-architecture.md`:
+
+1. **Tier 1 (L0 — Routing & Execution State):** `.codex/profile.json`, `.codex/pulse/sprint-state.json`, latest `.codex/sessions/*.md`.
+2. **Tier 2 (L1 — Macro Architecture & Tacit Index):** `.codex/context/genome.md`, `.codex/knowledge/INDEX.md`.
+3. **Tier 3 (L2 — Normative Contracts & Decisions):** `.codex/specs/<slug>/SPEC.md`, `DESIGN.md`, `.codex/design/surfaces/<slug>.md`, `.codex/decisions/*.md`.
+4. **Tier 4 (L3 — Role Micro-Context):** `.codex/project-docs/<role>/*.md` (load only the active role).
+
+**Conflict Precedence:** Verified Code & Tests > Tier 3 Normative Contracts > Tier 4 Role Docs > Tier 2 Generated Summaries.
 
 ## Host integration and package output
 

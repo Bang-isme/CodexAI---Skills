@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 /**
- * provenance: source=MengTo/Skills name=stitched-full-page-capture
- * url=https://github.com/MengTo/Skills
- * date=2026-09-20
- * license=unspecified-in-source
- *
- * Legacy single-page helper retained for compatibility. It is not visual-gate evidence.
+ * CodexAI single-page stitched capture helper.
  * Use capture_responsive_matrix.mjs for route/state coverage and overlapping slice capture.
  * If Playwright is missing, print DEGRADED JSON and exit 2. Does not install packages.
  */

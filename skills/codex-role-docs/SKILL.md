@@ -18,15 +18,17 @@ Use this skill when a project needs durable FE/BE/DevOps/Admin/QA context. Initi
 
 ## Core Rule
 
-Role docs are project-local artifacts, not always-loaded context. Read only the role docs needed for the current task, then update the same docs before completion when code behavior, contracts, architecture, UI patterns, deployment, admin flows, or tests changed.
+Role docs are Tier 4 (L3) domain micro-context inside the Unified Project Memory Architecture (`../codex-project-memory/references/unified-memory-architecture.md`), not always-loaded context. Read only the role docs needed for the current task, honor Tier 3 normative specs/ADRs (`SPEC.md`, `DESIGN.md`, `.codex/decisions/`), and update the active role's docs before completion when code behavior, contracts, architecture, UI patterns, deployment, admin flows, or tests changed.
 
 ## Commands
 
 - Initialize minimal docs: `init_role_docs.py --project-root <path>` (project brief + ADR template only)
+- Initialize fullstack preset (FE + BE + DevOps + QA): `init_role_docs.py --project-root <path> --roles fullstack`
+- Initialize MVP preset (FE + BE + QA): `init_role_docs.py --project-root <path> --roles mvp`
 - Initialize selected roles: `init_role_docs.py --project-root <path> --roles frontend,qa`
 - Initialize every role only when needed: `init_role_docs.py --project-root <path> --roles all`
-- Update one doc: `update_role_docs.py --project-root <path> --role <role> --doc <doc-id> --summary <text> --files <csv>`
-- Check impact: `check_role_docs.py --project-root <path> --changed-files <csv>`
+- Update one doc (including decisions, SILC contracts, verification, stage, and population): `update_role_docs.py --project-root <path> --role <role> --doc <doc-id> --summary <text> --files <csv> --decision <text> --contract <text> --verification <text> --stage "<stage>" --population populated`
+- Check impact & unpopulated stubs: `check_role_docs.py --project-root <path> --changed-files <csv>`
 - Rebuild index: `build_role_docs_index.py --project-root <path>`
 - See `skills/.system/REGISTRY.md` for full script paths.
 

@@ -38,6 +38,21 @@ Work from: [directory]
 **While you work:** If you encounter something unexpected or unclear, **ask questions**.
 Don't guess or make assumptions.
 
+## Smallest Complete Change
+
+Follow the [6-rung precision ladder](../../codex-reasoning-rigor/references/precision-ladder.md) for every code change:
+
+1. Does it need to exist? A vague "build X" gets the smallest working core.
+2. Reuse an existing helper in this repository the way surrounding code uses it.
+3. Prefer the standard library or a platform/browser native feature unless a house component already exists.
+4. Use an already-installed dependency. Never add a package for a few lines of logic.
+5. Prefer one readable line when that line is the whole behavior.
+6. Otherwise write the minimum complete code that works on edge cases.
+
+Before fixing a bug or changing a signature, grep every caller and fix the shared function once. Moved code keeps its validation. Never cut trust-boundary validation, error handling that prevents data loss, security controls, accessibility, hardware or sensor calibration, or explanations the user explicitly requested.
+
+A bounded choice is recorded in a code comment as `shortcut: <ceiling>, <when to upgrade>` (`#`, `//`, or `/* */`). Do not leave a shortcut without the upgrade trigger.
+
 ## Code Organization
 
 - Follow the file structure defined in the plan

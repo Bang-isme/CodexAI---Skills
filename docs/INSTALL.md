@@ -29,9 +29,9 @@ python skills/.system/scripts/install.py doctor --host <codex|claude|cursor|anti
 
 ## Use the design workflow
 
-- Ask for a page or component and invoke `codex-frontend-design` (Codex alias: `$design`) for the fast path.
-- Ask for a multi-screen product prototype when you need a route/state contract, a selected visual direction, a runnable prototype, responsive captures, and a final review.
-- For a new visual identity or several alternatives, explicitly ask for design studio or multiple directions.
+- Ask for a page or component and invoke `/codex-frontend` (or `$codex-frontend` / `$design`) for the fast path: the agent locks a 7-Point Frontend Design Blueprint (Audience/Job, Surface/Change Mode, Asymmetric Layout Mathematics, Typography & OKLCH Tokens, 10% Signature Move, 6-State Matrix, and 12-Point Anti-Slop Guardrails) before coding.
+- Ask for a multi-screen product prototype when you need a route/state UX contract (`.codex/design/surfaces/<slug>.md` with `SILC-###` API state mapping), a selected visual direction, a runnable prototype, responsive captures, and a final review.
+- For a new visual identity or several alternatives, explicitly ask for design studio (`$direction`) or multiple directions.
 
 The broad prototype path needs an app that can run and browser capture tooling (Playwright and Chromium). If a browser, route, state, viewport, or screenshot slice is missing, the visual result must stay `DEGRADED`; it is not an approval. Captures emulate CSS viewport sizes, not physical devices, and cannot objectively certify taste.
 

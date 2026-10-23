@@ -481,12 +481,66 @@ def generate_handoff(
 
     lines.append("## Key Files")
     key_files = detect_key_files(project_root)
+    if (project_root / "DESIGN.md").exists():
+        key_files.append("DESIGN.md")
+    if (project_root / ".codex" / "project-docs" / "PROJECT-BRIEF.md").exists():
+        key_files.append(".codex/project-docs/PROJECT-BRIEF.md")
+    for spec_path in sorted((project_root / ".codex" / "specs").glob("*/SPEC.md")) if (project_root / ".codex" / "specs").exists() else []:
+        key_files.append(spec_path.relative_to(project_root).as_posix())
     if key_files:
-        lines.extend([f"- `{path}`" for path in key_files])
+        lines.extend([f"- `{path}`" for path in dict.fromkeys(key_files)])
     else:
         lines.append("- No key files detected.")
     lines.append("")
     sections += 1
+
+    # Living Source of Truth (Specs, SILC Contracts, Role Docs, Design Contracts, Session State)
+    ssot_lines: List[str] = []
+    brief_file = project_root / ".codex" / "project-docs" / "PROJECT-BRIEF.md"
+    if brief_file.exists():
+        brief_text = brief_file.read_text(encoding="utf-8", errors="replace")
+        stage_line = next((l.split(":", 1)[1].strip() for l in brief_text.splitlines()[:12] if l.startswith("Stage:")), "Stage 0: From-Scratch Bootstrap")
+        ssot_lines.append(f"- **Project Lifecycle Stage:** `{stage_line}` (`.codex/project-docs/PROJECT-BRIEF.md`)")
+    specs_root = project_root / ".codex" / "specs"
+    if specs_root.exists():
+        for spec_file in sorted(specs_root.glob("*/SPEC.md"))[:5]:
+            spec_text = spec_file.read_text(encoding="utf-8", errors="replace")
+            status_val = next((l.split(":", 1)[1].strip() for l in spec_text.splitlines()[:12] if l.lower().startswith("status:")), "draft")
+            ac_ids = sorted(set(re.findall(r"\bAC-\d{3}\b", spec_text)))
+            silc_ids = sorted(set(re.findall(r"\bSILC-\d{3}\b", spec_text)))
+            ticket_ids = sorted(set(re.findall(r"\bTICKET-\d{3}\b", spec_text)))
+            rel_spec = spec_file.relative_to(project_root).as_posix()
+            ssot_lines.append(
+                f"- **Active Spec (`{rel_spec}`):** status=`{status_val}`, ACs={', '.join(ac_ids) or 'none'}, "
+                f"SILC Seams={', '.join(silc_ids) or 'none'}, Tickets={', '.join(ticket_ids) or 'none'}"
+            )
+    if (project_root / "DESIGN.md").exists():
+        ssot_lines.append("- **Visual Identity Contract:** `DESIGN.md` (present)")
+    surfaces_dir = project_root / ".codex" / "design" / "surfaces"
+    if surfaces_dir.is_dir():
+        surface_files = [p.relative_to(project_root).as_posix() for p in sorted(surfaces_dir.glob("*.md"))]
+        if surface_files:
+            ssot_lines.append(f"- **UX Surface Contracts:** {', '.join(f'`{s}`' for s in surface_files)}")
+    role_index_file = project_root / ".codex" / "project-docs" / "index.json"
+    if role_index_file.exists():
+        try:
+            role_idx = json.loads(role_index_file.read_text(encoding="utf-8"))
+            docs_list = role_idx.get("documents") or role_idx.get("docs") or []
+            pop_count = sum(1 for d in docs_list if isinstance(d, dict) and d.get("population") in {"populated", "locked", "production"})
+            ssot_lines.append(f"- **Role Documentation Coverage:** {pop_count}/{len(docs_list)} populated (`.codex/project-docs/index.json`)")
+        except Exception:
+            pass
+    sessions_dir = project_root / ".codex" / "sessions"
+    if sessions_dir.is_dir():
+        session_files = sorted(sessions_dir.glob("*.md"))
+        if session_files:
+            latest_session = session_files[-1].relative_to(project_root).as_posix()
+            ssot_lines.append(f"- **Latest Session Checkpoint:** `{latest_session}`")
+    if ssot_lines:
+        lines.append("## Living Source of Truth (Specs, SILC & Role Docs)")
+        lines.extend(ssot_lines)
+        lines.append("")
+        sections += 1
 
     git_ok = git_ready(project_root)
     if include_git_status and git_ok:

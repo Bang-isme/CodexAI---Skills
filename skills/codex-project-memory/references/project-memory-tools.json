@@ -4,7 +4,7 @@
     {
       "name": "build_knowledge_index",
       "script": "scripts/build_knowledge_index.py",
-      "purpose": "Build index.json, INDEX.md, knowledge-graph.json, codebase-index.json, and progress JSON; offline dashboard HTML only with --html.",
+      "purpose": "Build index.json, INDEX.md, knowledge-graph.json, codebase-index.json, and progress JSON.",
       "args_schema": {
         "type": "object",
         "required": ["project_root"],
@@ -16,12 +16,7 @@
           "incremental": {"type": "boolean", "default": true},
           "rebuild": {"type": "boolean", "default": false},
           "no_redaction": {"type": "boolean", "default": false},
-          "html": {"type": "boolean", "default": false},
           "progress_file": {"type": "string", "default": ".codex/knowledge/index-progress.json"},
-          "watch": {"type": "boolean", "default": false},
-          "serve": {"type": "boolean", "default": false},
-          "host": {"type": "string", "default": "127.0.0.1"},
-          "port": {"type": "integer", "default": 8765},
           "include": {"type": "array", "items": {"type": "string"}},
           "exclude": {"type": "array", "items": {"type": "string"}},
           "max_files": {"type": "integer", "default": 1000},
@@ -42,8 +37,7 @@
         ".codex/knowledge/index.json": "generated_on_success",
         ".codex/knowledge/knowledge-graph.json": "generated_on_success",
         ".codex/knowledge/codebase-index.json": "generated_on_success",
-        ".codex/knowledge/INDEX.md": "generated_on_success",
-        ".codex/knowledge/index.html": "optional"
+        ".codex/knowledge/INDEX.md": "generated_on_success"
       },
       "exit_codes": {"success": [0], "failure": [1]},
       "warning_policy": {
@@ -171,32 +165,6 @@
       "exit_codes": {"success": [0], "failure": [1]},
       "warning_policy": {"mode": "none", "description": "No warn exit semantics."},
       "stdout_contract": "references/output-schemas.md#track_feedback.py",
-      "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
-    },
-    {
-      "name": "track_skill_usage",
-      "script": "scripts/track_skill_usage.py",
-      "purpose": "Record skill usage or report skill effectiveness trends.",
-      "args_schema": {
-        "type": "object",
-        "required": ["skills_root"],
-        "properties": {
-          "skills_root": {"type": "string"},
-          "record": {"type": "boolean", "default": false},
-          "report": {"type": "boolean", "default": false},
-          "skill": {"type": "string"},
-          "task": {"type": "string"},
-          "outcome": {"enum": ["success", "partial", "failed"]},
-          "notes": {"type": "string"},
-          "data_dir": {"type": "string"}
-        }
-      },
-      "success_statuses": ["recorded", "report_ready"],
-      "artifacts": [".analytics/usage-log.jsonl"],
-      "required_artifact_modes": {".analytics/usage-log.jsonl": "generated_on_success"},
-      "exit_codes": {"success": [0], "failure": [1]},
-      "warning_policy": {"mode": "advisory", "description": "Report mode may include warnings in payload."},
-      "stdout_contract": "references/output-schemas.md#track_skill_usage.py",
       "error_contract": "{\"status\":\"error\",\"message\":\"<string>\"}"
     }
   ]

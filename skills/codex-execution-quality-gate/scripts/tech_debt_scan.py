@@ -24,7 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 from _js_parser import extract_js_blocks
+import shortcut_ledger
 
 
 SKIP_DIRS = {
@@ -595,11 +600,24 @@ def scan_project(
         "unused_exports": unused_export_issues,
     }
     total_issues = sum(len(items) for items in by_category.values())
+    shortcuts_report = shortcut_ledger.scan_shortcuts(project_root)
+    counts = shortcuts_report.get("counts") if isinstance(shortcuts_report.get("counts"), dict) else {}
+    total_shortcuts = int(counts.get("total", 0) or 0)
+    no_trigger_count = int(counts.get("no-trigger", 0) or 0)
+    if no_trigger_count:
+        warnings.append(
+            f"{no_trigger_count} shortcut comment(s) missing upgrade trigger (tagged no-trigger)."
+        )
 
     return {
         "scan_root": project_root.as_posix(),
         "total_issues": total_issues,
         "by_category": by_category,
+        "shortcut_ledger": {
+            "total": total_shortcuts,
+            "no_trigger_count": no_trigger_count,
+            "shortcuts": shortcuts_report.get("shortcuts", []),
+        },
         "summary": build_summary(by_category, total_issues),
         "scan_options": {
             "include_low_signal": include_low_signal,

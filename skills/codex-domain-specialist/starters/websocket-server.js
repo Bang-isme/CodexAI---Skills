@@ -1,67 +1,90 @@
 ﻿// ============================================
-// WEBSOCKET SERVER STARTER - Socket.IO
+// WEBSOCKET SERVER STARTER — Verified JWT Auth + Room Authorization + Structured Errors
 // ============================================
 import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
 
-const initializeWebSocket = (httpServer) => {
+export const initializeWebSocket = (httpServer, { verifyRoomMembership } = {}) => {
+  const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
   const io = new Server(httpServer, {
-    cors: { origin: process.env.CORS_ORIGIN || '*', credentials: true },
+    cors: {
+      origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+      credentials: true,
+    },
     pingTimeout: 60000,
     pingInterval: 25000,
   });
 
-  io.use(async (socket, next) => {
+  // Fail-closed JWT handshake verification
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token || typeof token !== 'string') {
+      return next(new Error('UNAUTHORIZED: Authentication token required'));
+    }
     try {
-      const token = socket.handshake.auth.token;
-      if (!token) return next(new Error('Authentication required'));
-      // const user = jwt.verify(token, JWT_SECRET);
-      // socket.user = user;
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      socket.actor = {
+        userId: String(payload.sub),
+        tenantId: String(payload.tenantId),
+        role: String(payload.role || 'user'),
+      };
       return next();
-    } catch (err) {
-      return next(new Error('Invalid token'));
+    } catch {
+      return next(new Error('INVALID_TOKEN: Token verification failed'));
     }
   });
 
   io.on('connection', (socket) => {
-    console.log(`Connected: ${socket.id} (user: ${socket.user?.id})`);
+    const { userId, tenantId, role } = socket.actor;
+    socket.join(`tenant:${tenantId}:user:${userId}`);
+    if (role === 'admin') {
+      socket.join(`tenant:${tenantId}:admins`);
+    }
 
-    socket.join(`user:${socket.user?.id}`);
-    if (socket.user?.role === 'admin') socket.join('admins');
-
-    socket.on('join:room', (roomId) => {
-      socket.join(roomId);
-      socket.to(roomId).emit('user:joined', { userId: socket.user?.id });
-    });
-
-    socket.on('leave:room', (roomId) => {
-      socket.leave(roomId);
-      socket.to(roomId).emit('user:left', { userId: socket.user?.id });
-    });
-
-    socket.on('message:send', async (data, callback) => {
+    socket.on('join:room', async (roomId, callback) => {
       try {
-        // const message = await MessageService.create(data);
-        io.to(data.roomId).emit('message:received', {});
-        callback({ success: true });
-      } catch (err) {
-        callback({ success: false, error: err.message });
+        const normalizedRoom = String(roomId || '').trim();
+        if (!normalizedRoom) {
+          return callback?.({ error: { code: 'INVALID_ROOM', message: 'Room ID is required' } });
+        }
+        if (typeof verifyRoomMembership === 'function') {
+          const allowed = await verifyRoomMembership({ tenantId, userId, roomId: normalizedRoom });
+          if (!allowed) {
+            return callback?.({ error: { code: 'FORBIDDEN_ROOM', message: 'Access to room denied' } });
+          }
+        }
+        const scopedRoom = `tenant:${tenantId}:room:${normalizedRoom}`;
+        await socket.join(scopedRoom);
+        socket.to(scopedRoom).emit('user:joined', { userId });
+        callback?.({ data: { joined: normalizedRoom } });
+      } catch {
+        callback?.({ error: { code: 'JOIN_FAILED', message: 'Unable to join room' } });
       }
     });
 
-    socket.on('typing:start', (roomId) => {
-      socket.to(roomId).emit('typing:update', { userId: socket.user?.id, typing: true });
-    });
-
-    socket.on('typing:stop', (roomId) => {
-      socket.to(roomId).emit('typing:update', { userId: socket.user?.id, typing: false });
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log(`Disconnected: ${socket.id} (${reason})`);
-    });
-
-    socket.on('error', (err) => {
-      console.error(`Socket error: ${socket.id}`, err);
+    socket.on('message:send', async (payload, callback) => {
+      try {
+        const roomId = String(payload?.roomId || '').trim();
+        const text = String(payload?.text || '').trim();
+        if (!roomId || !text) {
+          return callback?.({ error: { code: 'VALIDATION_FAILED', message: 'roomId and text are required' } });
+        }
+        const scopedRoom = `tenant:${tenantId}:room:${roomId}`;
+        if (!socket.rooms.has(scopedRoom)) {
+          return callback?.({ error: { code: 'FORBIDDEN_ROOM', message: 'Join the room before sending messages' } });
+        }
+        const event = {
+          id: crypto.randomUUID(),
+          roomId,
+          senderId: userId,
+          text,
+          sentAt: new Date().toISOString(),
+        };
+        io.to(scopedRoom).emit('message:received', event);
+        callback?.({ data: event });
+      } catch {
+        callback?.({ error: { code: 'MESSAGE_SEND_FAILED', message: 'Unable to send message' } });
+      }
     });
   });
 
@@ -69,6 +92,3 @@ const initializeWebSocket = (httpServer) => {
 };
 
 export default initializeWebSocket;
-
-// Client sample:
-// const socket = io(WS_URL, { auth: { token }, reconnection: true, reconnectionDelay: 1000 });

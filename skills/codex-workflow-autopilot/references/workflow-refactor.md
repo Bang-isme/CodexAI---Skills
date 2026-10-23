@@ -2,9 +2,9 @@
 Use this workflow for restructuring, renaming, or simplifying existing code without changing behavior.
 ## Steps
 1. Analyze scope and identify refactor boundaries (files, modules, layers).
-2. Run `tech_debt_scan.py` to baseline current debt signals.
-3. Run `predict_impact.py` to map blast radius of planned changes.
-4. Implement refactor in small, verifiable increments.
+2. Run `tech_debt_scan.py`, `shortcut_ledger.py`, and `reuse_map.py` to baseline current debt signals and reusable helpers.
+3. Run `predict_impact.py` and apply the **Caller-Grep Rule** (`../../codex-reasoning-rigor/references/precision-ladder.md`) to map blast radius across all callers.
+4. Walk the 6-Rung Precision Ladder and implement refactor in small, verifiable increments while keeping all trust-boundary validation intact.
 5. Run `pre_commit_check.py` after each increment.
 6. Run `smart_test_selector.py` to verify no behavior changes.
 7. Run `suggest_improvements.py` as final quality pass.

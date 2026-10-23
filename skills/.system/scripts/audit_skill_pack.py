@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import html
 import json
 import re
 import sys
@@ -291,10 +290,6 @@ def readiness_for(scope: str, findings: list[dict[str, str]]) -> str:
     return "ready"
 
 
-def safe_json_for_html(payload: Any) -> str:
-    return json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026").replace("=", "\\u003d")
-
-
 def render_markdown(payload: dict[str, Any]) -> str:
     summary = payload["summary"]
     lines = [
@@ -333,50 +328,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_html(payload: dict[str, Any]) -> str:
-    data = safe_json_for_html(payload)
-    return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Skill Capability Scorecard</title>
-<style>
-:root {{ color-scheme: light; font-family: Arial, sans-serif; background: #f5f7fa; color: #172033; }}
-body {{ margin: 0; }} main {{ max-width: 1180px; margin: 0 auto; padding: 24px; }}
-h1 {{ margin: 0 0 8px; font-size: 24px; }} .summary {{ display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }}
-.metric {{ background: #fff; border: 1px solid #d8dee8; border-radius: 6px; padding: 10px 12px; min-width: 112px; }}
-.metric b {{ display: block; font-size: 19px; }} .filters {{ display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 10px; margin: 18px 0; }}
-input, select {{ width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #9aa7b8; border-radius: 4px; background: #fff; color: inherit; }}
-.table-wrap {{ overflow-x: auto; background: #fff; border: 1px solid #d8dee8; border-radius: 6px; }} table {{ width: 100%; border-collapse: collapse; }}
-th, td {{ text-align: left; padding: 9px 10px; border-bottom: 1px solid #e5e9f0; vertical-align: top; }} th {{ background: #eef2f7; font-size: 12px; }}
-.ready {{ color: #146c43; }} .blocked {{ color: #b42318; }} .advisory {{ color: #8a5700; }} #empty {{ display: none; padding: 16px; }}
-</style></head><body><main>
-<h1>Skill Capability Scorecard</h1><p class="scope-note">{html.escape(payload.get("scope_note", SCOPE_NOTE))}</p><div id="status"></div><div class="summary" id="summary"></div>
-<div class="filters"><input data-testid="capability-search" id="search" type="search" placeholder="Search skills, objectives, artifacts">
-<select data-testid="domain-filter" id="domain"><option value="">All domains</option></select>
-<select data-testid="risk-filter" id="risk"><option value="">All risk tiers</option></select>
-<select data-testid="readiness-filter" id="readiness"><option value="">All readiness</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>Skill</th><th>Domain</th><th>Risk</th><th>Readiness</th><th>Scripts</th><th>Verification</th><th>Artifacts</th></tr></thead><tbody id="rows"></tbody></table><div id="empty">No capabilities match these filters.</div></div>
-</main><script id="scorecard-data" type="application/json">{data}</script><script>
-const payload = JSON.parse(document.getElementById('scorecard-data').textContent);
-const rows = document.getElementById('rows'); const empty = document.getElementById('empty');
-const search = document.getElementById('search'); const domain = document.getElementById('domain'); const risk = document.getElementById('risk'); const readiness = document.getElementById('readiness');
-function options(element, values) {{ for (const value of [...new Set(values)].sort()) {{ const option = document.createElement('option'); option.value = value; option.textContent = value; element.appendChild(option); }} }}
-options(domain, payload.capabilities.map(item => item.domain)); options(risk, payload.capabilities.map(item => item.risk_tier)); options(readiness, payload.capabilities.map(item => item.readiness));
-function td(tr, value, className = '') {{ const cell = document.createElement('td'); cell.textContent = String(value || ''); if (className) cell.className = className; tr.appendChild(cell); }}
-function filterRows() {{ const query = search.value.trim().toLowerCase(); const visible = payload.capabilities.filter(item => {{ const text = [item.skill, item.domain, item.objective, ...(item.output_artifacts || [])].join(' ').toLowerCase(); return (!query || text.includes(query)) && (!domain.value || item.domain === domain.value) && (!risk.value || item.risk_tier === risk.value) && (!readiness.value || item.readiness === readiness.value); }}); rows.replaceChildren(); for (const item of visible) {{ const tr = document.createElement('tr'); td(tr, item.skill); td(tr, item.domain); td(tr, item.risk_tier); td(tr, item.readiness, item.readiness); td(tr, item.script_count); td(tr, item.verification_owner); td(tr, (item.output_artifacts || []).join(', ')); rows.appendChild(tr); }} empty.style.display = visible.length ? 'none' : 'block'; }}
-for (const control of [search, domain, risk, readiness]) control.addEventListener('input', filterRows); document.getElementById('status').textContent = `Status: ${{payload.status}}`; const metrics = payload.summary; document.getElementById('summary').replaceChildren(...Object.entries(metrics).map(([key, value]) => {{ const box = document.createElement('div'); box.className = 'metric'; const number = document.createElement('b'); number.textContent = value; box.append(number, document.createTextNode(key.replaceAll('_', ' '))); return box; }})); filterRows();
-</script></body></html>"""
-
-
 def emit_artifacts(output_dir: Path, payload: dict[str, Any]) -> dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {
         "json": output_dir / "skill-scorecard.json",
         "markdown": output_dir / "SKILL-SCORECARD.md",
-        "html": output_dir / "skill-scorecard.html",
     }
     artifacts["json"].write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     artifacts["markdown"].write_text(render_markdown(payload), encoding="utf-8")
-    artifacts["html"].write_text(render_html(payload), encoding="utf-8")
     return {name: str(path) for name, path in artifacts.items()}
 
 

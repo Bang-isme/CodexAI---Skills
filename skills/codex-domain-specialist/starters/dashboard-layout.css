@@ -1,202 +1,152 @@
-﻿/* Enterprise Dashboard Layout */
+﻿/* ==========================================================================
+   CodexAI Operational Workbench Layout Starter (OKLCH + Overflow-Safe Grid)
+   ========================================================================== */
 .app-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: 56px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-rows: 56px minmax(0, 1fr);
   grid-template-areas:
     "sidebar topbar"
     "sidebar main";
   min-height: 100vh;
+  background: var(--surface-canvas);
+  color: var(--ink-primary);
 }
 
-/* --- Sidebar --- */
 .sidebar {
   grid-area: sidebar;
-  background: var(--gray-900);
-  color: var(--text-inverse);
+  background: var(--surface-1);
+  color: var(--ink-primary);
   padding: var(--space-4) 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--gray-800);
+  border-right: 1px solid var(--border-subtle);
   overflow-y: auto;
+  min-width: 0;
 }
 
 .sidebar-logo {
-  padding: var(--space-4) var(--space-5);
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--brand-500);
-  border-bottom: 1px solid var(--gray-800);
+  padding: var(--space-4) var(--space-6);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: var(--space-4);
-}
-
-.sidebar-section {
-  padding: var(--space-2) var(--space-5);
-  margin-top: var(--space-4);
-}
-
-.sidebar-section-title {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--gray-500);
-  margin-bottom: var(--space-2);
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-5);
-  font-size: var(--text-sm);
-  color: var(--gray-400);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-6);
+  font-size: 0.875rem;
+  color: var(--ink-secondary);
   text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all var(--duration-fast) var(--ease-default);
-  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sidebar-item:hover {
-  background: var(--gray-800);
-  color: var(--text-inverse);
+  background: var(--surface-2);
+  color: var(--ink-primary);
 }
 
 .sidebar-item.active {
-  background: var(--brand-600);
-  background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
-  color: var(--text-inverse);
-  font-weight: var(--font-medium);
+  background: var(--surface-2);
+  color: var(--action-primary);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--action-primary);
 }
 
-/* --- Top Bar --- */
 .topbar {
   grid-area: topbar;
-  background: var(--surface-0);
-  border-bottom: 1px solid var(--border-light);
+  background: color-mix(in oklch, var(--surface-1) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
+  min-width: 0;
 }
 
-.topbar-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-/* --- Main Content --- */
 .main-content {
   grid-area: main;
   padding: var(--space-6) var(--space-8);
   overflow-y: auto;
-  background: var(--surface-1);
+  min-width: 0;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-6);
-}
-
-.page-title {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-}
-
-.page-subtitle {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
-}
-
-/* --- Stats Grid --- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 
-.stat-card {
-  /* extends .card */
+.stat-card--primary {
+  grid-column: span 6;
+  min-width: 0;
+}
+
+.stat-card--secondary {
+  grid-column: span 3;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-size: clamp(1.5rem, 2.2vw, 2.25rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.stat-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
-}
-
-.stat-change {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  margin-top: var(--space-2);
-}
-
-.stat-change.up {
-  color: var(--success);
-}
-
-.stat-change.down {
-  color: var(--error);
-}
-
-/* --- Content Grid --- */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-6);
 }
 
-/* --- Responsive --- */
+.content-grid__primary {
+  grid-column: span 8;
+  min-width: 0;
+}
+
+.content-grid__aside {
+  grid-column: span 4;
+  min-width: 0;
+}
+
 @media (max-width: 1024px) {
   .app-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 56px auto minmax(0, 1fr);
     grid-template-areas:
       "topbar"
+      "sidebar"
       "main";
   }
 
   .sidebar {
-    display: none;
-    /* mobile: slide-in drawer */
-  }
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    padding: var(--space-4);
+    flex-direction: row;
+    overflow-x: auto;
+    padding: var(--space-2) var(--space-4);
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .content-grid {
-    grid-template-columns: 1fr;
+  .content-grid__primary,
+  .content-grid__aside,
+  .stat-card--primary,
+  .stat-card--secondary {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .main-content {
+    padding: var(--space-4);
   }
 }

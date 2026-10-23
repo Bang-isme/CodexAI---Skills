@@ -16,7 +16,7 @@ Use for bug reports, broken behavior, regressions, or root-cause investigation.
 2. **Phase 1: Root Cause Investigation** — read errors carefully, reproduce consistently, check recent changes, gather evidence at each component boundary, trace data flow backward.
 3. **Phase 2: Pattern Analysis** — find working examples, compare against references, identify differences.
 4. **Phase 3: Hypothesis & Testing** — form single hypothesis, test with smallest change, verify.
-5. **Phase 4: Implementation** — create failing test (`$tdd`), implement single fix, verify.
+5. **Phase 4: Implementation** — run `reuse_map.py`, apply the **Caller-Grep Rule** (`../codex-reasoning-rigor/references/precision-ladder.md`) to grep every caller and fix the shared function once, create failing test (`$tdd`), implement single fix, and verify.
 6. If 3+ fixes fail, **stop and question architecture** (Phase 4.5) — discuss with user before continuing.
 7. Run `$gate` before claiming fix is complete.
 

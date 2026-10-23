@@ -45,8 +45,18 @@ Install Codex hooks adapter:
 
 ```bash
 python "<SKILLS_ROOT>/codex-runtime-hook/scripts/install_codex_hooks.py" --project-root <path> --apply --format json
+python "<SKILLS_ROOT>/codex-runtime-hook/scripts/install_codex_hooks.py" --project-root <path> --uninstall --apply --format json
 python "<SKILLS_ROOT>/codex-runtime-hook/scripts/validate_codex_hooks.py" --project-root <path> --format json
 ```
+
+Precision session and sanitized reuse map:
+
+```bash
+python "<SKILLS_ROOT>/codex-runtime-hook/scripts/precision_mode.py" --project-path <path> --state-dir <dir> --source fresh --format json
+python "<SKILLS_ROOT>/codex-runtime-hook/scripts/reuse_map.py" --project-root <path>
+```
+
+`install_codex_hooks.py` rejects shell metacharacters in paths, strips a UTF-8 BOM, replaces only CodexAI-managed hook entries, and on uninstall deletes `hooks.json` only when no foreign hooks remain. `precision_mode.py` resolves `CODEX_PRECISION_MODE`, then config JSON, then `full`. `reuse_map.py` returns an identifier-filtered helper index and fails open.
 
 ## Reference Files
 - `references/runtime-hook-spec.md`: detection rules, warning policy, and output contract.

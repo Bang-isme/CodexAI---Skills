@@ -1,19 +1,23 @@
 # Hướng Dẫn Sử Dụng CodexAI Skill Pack
 
-> Phiên bản: `18.1.1` | Cập nhật: 2026-10-05
+> Phiên bản: `18.1.0` | Cập nhật: 2026-10-02
 
 ## 1. Giới Thiệu
 
 CodexAI Skill Pack cung cấp quy trình làm việc bằng văn bản cho các coding agent, cùng hướng dẫn tích hợp cho Codex, Claude Code, Cursor, và Antigravity. Phạm vi kiểm chứng khác nhau theo host; xem [hướng dẫn cài đặt](INSTALL.md) trước khi cài.
 
-Với công việc vừa/lớn, pack thường hướng dẫn agent đi qua các bước:
+Với công việc vừa/lớn hoặc đa miền (FE + BE + DB + Infra), pack hướng dẫn agent đi qua **Chu trình 7 Bước SDLC + SILC Khép Kín**:
 
-`Phân tích yêu cầu -> Lập đặc tả -> Lập kế hoạch -> Route đúng agent/domain -> Triển khai -> Kiểm tra -> Lưu tri thức -> Handoff/Commit`
+`Đọc 4-Tier Memory -> Phân tích Ý định -> Khóa Spec (AC-### + SILC-### Seams) -> Lập Kế hoạch theo Dependency -> Thực thi TDD + Kiểm định Khớp nối SILC -> Chạy Cổng Chất lượng Đa tầng -> Ghi Ngược Memory (Write-Back)`
 
-### Breaking 18.0.0
+Bộ Skill Plugin này được thiết kế **Độc quyền 100% (100% Native CodexAI Architecture)**, không phụ thuộc vào bất kỳ bộ skill hay CLI bên thứ ba nào.
 
-- Không còn skill redirect `codex-design-system`, `codex-ui-ux-design`, `codex-creative-direction`. Dùng `codex-frontend-design` (`$design` / `$ux` / `$direction`).
-- Không còn agent `ui-ux-designer`, `creative-director`, `creative-designer`. Dùng `design-lead`.
+### Điểm mới nổi bật trong kiến trúc hiện tại
+
+- **Lệnh `/codex-frontend` (`$codex-frontend` / `$design` / `$ux`):** Khóa chặt **7-Point Frontend Design Blueprint**, Toán học Bố cục Bất đối xứng (`7:5`, `8:4`, Split Workbench), Bảng màu cảm thụ thị giác **OKLCH**, Ma trận **6 Trạng thái Tương tác**, và **Bộ lọc Chống 12 Mẫu AI UI/UX Slop & Gimmick** trước khi viết code.
+- **Kiến trúc Memory 4 Tầng Hợp nhất (4-Tier Unified Project Memory):** Phân định rõ thứ tự đọc (`Tier 1 State -> Tier 2 Genome/Index -> Tier 3 Normative Specs/DESIGN.md/ADRs -> Tier 4 Role Docs`) và quy tắc phân xử xung đột (SSOT Precedence) để dự án dài hơi không bao giờ bị trôi ngữ cảnh.
+- **Hợp đồng Tích hợp Hệ thống (`SILC-###`) trong `$spec` & `$prototype`:** Khóa chặt hợp đồng giao tiếp giữa FE ↔ BE (DTO, RFC 9457 Error Envelope `fieldErrors`) và BE ↔ DB/Infra (Expand-and-Contract Migration, Idempotency Key, Transactional Outbox) trước khi code.
+- **10 Agent Playbooks Chuyên sâu (`skills/.agents/*.md`):** Mỗi chuyên gia (`design-lead`, `frontend-specialist`, `visual-quality-reviewer`, `backend-specialist`, `security-auditor`, `debugger`, `test-engineer`, `devops-engineer`, `planner`, `scrum-master`) đều có Playbook thực thi và cổng nghiệm thu riêng.
 
 ## 2. Điểm mạnh chính
 
@@ -131,7 +135,7 @@ Pass criteria:
 | `$knowledge` | Tạo `.codex/knowledge/INDEX.md` để làm tri thức ngầm trở nên rõ ràng |
 | `$check`, `$check-full`, `$check-deploy` | Chạy `auto_gate.py` theo mức quick/full/deploy |
 | `$health` | Kiểm tra manifest, registry, aliases, dot directories, global sync, và encoding |
-| `$design` / `$ux` / `$direction` | `codex-frontend-design`: fast cho page/component; prototype cho luồng nhiều màn hình; studio khi cần nhiều hướng hoặc identity mới |
+| `/codex-frontend` / `$codex-frontend` / `$design` / `$ux` / `$direction` | `codex-frontend-design`: khóa 7-Point Frontend Blueprint + Chống 12 mẫu AI UI/UX Slop; fast cho page/component, prototype cho luồng nhiều màn hình, studio khi cần nhiều phương án |
 | `$pipeline` | Chạy `pipeline.py --stage all`: lint, contracts, test, build, doctor trong một lệnh, xuất report JSON |
 | `$release-gate` | Chạy `local_release_gate.py` (dry-run) trước khi tạo tag `vX.Y.Z` để kích hoạt GitHub Release |
 | `$doctor` | `install.py doctor --host <host> --scope user` kiểm tra wiring sau khi cài; thay `<host>` bằng một host cụ thể |

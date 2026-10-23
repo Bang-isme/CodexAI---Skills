@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Project dashboard brain. Maintains persistent state in `.codex/pulse/` — sprint, priorities, blockers, risks, milestones. When user asks "hôm nay thế nào?" or "$today", read all state files, run quality check, and generate a comprehensive daily brief. This is the skill that makes the agent know WHERE the project is and WHAT to do next.
+Project dashboard brain (Tier 1 / L0 active execution state in `../codex-project-memory/references/unified-memory-architecture.md`). Maintains persistent state in `.codex/pulse/` — sprint, priorities, blockers, risks, milestones. When user asks "hôm nay thế nào?" or "$today", read all state files, run quality check, and generate a comprehensive daily brief. This is the skill that makes the agent know WHERE the project is and WHAT to do next.
 
 ## Activation
 

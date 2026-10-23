@@ -6,8 +6,8 @@ Use this workflow for bug investigations and production issue resolution.
 
 1. Reproduce the issue with exact steps and expected vs actual behavior.
 2. Check feedback logs for similar recurring failure patterns.
-3. Analyze relevant code paths and dependency relationships.
-4. Apply minimal fix targeting root cause.
+3. Analyze relevant code paths, run `reuse_map.py`, and apply the **Caller-Grep Rule** (`../../codex-reasoning-rigor/references/precision-ladder.md`) to inspect every caller of the broken function before editing.
+4. Walk the 6-Rung Precision Ladder and apply the minimal root-cause fix at the shared function (with a failing reproduction test first via `$tdd`).
 5. Run targeted tests/regression checks.
 6. Log feedback entry when AI-generated code contributed to the issue.
 

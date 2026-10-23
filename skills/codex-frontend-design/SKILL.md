@@ -2,7 +2,7 @@
 name: codex-frontend-design
 description: Use when designing, auditing, or redesigning a web UI; select fast, prototype, or studio from the requested scope.
 load_priority: on-demand
-version: "18.1.1"
+version: "18.1.0"
 ---
 
 ## TL;DR
@@ -11,9 +11,12 @@ Keep one-page and one-component work fast. For broad improvement of an existing 
 
 ## Activation and routing
 
-- Use for `$design`, `$ux`, `$direction`, `$refine`, or requests to create/redesign an interface or product flow.
+- Use for `/codex-frontend`, `$codex-frontend`, `$design`, `$ux`, `$direction`, `$refine`, or requests to create/redesign an interface or product flow.
+- **Mandatory Blueprint Gate (No Blind UI Coding):** Never jump straight into `.tsx`, `.jsx`, `.vue`, or `.css` generation for a new surface or redesign without locking the **Frontend Design Blueprint** first:
+  - For `fast` scope (single page/component): complete the 7-point Blueprint in `references/design-brief-template.md` (Audience & Task, Surface & Change Mode, Composition Thesis & Layout Mathematics, Typography & OKLCH Token Strategy, Signature Move, 6-State Matrix, and Anti-Slop/Anti-Gimmick Guardrails).
+  - For `prototype` or multi-screen scope: persist `.codex/design/surfaces/<slug>.md` (UX Contract + `SILC-###` UI-to-API state mapping) and `.codex/design/direction.md` before coding.
 - Choose `fast` for one page/component, a small visual refinement, or a narrow extension of an existing system.
-- Choose `prototype` when the ask spans multiple routes/screens, a complete product flow, onboarding/checkout, or a product prototype whose important states must work together. `prototype` is an internal mode; keep the public `$design` alias.
+- Choose `prototype` when the ask spans multiple routes/screens, a complete product flow, onboarding/checkout, or a product prototype whose important states must work together. `prototype` is an internal mode; keep the public `/codex-frontend` and `$design` aliases.
 - Choose `studio` only for explicit alternatives/multiple directions, `$direction`, or a new brand identity. It still produces one selected direction before build. Do not route every redesign to studio.
 - If the design is approved and the user asks to implement it, skip design discovery and preserve the approved direction.
 - For an explicit broad audit, product-wide redesign, or substantial improvement request on a working app, load `references/existing-product-audit.md` before recommending changes. Bound a page/component request to its affected surface and consumers; do not make every UI task a repository-wide audit.
@@ -22,7 +25,7 @@ Keep one-page and one-component work fast. For broad improvement of an existing 
 ## Fast path
 
 1. Complete `references/design-brief-template.md` (audience, job, tone, memorable detail, constraints).
-2. Inspect the target surface, its current behavior, nearby consumers, incumbent styles/components, and product facts. For a broad existing-product audit, use `references/existing-product-audit.md`; for a new surface, compare two plausible layout structures with `references/layout-decision-framework.md` and choose the better content fit. Skip structural comparison for narrow refinements. State the composition thesis, type/color/spacing strategy, and any token changes before coding.
+2. Inspect the target surface, its current behavior, nearby consumers, incumbent styles/components, and product facts. For a broad existing-product audit, use `references/existing-product-audit.md`; for a new surface, compare two plausible layout structures with `references/layout-decision-framework.md` and choose the better content fit. For a landing page, load `references/landing-page-anatomy.md`; for a pricing surface, load `references/pricing-architecture.md`; for scroll or choreographed motion, load `references/motion.md`. Skip structural comparison for narrow refinements. State the composition thesis, type/color/spacing strategy, and any token changes before coding.
 3. Implement with `codex-frontend-implementation` and working content/states, not an inert screenshot mock.
 4. Apply the contextual audit in `references/anti-slop.md`, then run `$visual-gate` for substantial UI changes.
 
@@ -61,6 +64,7 @@ When the user requests options or a new identity:
 - When several custom assets are justified, make them feel like one product-specific family through shared art direction, subject treatment, color, and composition; do not add unrelated visuals merely to fill empty space.
 - Prefer one clear hierarchy and a coherent token system over piling on effects. Do not use an aesthetic preset as a substitute for a product-specific layout thesis.
 - Keep source references and asset provenance with the direction notes. Do not copy reference layouts/assets wholesale.
+- For a landing page, follow `references/landing-page-anatomy.md` before choosing a shape. For pricing, follow `references/pricing-architecture.md` before choosing cards, a slider, a split, or an enterprise last-mile. Check originality against `references/grammar.md` rather than nudging a copied price or layout.
 
 ## References
 
@@ -71,4 +75,5 @@ When the user requests options or a new identity:
 - `references/anti-slop.md`
 - `references/imagery.md`
 - `references/grammar.md`, `references/composition.md`
+- `references/landing-page-anatomy.md`, `references/pricing-architecture.md`
 - `references/component-states.md`, `references/layout-adaptation.md`, `references/motion.md`

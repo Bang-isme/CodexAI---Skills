@@ -11,7 +11,7 @@ Route tasks by complexity: complex -> Thinking Partner + Devil's Advocate, teach
 
 ## Activation
 
-1. Activate after intent analysis is confirmed.
+1. Activate after intent analysis. Wait for user input only when `needs_confirmation` is true under `references/workflow-routing-contract.json`.
 2. Activate on explicit `$codex-workflow-autopilot` or `$route`.
 3. Activate teaching mode on `$teach`, "explain", or "walk me through".
 4. Activate Scrum overlay on backlog, story, sprint, review, retrospective, release-readiness, or shorthand commands such as `$sprint-plan`, `$story-ready-check`, `$retro`, and `$release-readiness`.
@@ -129,12 +129,12 @@ Trigger this mode when user asks to understand project code, not to modify it.
 
 | Intent | Steps | Exit Criteria |
 | --- | --- | --- |
-| build | analyze → plan ($plan) → isolate ($worktree) → TDD implement ($tdd) → test → gate | tests pass, TDD verified, gate pass |
-| prototype | preflight ($hook) -> profile/context/docs -> spec ($spec) -> plan ($plan) -> TDD implementation -> role-doc/knowledge update -> full gate | spec exists, acceptance criteria pass, full gate pass or advisory warnings listed |
-| fix | systematic debug ($root-cause) → root-cause → regression test ($tdd) → fix → gate | root cause found, regression test pass, gate pass |
-| review | inspect → categorize findings → recommend actions | findings documented with severity |
+| build | 4-Tier Memory Read → analyze → plan ($plan) → isolate ($worktree) → TDD + SILC seam implement ($tdd) → test → gate → Memory Write-Back | tests pass, TDD & SILC seams verified, gate pass, memory synced |
+| prototype | preflight ($hook) -> 4-Tier Memory/profile/docs -> spec ($spec with `AC-###` + `SILC-###`) -> plan ($plan) -> TDD + SILC seam implementation -> role-doc/knowledge write-back -> full gate | spec & SILC contracts exist, acceptance criteria pass, full gate pass or advisory warnings listed |
+| fix | systematic debug ($root-cause) → trace across component boundaries → regression test ($tdd) → fix → gate → Memory Write-Back | root cause found, regression test pass, gate pass |
+| review | inspect → verify spec/SILC contract & code quality → categorize findings → recommend actions | findings documented with severity |
 | debug | systematic debug ($root-cause) → Phase 1-4 → test → gate | verified fix with evidence, gate pass |
-| docs | scope change → update docs → verify links/accuracy → gate | docs updated and verified |
+| docs | scope change → update docs/role-docs → verify links/accuracy → gate | docs updated and verified |
 
 ## Scrum Ceremony Routing
 
@@ -154,7 +154,7 @@ Use BMAD when intent analysis marks `complexity: complex`.
 
 ### Phase 1: Analysis (no code)
 
-- confirm requirements and constraints
+- use the requirements and constraints stated by the user; ask only about material gaps without a safe default
 - inspect existing patterns
 - capture key decisions
 
@@ -163,31 +163,33 @@ Use BMAD when intent analysis marks `complexity: complex`.
 - create plan via `$codex-plan-writer` or `$plan`
 - define task-level input/output/verify
 
-Checkpoint: wait for explicit user approval before Phase 3.
+If the user asked only for a plan, present it and stop before implementation. For an implementation request, continue through solutioning and implementation within the authorized scope when no material decision remains open. Pause only when the shared confirmation policy requires a new decision or authorization.
 
-### Phase 3: Solutioning (no code)
+### Phase 3: Solutioning & SILC Contract Lock (no code)
 
-- finalize architecture and data flow decisions
+- finalize architecture, data flow, and **System Integration Contracts (`SILC-###`)** across FE ↔ BE ↔ Data ↔ Auth/Infra
+- lock exact API routes, DTO schemas, error envelopes, state transitions, and migration boundaries so downstream slices never guess upstream contracts
 - identify cross-file impacts
 
-### Phase 4: Implementation (code)
+### Phase 4: Implementation & Seam Verification (code)
 
 - **For complex tasks:** Set up isolated workspace via `$worktree`
 - **For plan with independent tasks:** Use subagent execution via `$sdd`
-- **For all code changes:** Follow TDD cycle via `$tdd`
-- implement task by task
+- **For all code changes:** Follow TDD cycle via `$tdd` (RED-GREEN-REFACTOR)
+- **For cross-module / cross-domain slices (SILC Gate):** Implement in dependency order (Schema/Contract -> Producer -> Consumer) and verify each integration seam before advancing to the next slice
 - run tests/docs as workflow requires
 
-### Phase X: Verification (always last)
+### Phase X: Verification & Memory Write-Back (always last)
 
-1. Run `$codex-execution-quality-gate` or `$gate`.
+1. Run `$codex-execution-quality-gate` or `$gate` (plus `check_spec.py` when `.codex/specs/` exists and `$visual-gate` when UI changes).
 2. If gate fails, fix blockers and rerun.
-3. Do not declare completion before gate decision.
-4. Use `$finish` to handle branch completion if using worktree.
+3. Synchronize project memory per `unified-memory-architecture.md` (log decisions via `decision_logger.py`, update touched role docs via `update_role_docs.py`, and checkpoint multi-step progress via `generate_session_summary.py`).
+4. Do not declare completion before gate decision and memory write-back.
+5. Use `$finish` to handle branch completion if using worktree.
 
 ## Reference Files
 
-- `references/workflow-routing-contract.json`: machine-checkable routing contract for modes, overlays, and output fields.
+- `references/workflow-routing-contract.json`: machine-checkable routing contract for modes, overlays, output fields, and the shared confirmation policy.
 - `references/thinking-partner-mode.md`: use only when collaborative option analysis is requested.
 - `references/devils-advocate-mode.md`: use only when explicit challenge/risk probing is requested.
 - `references/teaching-mode-spec.md`: use when user asks for code walkthrough, explanation, or teaching.
@@ -223,8 +225,8 @@ Checkpoint: wait for explicit user approval before Phase 3.
 
 - "skip test": remove test step and warn quality confidence is reduced.
 - "no docs": remove docs step and warn maintainability confidence is reduced.
-- "just do it": default to build workflow and still show brief step plan.
-- "skip plan": allow for simple scope; for complex scope warn and reconfirm.
+- "just do it": default to build workflow, show a brief step plan, and proceed within the stated scope using safe, reversible defaults; pause only for a material decision or risk authorization required by the shared confirmation policy.
+- "skip plan": allow for simple scope; for complex scope state the planning risk, then honor the explicit request unless a material decision or risk boundary still requires confirmation.
 
 ## Scope Heuristic
 

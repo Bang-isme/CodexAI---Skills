@@ -26,7 +26,7 @@ Each tool entry includes:
 
 Skill-scoped tools (full project-memory surface) remain in `codex-project-memory/references/project-memory-tools.json`.
 
-Local packaging helpers: `deploy-promotion.md`, `local_release_gate.py`, and optional `promote_deploy.py` (manual S3/SSH from operator machine only — not CI).
+Local packaging helpers: `local_release_gate.py` and `build_release_zip.py`.
 
 ## Wrapper consumption flow
 
@@ -74,7 +74,7 @@ Plugin validators (`validate_codex_plugin.py`, `validate_claude_plugin.py`) and 
 
 ### Skill capability audit output
 
-`audit_skill_pack.py` returns `status`, a `summary`, per-skill `capabilities`, classified `scripts`, and evidence-backed `findings`. It writes `skill-scorecard.json`, `SKILL-SCORECARD.md`, and a self-contained `skill-scorecard.html` under `.codex/quality/` unless `--no-write` is supplied. The dashboard uses embedded escaped JSON only and makes no external network request.
+`audit_skill_pack.py` returns `status`, a `summary`, per-skill `capabilities`, classified `scripts`, and evidence-backed `findings`. It writes `skill-scorecard.json` and `SKILL-SCORECARD.md` under `.codex/quality/` unless `--no-write` is supplied.
 
 ### Release dry-run output
 
@@ -105,7 +105,6 @@ python skills/.system/scripts/validate_tool_contracts.py --skills-root skills --
 python skills/.system/scripts/check_pack_health.py --skills-root skills --strict --format json
 python skills/.system/scripts/audit_skill_pack.py --skills-root skills --strict --no-write --format json
 python skills/.system/scripts/prompt_router.py --corpus skills/.system/references/prompt-router.corpus.json --format json
-python skills/codex-project-memory/scripts/run_scale_gate.py --tier medium --format json
 python -m unittest discover -s skills/tests -p "test_*.py"
 node --test skills/tests/responsive_capture_stitch.test.mjs skills/tests/responsive_capture_core.test.mjs skills/tests/responsive_capture_browser.test.mjs
 ```

@@ -2,7 +2,7 @@
 name: codex-domain-specialist
 description: Use when frontend, backend, mobile, data, DevOps, or security work needs domain routing and at most four focused references.
 load_priority: on-demand
-version: "18.1.1"
+version: "18.1.0"
 ---
 
 ## TL;DR
@@ -58,4 +58,4 @@ Apply when attacker-controlled input, secrets, auth, public APIs, uploads, or tr
 Create tickets when more than one AC, domain, or phase is involved. Include `TICKET-###`, owner, linked AC, likely files, dependencies, security notes, and a validation check.
 
 ## Operating rules
-Never bulk-load all references. Keep solutions project-specific. Frontend craft lives in `codex-frontend-implementation/craft/`.
+Never bulk-load all references. Keep solutions project-specific. Frontend craft patterns live in `codex-frontend-implementation/references/craft-recipes.md`.

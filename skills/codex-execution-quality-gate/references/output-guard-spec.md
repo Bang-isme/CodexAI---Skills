@@ -46,6 +46,10 @@ When `--repo-root` is provided, the guard also checks whether:
 
 This lets the guard catch deliverables that sound specific but reference stale or invented paths.
 
+## Metric Honesty
+
+Invented savings are a failing signal even when the rest of the text looks specific. The guard rejects claims such as "this repo saved 450 lines" and "you saved 35% tokens". Measured commands, file paths, and counts can stay. A fabricated savings phrase forces `status: fail` and is reported as `fabricated_savings`.
+
 ## Limitation
 
 The script scores text heuristically. A pass is not proof of correctness.

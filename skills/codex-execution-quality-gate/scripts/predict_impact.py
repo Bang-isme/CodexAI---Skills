@@ -33,8 +33,9 @@ SCAN_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py"}
 RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".json"]
 TEST_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".py"}
 
-IMPORT_FROM_PATTERN = re.compile(r"^\s*import\s+.+?\s+from\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
+IMPORT_FROM_PATTERN = re.compile(r"\b(?:import|export)\s+[\s\S]*?\bfrom\s+['\"]([^'\"]+)['\"]")
 IMPORT_SIDE_PATTERN = re.compile(r"^\s*import\s+['\"]([^'\"]+)['\"]", re.MULTILINE)
+DYNAMIC_IMPORT_PATTERN = re.compile(r"\bimport\(\s*['\"]([^'\"]+)['\"]\s*\)")
 REQUIRE_PATTERN = re.compile(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)")
 PY_IMPORT_PATTERN = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)", re.MULTILINE)
 PY_FROM_IMPORT_PATTERN = re.compile(r"^\s*from\s+([A-Za-z_][\w.]*|\.+[\w.]*)\s+import\s+", re.MULTILINE)
@@ -224,6 +225,7 @@ def parse_imports(path: Path, content: str) -> List[str]:
     if ext in {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}:
         modules.extend(IMPORT_FROM_PATTERN.findall(content))
         modules.extend(IMPORT_SIDE_PATTERN.findall(content))
+        modules.extend(DYNAMIC_IMPORT_PATTERN.findall(content))
         modules.extend(REQUIRE_PATTERN.findall(content))
     elif ext == ".py":
         modules.extend(PY_IMPORT_PATTERN.findall(content))
@@ -287,7 +289,7 @@ def resolve_target(raw: str, project_root: Path, existing_rel: Set[str]) -> Tupl
     if resolved:
         return normalize_rel(resolved, project_root), None
 
-    return raw_norm, f"Target file not found in project: {raw_norm}"
+    return None, f"Target file not found in project: {raw_norm}"
 
 
 def dependent_levels(target: str, reverse: Dict[str, Set[str]], depth: int) -> Tuple[Set[str], Set[str]]:

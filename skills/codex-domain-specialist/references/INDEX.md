@@ -8,15 +8,13 @@ Load at most 4 references on the first pass. Quality gates are owned by `codex-e
 ## TL;DR
 Detect primary domain from file signals -> load matching references from routing table -> enforce max 4 references first pass. Check `.codex/profile.json` for fast-path. Check feedback logs for supplemental loading. Never bulk-load all references. Keep solutions project-specific without adding abstractions, dependencies, services, or architecture layers that the task does not justify.
 
-## Output Quality Mandate (MANDATORY)
+## Output Quality Guardrails
 
-> **Before generating ANY code, schema, API, or UI — load and apply `references/output-quality-gates.md`.** This reference is exempt from the 4-item context limit and domain isolation rules. It must be loaded on EVERY task.
-
-This reference prevents generic, tutorial-style output and irresponsible overengineering by enforcing:
+Consult `references/output-quality-gates.md` when evaluating scope fit, anti-generic domain quality, or architectural proportionality:
 1. The **3-Second Rule**: 3 questions before any output.
 2. Domain-specific **Quality Gates** (FE / BE / DB).
 3. A **Scope Fit Gate** before adding abstractions, dependencies, queues, caches, services, or framework layers.
-4. A **10-point Anti-Generic Checklist** after generating output.
+4. A **12-point Anti-Generic Checklist** after generating output.
 
 **If your output could be copy-pasted into any random project and still work without modification, it is generic. Generic = failure. Re-think and rewrite.**
 
@@ -29,7 +27,7 @@ This reference prevents generic, tutorial-style output and irresponsible overeng
 1. Activate when the task edits domain-specific files.
 2. Activate on explicit `$codex-domain-specialist`.
 
-**Announce at start:** "I'm using codex-domain-specialist to load domain-specific references."
+Do not announce this skill at start; declare only `Loading:` and `Skipping:` when loading references.
 
 ## Project Profile (Fast Path)
 
@@ -79,12 +77,12 @@ After determining the primary domain (via profile or detection), check for recur
 | validation | `references/validation-patterns.md` |
 | logging | `references/logging-patterns.md` |
 | forms | `references/form-patterns.md` |
-| creative | `references/creative-ui-ux.md` |
-| creative-dev | `references/creative-development.md` |
-| animation | `references/creative-ui-ux.md` |
+| creative | `../codex-frontend-design/references/layout-decision-framework.md` |
+| creative-dev | `../codex-frontend-design/references/composition.md` |
+| animation | `../codex-frontend-design/references/motion.md` |
 | gsap | `../codex-frontend-implementation/references/gsap-mastery.md` |
-| interactive | `references/interactive-elements.md` |
-| ui-design | `references/ui-ux-design-principles.md` |
+| interactive | `../codex-frontend-design/references/micro-interactions.md` |
+| ui-design | `../codex-frontend-design/references/grammar.md` |
 | visualization | `references/data-visualization.md` |
 | vietnamese | `references/vietnamese-typography.md` |
 | dates | `references/date-timezone.md` |
@@ -191,7 +189,6 @@ Each ticket must include:
 
 ## Context Boundary Enforcement
 
-0. **Mandatory pre-load**: Always load `references/output-quality-gates.md` regardless of domain or context limits. This does NOT count toward the 4-item limit.
 1. Max context load: load at most 4 items (references + starter templates) in the first pass. If more are needed, state clear reason and list additional files explicitly.
 2. Domain isolation:
    - Frontend-only tasks (component, styling, hooks): do not load `backend-rules.md`, `database-rules.md`, or `devops-rules.md`.
@@ -240,11 +237,11 @@ When task signals match keywords below, add the corresponding reference. If mult
 | --- | --- |
 | design tokens, color palette, spacing, CSS variables, theme, dark mode | `../codex-frontend-implementation/references/css-architecture.md` |
 | chart, graph, visualization, Recharts, D3, sparkline, bar chart, pie chart | `references/data-visualization.md` |
-| GSAP, Three.js, WebGL, Framer Motion, Awwwards, creative, storytelling, landing page, scrolltrigger | `references/creative-ui-ux.md` |
-| creative development, art direction, breakthrough design, brand experience, experimental, unique design, wow factor, premium feel, creative archetype | `references/creative-development.md` |
+| GSAP, Three.js, WebGL, Framer Motion, creative, storytelling, landing page, scrolltrigger | `../codex-frontend-design/references/motion.md` |
+| creative development, art direction, breakthrough design, brand experience, unique design, premium feel | `../codex-frontend-design/references/layout-decision-framework.md` |
 | gsap.timeline, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, scrub, pin, tween, stagger | `../codex-frontend-implementation/references/gsap-mastery.md` |
-| interactive, fun, playful, hover effect, tilt card, confetti, particle, drag, ripple, Easter egg, cursor effect, magnetic button, text scramble | `references/interactive-elements.md` |
-| ui design, ux design, visual hierarchy, color theory, typography pair, layout, whitespace, gestalt, aesthetics, beautiful design, shadow depth | `references/ui-ux-design-principles.md` |
+| interactive, micro-interaction, hover effect, focus state, tactile feedback, reveal | `../codex-frontend-design/references/micro-interactions.md` |
+| ui design, ux design, visual hierarchy, color theory, typography pair, layout, whitespace, optical alignment, anti-slop | `../codex-frontend-design/references/composition.md` |
 | form, multi-step form, field array, form validation UX, React Hook Form | `references/form-patterns.md` |
 | Redux, Zustand, Context, React Query, state management, global state | `references/state-management.md` |
 | i18n, translation, locale, multi-language, RTL | `references/i18n-patterns.md` |
@@ -258,7 +255,7 @@ When task signals match keywords below, add the corresponding reference. If mult
 
 | Signal | Add Reference |
 | --- | --- |
-| request validation, Joi, Zod, sanitize, input schema | `references/validation-patterns.md` |
+| request validation, Zod, Valibot, Pydantic, sanitize, input schema | `references/validation-patterns.md` |
 | structured logging, correlation ID, Winston, log level | `references/logging-patterns.md` |
 | queue, worker, Bull, BullMQ, cron, background job, scheduled task | `references/background-jobs.md` |
 | upload, file upload, multipart, S3, presigned URL, image resize | `references/file-upload.md` |
@@ -370,7 +367,7 @@ When creating new features or projects, reference starter templates in `starters
 
 | Template | Use When |
 | --- | --- |
-| `design-system.css` | Starting any Frontend project; copy and customize tokens |
+| `../codex-frontend-implementation/starters/design-system.css` | Starting any Frontend project; copy and customize OKLCH tokens |
 | `dashboard-layout.css` | Building admin/dashboard UI |
 | `express-api.js` | Creating new API endpoints |
 | `mongoose-model.js` | Creating new MongoDB models |
@@ -398,7 +395,7 @@ When task creates new code matching patterns below, always reference the corresp
 
 | Task Pattern | Auto-Reference Starter |
 | --- | --- |
-| Creating new React project or first component | `starters/design-system.css` |
+| Creating new React project or first component | `../codex-frontend-implementation/starters/design-system.css` |
 | Building admin panel, dashboard, or management UI | `starters/dashboard-layout.css` |
 | Creating new Express/Node.js API endpoint | `starters/express-api.js` |
 | Creating new Mongoose/MongoDB model | `starters/mongoose-model.js` |
@@ -504,10 +501,10 @@ Rules:
 - `references/testing-rules.md`: unit/integration/e2e testing baseline standards.
 - `references/typescript-rules.md`: TypeScript strictness, typing conventions, and API typing patterns.
 - `references/vietnamese-typography.md`: Vietnamese font selection, UTF-8 encoding, diacritics handling, and locale-aware text processing.
-- `references/creative-ui-ux.md`: Advanced UI/UX, GSAP orchestration, Three.js integration, storytelling flow, and creative design principles.
-- `references/ui-ux-design-principles.md`: Visual hierarchy, Gestalt principles, color theory, typography scales, whitespace strategy, optical alignment, and developer design anti-patterns.
+- `../codex-frontend-design/references/layout-decision-framework.md`: Structural layout candidates, asymmetric grid geometry, and content-fit decisions.
+- `../codex-frontend-design/references/composition.md`: Visual hierarchy, squint test, spacing rhythm, optical alignment, and narrative spine.
+- `../codex-frontend-design/references/motion.md`: Purpose-driven motion choreography, scroll narrative boundaries, and reduced-motion parity.
+- `../codex-frontend-design/references/micro-interactions.md`: Tactile control feedback, state transitions, and keyboard/focus polish.
 - `../codex-frontend-implementation/references/gsap-mastery.md`: GSAP core architecture, easing, ScrollTrigger, SplitText, ScrollSmoother, Observer, Flip, MorphSVG, DrawSVG, MotionPath, performance, React integration, and creative recipes.
-- `references/interactive-elements.md`: Fun interactive UI elements: custom cursors, tilt cards, magnetic buttons, confetti, particles, text scramble, hover effects, drag/swipe, Easter eggs.
-- `references/creative-development.md`: Creative Director's Brain — Creative Brief Decoder, 7 archetypes, experimental typography, glow/neon systems, purpose-driven animation, differentiation playbook, conversion-focused creative.
 - `references/output-quality-gates.md`: **MANDATORY** — Anti-generic and anti-overengineering guardrails: 3-Second Rule, Scope Fit Gate, FE/BE/DB Quality Gates, 12-point checklist, Why Mandate, Framework Defaults Override.
 - `references/ai-llm-patterns.md`: AI/LLM integration patterns — prompt engineering, RAG pipelines, embeddings, vector DB selection, streaming, cost control, and security rules.

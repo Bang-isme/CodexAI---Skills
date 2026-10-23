@@ -48,7 +48,21 @@ Pairings below were cross-checked against open-source font libraries and pairing
 | Poster Studio | `Bebas Neue 400` (display sans) | `Work Sans 400/500` | `https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600&display=swap` | poster, high-impact | event pages, launch microsites | `"Bebas Neue", Impact, sans-serif` / `"Work Sans", Arial, sans-serif` |
 | Expressive System | `Fraunces 600` (serif variable) | `Plus Jakarta Sans 400/500` | `https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,600,50&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap` | artful, contemporary | editorial campaigns, portfolio decks | `"Fraunces", Georgia, serif` / `"Plus Jakarta Sans", Arial, sans-serif` |
 
-## Usage Notes
-- Use one pairing for the entire screen system; add a third font only for a mono code treatment.
+## Optical Typography & Tabular Rhythm Rules
+
+Apply these structural rules across every typographic pairing:
+
+| Role | Fluid Size (`clamp()`) | Line-Height | Letter-Spacing | Required CSS Discipline |
+| --- | --- | --- | --- | --- |
+| **Display / Hero (`h1`)** | `clamp(2.25rem, 4.5vw + 1rem, 4.25rem)` | `1.04 – 1.12` ( `>= 1.16` for Vietnamese diacritics) | `-0.03em` to `-0.02em` | `text-wrap: balance;` max `12–16ch` per line |
+| **Section Heading (`h2`)** | `clamp(1.65rem, 2.5vw + 0.75rem, 2.5rem)` | `1.15 – 1.22` | `-0.02em` | Clear top margin (`2.5×` bottom margin) to anchor its group |
+| **Subheading / Card Title (`h3`)** | `clamp(1.15rem, 1.2vw + 0.6rem, 1.375rem)` | `1.25 – 1.35` | `-0.01em` | Never same size/weight as body copy |
+| **Body Copy (`p`, `li`)** | `1rem` (`16px`) to `1.0625rem` (`17px`) | `1.6 – 1.7` | `normal` (`0`) | Measure locked to `60ch–70ch`; `text-wrap: pretty;` left-aligned |
+| **UI Controls / Table Cells** | `0.875rem` (`14px`) | `1.4 – 1.5` | `0` | `font-weight: 500` for interactive labels |
+| **Metrics / Prices / Timestamps** | Contextual (`0.875rem – 3rem`) | `1.1 – 1.2` | `-0.01em` | **Mandatory:** `font-variant-numeric: tabular-nums;` so columns and live updates align |
+| **Micro-Labels / Eyebrows** | `0.75rem` (`12px`) | `1.35` | `+0.06em` to `+0.08em` | `text-transform: uppercase; font-weight: 600;` never use for long sentences |
+
+### Usage Notes
+- Use one pairing for the entire screen system; add a third font only for a monospace code/data treatment.
 - If the product already has a design system, keep the existing body font and only borrow heading energy or weight logic from this file.
-- Variable fonts such as `Inter`, `Newsreader`, `Fraunces`, `Bricolage Grotesque`, and `Manrope` are good defaults when you need performance plus typographic range.
+- For Vietnamese interfaces, ensure both fonts include full Latin Extended / Vietnamese glyphs (`ă, â, đ, ê, ô, ơ, ư` + 5 tone marks) and keep `line-height >= 1.16` on large headings so stacked diacritics (`ể`, `ẫ`, `ự`) are never clipped.

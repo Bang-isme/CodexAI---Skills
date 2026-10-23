@@ -14,12 +14,12 @@ Use for MVP, fullstack prototype, "from scratch", "build whole app", or multi-do
 
 1. Run `$hook` to detect domains, profile, context, role-doc, spec, and knowledge readiness.
 2. If profile is missing, run `$init-profile` or create `.codex/profile.json`.
-3. If context is missing, run `$genome`; if role docs are missing, run `$init-docs`.
-4. Run `$spec` and create `.codex/specs/<slug>/SPEC.md` before implementation.
-5. Run `$plan` and split work into FE/BE/data/QA/DevOps slices with acceptance criteria.
-6. For substantial UI, run creative direction then UX then visual execution before frontend implementation; skip that chain for backend-only slices.
-7. Execute with `$sdd` for independent tasks or inline for tightly coupled tasks, using TDD.
-8. Update role docs, rebuild knowledge index, and run `$check-full`.
+3. If context is missing, run `$genome`; if role docs are missing, run `$init-docs` with `--roles fullstack` (or the detected domain roles: `frontend,backend,devops,qa`).
+4. Run `$spec` and create `.codex/specs/<slug>/SPEC.md` locking both functional requirements (`AC-###`) and **System Integration Contracts (`SILC-###`)** across FE ↔ BE ↔ Data ↔ Auth before implementation.
+5. Run `$plan` and split work into dependency-ordered slices (`Schema/Contract -> Backend Producer -> Frontend Consumer -> E2E Seam Verification`) with explicit acceptance and SILC seam criteria.
+6. For substantial UI, run `codex-frontend-design` (`/codex-frontend` / `$design`) to lock the UX contract and visual direction before frontend implementation; skip that chain for backend-only slices.
+7. Execute with `$sdd` for independent tasks or inline for tightly coupled tasks, using TDD (`$tdd`) and verifying each SILC producer/consumer seam before advancing.
+8. Execute Memory Write-Back: update `SPEC.md` traceability (`check_spec.py`), update touched role docs (`update_role_docs.py`), rebuild knowledge index (`build_knowledge_index.py`), and run `$check-full`.
 
 ## Exit Criteria
 

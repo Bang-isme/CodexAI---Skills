@@ -13,6 +13,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
 
+from finding_contract import find_fabricated_savings_claims
+
 
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
 DEFAULT_MAX_TOKENS = 500
@@ -546,6 +548,7 @@ def maybe_run_llm_judge(
 def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | None = None) -> Dict[str, Any]:
     generic_hits = find_generic_phrases(text)
     mojibake_hits = find_mojibake_fragments(text)
+    fabricated_savings = find_fabricated_savings_claims(text)
     backtick_refs = INLINE_CODE_PATTERN.findall(text)
     file_refs = FILE_PATTERN.findall(text)
     command_hits = collect_command_hits(text)
@@ -564,6 +567,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
     score += min(6, len(resolved_command_paths) * 2)
     score -= len(generic_hits) * 8
     score -= min(24, len(mojibake_hits) * 12)
+    score -= min(20, len(fabricated_savings) * 20)
     score -= min(12, len(missing_artifact_refs) * 4)
     score -= min(8, len(missing_command_paths) * 4)
     if not artifact_refs:
@@ -576,6 +580,9 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
 
     issues: List[str] = []
     suggestions: List[str] = []
+    if fabricated_savings:
+        issues.append("Fabricated per-repo savings claim")
+        suggestions.append("Remove invented line-count or token-percent savings and report measured evidence only")
     if generic_hits:
         issues.append("Generic filler language detected")
         suggestions.append("Replace filler phrases with named files, commands, or measurable conditions")
@@ -603,6 +610,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         score < min_score
         or len(generic_hits) >= 2
         or bool(mojibake_hits)
+        or bool(fabricated_savings)
         or not command_hits
         or (repo_root is not None and missing_artifact_refs and not resolved_artifact_refs)
         or (repo_root is not None and missing_command_paths and not resolved_command_paths and not resolved_artifact_refs)
@@ -618,6 +626,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         "counts": {
             "generic_phrases": len(generic_hits),
             "mojibake_fragments": len(mojibake_hits),
+            "fabricated_savings": len(fabricated_savings),
             "artifact_refs": len(artifact_refs),
             "commands": len(command_hits),
             "numbers": len(number_hits),
@@ -629,6 +638,7 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         },
         "generic_hits": generic_hits,
         "mojibake_hits": mojibake_hits,
+        "fabricated_savings": fabricated_savings,
         "section_hits": section_hits,
         "command_hits": command_hits,
         "artifact_refs": artifact_refs,
@@ -639,6 +649,27 @@ def analyze_text_heuristic(text: str, min_score: int = 60, repo_root: Path | Non
         "issues": issues,
         "suggestions": suggestions[:4],
     }
+
+
+def _enforce_metric_honesty(report: Dict[str, Any]) -> Dict[str, Any]:
+    claims = report.get("fabricated_savings")
+    if not isinstance(claims, list) or not claims:
+        return report
+    report["status"] = "fail"
+    issues = report.get("issues", [])
+    if not isinstance(issues, list):
+        issues = []
+    if "Fabricated per-repo savings claim" not in issues:
+        issues = ["Fabricated per-repo savings claim", *issues]
+    report["issues"] = issues
+    suggestions = report.get("suggestions", [])
+    if not isinstance(suggestions, list):
+        suggestions = []
+    note = "Remove invented line-count or token-percent savings and report measured evidence only"
+    if note not in suggestions:
+        suggestions = [note, *suggestions]
+    report["suggestions"] = suggestions[:6]
+    return report
 
 
 def analyze_text(
@@ -667,7 +698,7 @@ def analyze_text(
     )
     report["warnings"] = warnings
     if llm_result is None:
-        return report
+        return _enforce_metric_honesty(report)
 
     llm_score = int(llm_result["score"])
     final_score = int(round((llm_score * 0.7) + (heuristic_score * 0.3)))
@@ -683,7 +714,7 @@ def analyze_text(
     report["model"] = llm_result["model"]
     report["issues"] = merge_unique_strings(report.get("issues", []), llm_result["issues"])
     report["suggestions"] = merge_unique_strings(report.get("suggestions", []), llm_result["suggestions"])[:6]
-    return report
+    return _enforce_metric_honesty(report)
 
 
 def format_table(report: Dict[str, Any]) -> str:
@@ -696,6 +727,7 @@ def format_table(report: Dict[str, Any]) -> str:
         f"mode         : {report.get('evaluation_mode', 'heuristic')}",
         f"generic      : {counts['generic_phrases']}",
         f"mojibake     : {counts.get('mojibake_fragments', 0)}",
+        f"fabricated   : {counts.get('fabricated_savings', 0)}",
         f"artifacts    : {counts['artifact_refs']}",
         f"resolved art : {counts.get('resolved_artifact_refs', 0)}",
         f"missing art  : {counts.get('missing_artifact_refs', 0)}",

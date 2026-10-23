@@ -13,7 +13,7 @@
 | session handoff | `codex-workflow-autopilot/references/workflow-handoff.md` | `generate_session_summary.py`, `generate_handoff.py`, `decision_logger.py`, `generate_changelog.py`, `track_feedback.py` |
 | docs sync | workflow docs phase | `map_changes_to_docs.py`, `generate_changelog.py` |
 | release or pre-ship | quality gate + ship mode | `security_scan.py`, `lighthouse_audit.py`, `playwright_runner.py`, `with_server.py` |
-| long-running project continuity | project-memory flow | `decision_logger.py`, `generate_session_summary.py`, `generate_handoff.py`, `generate_growth_report.py` |
+| long-running project continuity | project-memory flow | `decision_logger.py`, `generate_session_summary.py`, `generate_handoff.py` |
 
 ## Two-Stage Review Protocol
 

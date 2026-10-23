@@ -106,6 +106,11 @@ ROUTES: list[dict[str, Any]] = [
         ],
         "priority": 48,
         "signals": [
+            "/codex-frontend",
+            "$codex-frontend",
+            "$design",
+            "$ux",
+            "codex-frontend",
             "beautiful",
             "stunning",
             "multi-screen prototype",
@@ -362,7 +367,14 @@ def detect_design_operation(lowered: str) -> str | None:
         return "redesign"
     if REFINE_RE.search(lowered) and not REDESIGN_RE.search(lowered):
         return "refine"
-    if NEW_SURFACE_RE.search(lowered) or "landing page" in lowered or "prototype" in lowered or "nguyên mẫu" in lowered:
+    if (
+        NEW_SURFACE_RE.search(lowered)
+        or "landing page" in lowered
+        or "prototype" in lowered
+        or "nguyên mẫu" in lowered
+        or "/codex-frontend" in lowered
+        or "$codex-frontend" in lowered
+    ):
         return "new"
     if any(token in lowered for token in ("frontend", "ui", "giao diện", "component", "dashboard", "react", "vue")):
         return "extend"

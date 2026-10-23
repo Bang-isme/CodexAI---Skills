@@ -1,188 +1,90 @@
-# Testing Strategy
+# Testing Strategy, Factories & Contract Harness
 
-**Load when:** planning test coverage, choosing test types, building test infrastructure, or deciding what to mock.
+**Load when:** designing test suites across Unit, Integration, `SILC-###` Contract, UI Component, and E2E layers, or deciding what to mock vs run for real.
 
-## Test Pyramid
+---
 
-```
-        ┌─────────┐
-        │  E2E    │  ~10% — Critical user journeys only
-        │  Tests  │  Slow, expensive, high confidence
-        ├─────────┤
-        │ Integra-│  ~20% — Module boundaries, DB, API
-        │  tion   │  Medium speed, real dependencies
-        ├─────────┤
-        │  Unit   │  ~70% — Pure logic, transformations
-        │  Tests  │  Fast, isolated, deterministic
-        └─────────┘
-```
+## 1. Mocking Decision Matrix (When to Mock vs Use Real Dependencies)
 
-## What to Test at Each Layer
+| Dependency | Unit Test | Integration Test | E2E Test | Rule |
+| --- | --- | --- | --- | --- |
+| **Pure Domain / Utility Modules** | Real | Real | Real | Never mock internal domain functions |
+| **Database / ORM (Postgres/SQLite/Mongo)** | N/A (keep unit tests DB-free) | **Real Test DB** (transaction rollback or container) | Real | Never mock SQL/ORM query builders |
+| **Third-Party HTTP APIs (Stripe, Resend, OAuth)** | Stub interface | **Deterministic HTTP Intercept (MSW / nock)** | Sandbox or local fake server | Verify request payload + handle 4xx/5xx/timeout responses |
+| **System Clock / Timers** | Fake clock (`vi.setSystemTime`) | Controlled clock | Real clock | Never use real `sleep()` to test TTL/expiry |
+| **Frontend Network Layer** | N/A | **MSW (Mock Service Worker)** matching `SILC-###` DTOs | Real backend | Test real `fetch`/React Query hooks against MSW handlers |
 
-| Layer | Test Type | What to Test | What NOT to Test |
-| --- | --- | --- | --- |
-| Utils/helpers | Unit | Pure transformations, edge cases | Framework internals |
-| Validation | Unit | Valid/invalid inputs, error messages | Database constraints |
-| Services | Unit + Integration | Business logic, state transitions | UI rendering |
-| API Routes | Integration | Status codes, response shape, auth | Frontend behavior |
-| UI Components | Integration | User interactions, conditional renders | CSS pixel values |
-| Critical Flows | E2E | Login → action → verify → logout | Every page/variation |
+---
 
-## Test Data Factory Pattern
+## 2. Composable Test Data Factory Pattern (TypeScript)
 
-```javascript
-// test-utils/factories.js — Never hardcode test data inline
-const createUser = (overrides = {}) => ({
-  id: `user-${Date.now()}`,
-  name: 'Test User',
-  email: `test-${Date.now()}@example.com`,
-  role: 'user',
-  isActive: true,
-  createdAt: new Date(),
-  ...overrides,
-});
+Never copy-paste 30-line inline object literals across test files. Use typed factory functions with monotonic counters so tests remain concise and collision-free:
 
-const createOrder = (overrides = {}) => ({
-  id: `order-${Date.now()}`,
-  userId: createUser().id,
-  items: [{ productId: 'prod-1', quantity: 1, price: 29.99 }],
-  total: 29.99,
-  status: 'pending',
-  createdAt: new Date(),
-  ...overrides,
-});
+```typescript
+let sequence = 1;
 
-// Usage in tests
-test('calculates order total', () => {
-  const order = createOrder({
-    items: [
-      { productId: 'a', quantity: 2, price: 10 },
-      { productId: 'b', quantity: 1, price: 5 },
-    ],
-  });
-  expect(calculateTotal(order)).toBe(25);
-});
+export function buildEnrollmentCandidate(overrides: Partial<EnrollmentCandidate> = {}): EnrollmentCandidate {
+  const id = sequence++;
+  return {
+    id: `cand_${id}`,
+    tenantId: "tenant_default",
+    email: `candidate.${id}@example.test`,
+    fullName: `Candidate ${id}`,
+    status: "pending_verification",
+    budgetCents: 25_000,
+    createdAt: new Date("2026-10-23T08:00:00.000Z"),
+    ...overrides,
+  };
+}
 ```
 
-## Mocking Decision Table
+---
 
-| Dependency | Mock? | Why |
-| --- | --- | --- |
-| External API (Stripe, SendGrid) | ✅ Always | Slow, costs money, flaky |
-| Database (unit tests) | ✅ Yes | Speed, isolation |
-| Database (integration tests) | ❌ No | Test real queries |
-| File system | 🔶 Depends | Mock for unit, real for integration |
-| Time/Date | ✅ Yes | Deterministic tests |
-| Internal modules | ❌ No | Test real behavior |
-| Logger | ✅ Yes | Suppress noise, verify calls |
+## 3. SILC Contract & API Integration Test Pattern
 
-### Mocking Rules
+Verify that the backend route produces the exact `SILC-###` success and error envelopes expected by the frontend consumer:
 
-```javascript
-// ❌ BAD: Mock everything "to be safe"
-jest.mock('./database');
-jest.mock('./cache');
-jest.mock('./logger');
-jest.mock('./validator');
-// Testing what? The mock wiring.
+```typescript
+describe("POST /api/v1/campaigns (SILC-001 Contract)", () => {
+  it("returns 201 with canonical DTO shape and validates schema", async () => {
+    const res = await request(app)
+      .post("/api/v1/campaigns")
+      .set("Authorization", `Bearer ${validToken}`)
+      .set("Idempotency-Key", "idem_1001")
+      .send({
+        name: "Autumn Launch",
+        slug: "autumn-launch",
+        budgetCents: 50_000,
+        currency: "USD",
+        startAt: "2026-11-01T00:00:00Z",
+        endAt: "2026-11-30T00:00:00Z",
+      });
 
-// ✅ GOOD: Mock only external boundaries
-jest.mock('./emailProvider'); // External service
-// Let database, cache, validator run for real
-
-// ❌ BAD: Mock the unit under test
-jest.spyOn(userService, 'create');
-userService.create(data);
-expect(userService.create).toHaveBeenCalled(); // Of course it was!
-
-// ✅ GOOD: Test observable behavior
-const user = await userService.create({ name: 'Alice' });
-expect(user.name).toBe('Alice');
-expect(await db.users.findById(user.id)).toBeTruthy();
-```
-
-## Contract Tests (API Boundary Testing)
-
-```javascript
-// When multiple services depend on an API contract
-describe('GET /api/users/:id contract', () => {
-  test('returns required fields', async () => {
-    const res = await request(app).get('/api/users/1');
-    
-    // Contract: these fields MUST exist
-    expect(res.body).toHaveProperty('id');
-    expect(res.body).toHaveProperty('name');
-    expect(res.body).toHaveProperty('email');
-    expect(res.body).toHaveProperty('role');
-    
-    // Contract: types MUST match
-    expect(typeof res.body.id).toBe('string');
-    expect(typeof res.body.name).toBe('string');
+    expect(res.status).toBe(201);
+    expect(CampaignResponseEnvelopeSchema.safeParse(res.body).success).toBe(true);
+    expect(res.body.meta.requestId).toEqual(expect.any(String));
   });
 
-  test('error response follows envelope', async () => {
-    const res = await request(app).get('/api/users/nonexistent');
-    expect(res.body).toHaveProperty('success', false);
-    expect(res.body).toHaveProperty('message');
-    expect(res.body).toHaveProperty('code');
+  it("returns 422 with structured fieldErrors when budgetCents is below minimum", async () => {
+    const res = await request(app)
+      .post("/api/v1/campaigns")
+      .set("Authorization", `Bearer ${validToken}`)
+      .send({ name: "Too Small", slug: "too-small", budgetCents: 100 });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe("VALIDATION_FAILED");
+    expect(res.body.error.fieldErrors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "budgetCents" })]),
+    );
   });
 });
 ```
 
-## Snapshot Testing Rules
+---
 
-| Use For | Don't Use For |
-| --- | --- |
-| Serialized data structures | UI components (brittle) |
-| API response shapes | Dynamic content (dates, IDs) |
-| Error messages | Large objects (hard to review) |
-| Config/schema output | Anything that changes frequently |
+## 4. Frontend Component & Accessibility Integration Testing
 
-```javascript
-// ✅ GOOD: Snapshot for stable shapes
-expect(transformConfig(input)).toMatchInlineSnapshot(`
-  {
-    "host": "localhost",
-    "port": 3000,
-    "debug": false,
-  }
-`);
-
-// ❌ BAD: Snapshot for dynamic content
-expect(createUser()).toMatchSnapshot(); // Changes every run (IDs, dates)
-```
-
-## Test Isolation Checklist
-
-| Check | Action |
-| --- | --- |
-| Tests pass in any order | No shared mutable state |
-| Tests pass in parallel | No port/file conflicts |
-| Tests pass on clean DB | Setup/teardown in each test |
-| Tests don't leak timers | `jest.useFakeTimers()` + cleanup |
-| Tests don't leak listeners | Remove event listeners in `afterEach` |
-
-## Coverage Guidance
-
-| Code Area | Line Coverage Target | Branch Coverage Target |
-| --- | --- | --- |
-| Security/auth | 90%+ | 85%+ |
-| Payment/billing | 90%+ | 85%+ |
-| Validation logic | 85%+ | 80%+ |
-| Business services | 80%+ | 70%+ |
-| UI components | 70%+ | 60%+ |
-| Utils/helpers | 90%+ | 80%+ |
-| Config/setup | 50%+ | N/A |
-
-**Coverage ≠ quality.** 100% coverage with bad assertions is worse than 70% with meaningful tests.
-
-## Anti-Patterns
-
-| Anti-Pattern | Why It Fails | Fix |
-| --- | --- | --- |
-| Testing implementation | Breaks on refactor | Test behavior, not internals |
-| Shared mutable state | Order-dependent failures | Isolate per test |
-| Sleep-based waits | Flaky, slow | Condition-based waiting |
-| Giant test functions | Hard to diagnose | One assertion per test |
-| No test data factories | Duplicated setup, brittle | Factory pattern |
-| Mock the unit under test | Proves nothing | Mock boundaries only |
+Test components the way a real user and assistive technology interact with them:
+1. Query elements by accessible role and label (`getByRole("button", { name: /save changes/i })`, `getByLabelText(...)`), never by fragile CSS class names.
+2. Exercise all 6 interactive states: `default`, `loading` (`aria-busy`), `empty`, `validation error` (`fieldErrors`), `network error + retry`, and `success`.
+3. Verify keyboard navigation (`userEvent.tab()`, `Enter`, `Escape`) on dialogs, menus, and forms.

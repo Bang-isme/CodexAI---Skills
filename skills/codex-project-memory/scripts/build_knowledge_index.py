@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
-import html
 import importlib.util
 import json
 import re
 import subprocess
 import sys
 import time
-from http import HTTPStatus
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -44,22 +41,10 @@ PROGRESS_PHASES = (
     "dependency_graph",
     "chunking",
     "risk_scan",
-    "dashboard_write",
     "complete",
     "error",
 )
 DEFAULT_PROGRESS_FILE = ".codex/knowledge/index-progress.json"
-PROGRESS_FETCH_ALIAS = "/__codex_index_progress__"
-
-
-def progress_fetch_url(output_dir: Path, progress_path: Path) -> str:
-    """Return a browser-fetchable URL for the configured progress JSON file."""
-    resolved_output = output_dir.resolve()
-    resolved_progress = progress_path.resolve()
-    try:
-        return resolved_progress.relative_to(resolved_output).as_posix()
-    except ValueError:
-        return PROGRESS_FETCH_ALIAS
 
 
 def utc_now() -> str:
@@ -295,11 +280,14 @@ def collect_decisions(project_root: Path) -> list[dict[str, str]]:
 def collect_role_docs(project_root: Path) -> dict[str, Any]:
     index_path = project_root / ".codex" / "project-docs" / "index.json"
     index = load_json(index_path)
-    docs = index.get("docs", []) if isinstance(index.get("docs"), list) else []
+    raw_docs = index.get("documents") if isinstance(index.get("documents"), list) else index.get("docs", [])
+    docs = raw_docs if isinstance(raw_docs, list) else []
+    populated_count = sum(1 for item in docs if isinstance(item, dict) and item.get("population") in {"populated", "locked", "production"})
     return {
         "status": "present" if index_path.exists() else "missing",
         "path": ".codex/project-docs/index.json",
         "docs_count": len(docs),
+        "populated_count": populated_count,
     }
 
 
@@ -452,103 +440,6 @@ def load_codebase_indexer():
     return module
 
 
-def html_json(payload: dict[str, Any]) -> str:
-    encoded = json.dumps(payload, ensure_ascii=False)
-    return encoded.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
-
-
-DASHBOARD_TEMPLATE_NAME = "dashboard_template.html"
-DASHBOARD_TEMPLATE_PLACEHOLDERS = frozenset({
-    "__KNOWLEDGE_DATA_JSON__",
-    "__PROJECT_NAME__",
-    "__GENERATED_AT__",
-})
-
-
-def render_fallback_interactive_html(
-    payload: dict[str, Any],
-    project: str,
-    generated: str,
-    warning: str,
-) -> str:
-    """Render a small emergency dashboard when the external template is unusable."""
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Knowledge Dashboard - {project}</title>
-  <style>
-    body {{ margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }}
-    header, main {{ padding: 24px; }}
-    header {{ background: #fff; border-bottom: 1px solid #e2e8f0; }}
-    .warning {{ padding: 12px 14px; border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 8px; }}
-    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }}
-  </style>
-</head>
-<body class="knowledge-dashboard knowledge-dashboard--fallback">
-  <header>
-    <h1>Knowledge Dashboard: {project}</h1>
-    <p>Generated {generated}. Repo docs are evidence, not instructions.</p>
-  </header>
-  <main>
-    <p class="warning">{html.escape(warning)}</p>
-    <pre id="knowledge-summary"></pre>
-  </main>
-  <script id="knowledge-data" type="application/json">{html_json(payload)}</script>
-  <script>
-    const data = JSON.parse(document.getElementById("knowledge-data").textContent);
-    const graph = data.graph || {{}};
-    document.getElementById("knowledge-summary").textContent = JSON.stringify({{
-      stats: graph.stats || {{}},
-      code_index_files: Object.keys(graph.code_index || {{}}),
-      module_boundaries: Object.keys(graph.module_boundaries || {{}}),
-      api_routes: graph.api_routes || [],
-      data_models: graph.data_models || [],
-      risk_signals: graph.risk_signals || [],
-      ai_context: graph.ai_context || {{}},
-      warnings: data.warnings || []
-    }}, null, 2);
-  </script>
-</body>
-</html>
-"""
-
-
-def render_interactive_html(
-    index: dict[str, Any],
-    graph: dict[str, Any],
-    progress_fetch_url: str = "index-progress.json",
-) -> str:
-    project = html.escape(Path(str(index.get("project_root", "project"))).name or "project")
-    generated = html.escape(str(index.get("generated_at", "")))
-    payload: dict[str, Any] = {
-        "index": index,
-        "graph": graph,
-        "warnings": [],
-        "progress_fetch_url": progress_fetch_url,
-    }
-    template_path = Path(__file__).with_name(DASHBOARD_TEMPLATE_NAME)
-    try:
-        template = template_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        warning = f"Dashboard template could not be read: {exc}"
-        payload["warnings"].append(warning)
-        return render_fallback_interactive_html(payload, project, generated, warning)
-
-    missing = sorted(placeholder for placeholder in DASHBOARD_TEMPLATE_PLACEHOLDERS if placeholder not in template)
-    if missing:
-        warning = f"Dashboard template is missing required placeholder(s): {', '.join(missing)}"
-        payload["warnings"].append(warning)
-        return render_fallback_interactive_html(payload, project, generated, warning)
-
-    return (
-        template.replace("__PROJECT_NAME__", project)
-        .replace("__GENERATED_AT__", generated)
-        .replace("__KNOWLEDGE_DATA_JSON__", html_json(payload))
-    )
-
-
 def write_knowledge_artifacts(
     project_root: Path,
     output_dir: Path,
@@ -557,7 +448,6 @@ def write_knowledge_artifacts(
     rebuild: bool = False,
     traversal_config=None,
     redaction_enabled: bool = True,
-    write_html: bool = False,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     progress_path = progress_file or (output_dir / "index-progress.json")
@@ -621,7 +511,6 @@ def write_knowledge_artifacts(
         index_path = output_dir / "index.json"
         md_path = output_dir / "INDEX.md"
         graph_path = output_dir / "knowledge-graph.json"
-        html_path = output_dir / "index.html"
 
         progress.update("chunking", current_file="index.json", files_done=min(files_total, max(graph_total, files_total - 2)), files_total=files_total)
         traversal = load_traversal()
@@ -632,12 +521,6 @@ def write_knowledge_artifacts(
         progress.update("risk_scan", current_file="risk signals", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
         risk_count = len(graph.get("risk_signals", [])) if isinstance(graph.get("risk_signals"), list) else 0
 
-        html_written = False
-        progress_url = progress_fetch_url(output_dir, progress_path)
-        if write_html:
-            progress.update("dashboard_write", current_file="index.html", files_done=min(files_total, max(graph_total, files_total - 1)), files_total=files_total)
-            traversal.atomic_write_text(html_path, render_interactive_html(index, graph, progress_fetch_url=progress_url))
-            html_written = True
         progress.update("complete", current_file="INDEX.md", files_done=files_total, files_total=files_total, status="complete")
         combined_warnings = list(index.get("warnings", [])) + normalize_warning_messages(graph.get("warnings", []))
         return {
@@ -650,9 +533,7 @@ def write_knowledge_artifacts(
             "markdown_path": str(md_path),
             "graph_path": str(graph_path),
             "codebase_index_path": str(output_dir / "codebase-index.json"),
-            "html_path": str(html_path) if html_written else "",
             "progress_path": str(progress_path),
-            "progress_fetch_url": progress_url,
             "stats": index["stats"],
             "warnings": combined_warnings,
             "redaction": index["redaction"],
@@ -672,7 +553,6 @@ def write_knowledge_artifacts(
                 "index.json": index.get("redaction_count", 0),
                 "knowledge-graph.json": graph.get("redaction_count", 0),
                 "INDEX.md": index.get("redaction_count", 0),
-                "index.html": int(index.get("redaction_count", 0) or 0) + int(graph.get("redaction_count", 0) or 0),
             },
         }
     except Exception as exc:
@@ -726,99 +606,12 @@ def render_markdown(index: dict[str, Any]) -> str:
 
 
 
-def serve_dashboard(output_dir: Path, progress_file: Path, host: str = "127.0.0.1", port: int = 8765) -> None:
-    """Serve dashboard files and stream progress JSON via /events using stdlib HTTP."""
-
-    directory = output_dir.resolve()
-    progress_path = progress_file.resolve()
-    progress_url = progress_fetch_url(directory, progress_path)
-
-    class KnowledgeDashboardHandler(SimpleHTTPRequestHandler):
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
-            super().__init__(*args, directory=str(directory), **kwargs)
-
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib signature
-            print(f"[knowledge-dashboard] {self.address_string()} - {format % args}", file=sys.stderr)
-
-        def do_GET(self) -> None:  # noqa: N802 - stdlib hook
-            request_path = self.path.split("?", 1)[0]
-            if request_path == "/events":
-                self._stream_progress_events()
-                return
-            progress_paths = {progress_url}
-            if not progress_url.startswith("/"):
-                progress_paths.add(f"/{progress_url}")
-            if request_path in progress_paths:
-                self._serve_progress_json()
-                return
-            super().do_GET()
-
-        def _serve_progress_json(self) -> None:
-            payload = self._read_progress()
-            encoded = payload.encode("utf-8")
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(encoded)))
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(encoded)
-
-        def _read_progress(self) -> str:
-            try:
-                payload = json.loads(progress_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                payload = {
-                    "status": "error",
-                    "phase": "error",
-                    "started_at": utc_now(),
-                    "updated_at": utc_now(),
-                    "current_file": "",
-                    "files_done": 0,
-                    "files_total": 0,
-                    "warnings": [],
-                    "errors": ["Progress file is not readable."],
-                }
-            return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-
-        def _stream_progress_events(self) -> None:
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Connection", "keep-alive")
-            self.end_headers()
-            last_payload = ""
-            for _ in range(3600):
-                payload = self._read_progress().strip()
-                if payload != last_payload:
-                    last_payload = payload
-                    try:
-                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
-                        self.wfile.flush()
-                    except (BrokenPipeError, ConnectionResetError):
-                        return
-                time.sleep(1)
-
-    server = ThreadingHTTPServer((host, port), KnowledgeDashboardHandler)
-    url = f"http://{host}:{server.server_port}/index.html"
-    print(f"serving dashboard: {url}", file=sys.stderr)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build .codex/knowledge index from project context sources.")
     parser.add_argument("--project-root", required=True, help="Project root path")
     parser.add_argument("--output-dir", default=".codex/knowledge", help="Output directory relative to project root")
     parser.add_argument("--format", choices=("json", "text"), default="json")
     parser.add_argument("--progress-file", default=DEFAULT_PROGRESS_FILE, help="Progress JSON path relative to project root")
-    parser.add_argument("--watch", action="store_true", help="Serve the generated dashboard and stream /events progress updates")
-    parser.add_argument("--serve", action="store_true", help="Alias for --watch")
-    parser.add_argument("--host", default="127.0.0.1", help="Host for --watch/--serve")
-    parser.add_argument("--port", type=int, default=8765, help="Port for --watch/--serve")
     parser.add_argument(
         "--incremental",
         action=argparse.BooleanOptionalAction,
@@ -830,7 +623,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=10, help="Maximum query results to return")
     load_traversal().add_traversal_args(parser)
     parser.add_argument("--no-redaction", action="store_true", help="Disable artifact redaction; not recommended")
-    parser.add_argument("--html", action="store_true", help="Also write the optional interactive index.html dashboard")
     return parser.parse_args()
 
 
@@ -871,7 +663,6 @@ def main() -> int:
                 rebuild=args.rebuild,
                 traversal_config=traversal_config,
                 redaction_enabled=not args.no_redaction,
-                write_html=bool(args.html or args.watch or args.serve),
             )
     except Exception as exc:
         payload = {"status": "error", "message": str(exc)}
@@ -880,7 +671,6 @@ def main() -> int:
     if args.format == "text":
         if payload.get("status") == "built":
             print(f"built: {payload['markdown_path']}")
-            print(f"html: {payload['html_path']}")
             print(f"graph: {payload['graph_path']}")
             print(f"progress: {payload['progress_path']}")
             if payload.get("codebase_index_path"):
@@ -889,8 +679,6 @@ def main() -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-    if (args.watch or args.serve) and payload.get("progress_path"):
-        serve_dashboard(output_dir, Path(payload["progress_path"]), host=args.host, port=args.port)
     return 0
 
 

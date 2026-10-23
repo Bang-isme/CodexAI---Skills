@@ -3,7 +3,7 @@
 
 Stages (run in this order when selected):
   lint      pack health (strict) + core-rules drift check
-  contracts tool contracts, capability audit, prompt-router corpus, Codex/Claude/Cursor validators
+  contracts tool contracts, safety self-test, capability audit, prompt-router corpus, Codex/Claude/Cursor validators
   test      Python unittest suite + Node's built-in test runner
   build     Antigravity build/validate + release ZIP dry-run
   doctor    install.py doctor --host codex
@@ -148,6 +148,15 @@ def stage_contracts(project_root: Path, rel_skills: str, skills_root: Path) -> l
         run_step(
             "cursor_plugin",
             [script("validate_cursor_plugin.py"), "--plugin-root", str(project_root), "--format", "json"],
+            cwd=project_root,
+        ),
+        run_step(
+            "safety_selftest",
+            [
+                str(skills_root / "codex-execution-quality-gate" / "scripts" / "safety_selftest.py"),
+                "--format",
+                "json",
+            ],
             cwd=project_root,
         ),
     ]

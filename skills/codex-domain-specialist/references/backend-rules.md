@@ -1,242 +1,119 @@
-﻿# Backend Rules
+﻿# Backend Engineering & Modular Architecture Rules
 
 ## Scope and Triggers
 
-Use this reference when tasks affect APIs, services, data persistence, reliability, and server-side business logic.
+Use this reference when tasks affect APIs, application services, persistence boundaries, distributed reliability, and server-side business logic.
 
 Primary triggers:
-- changes under `routes/`, `controllers/`, `services/`, `api/`, `server/`
-- request lifecycle changes: validation, auth, response contracts
-- defects involving latency spikes, retries, data consistency, or failures
+- changes under `routes/`, `controllers/`, `services/`, `modules/`, `api/`, `server/`
+- request lifecycle changes: validation, authentication/authorization, rate limiting, response DTO contracts (`SILC-###`)
+- defects involving latency spikes, retries, idempotency, race conditions, or transaction consistency
 
-Secondary triggers:
-- frontend contract changes that require backend compatibility handling
-- migration, indexing, and transaction safety work
-- operational concerns around observability and fault handling
+---
 
-Out of scope:
-- pure UI composition decisions without API impact
-- infra-only tuning with no service contract or runtime impact
+## 1. Core Architectural Principles (Pragmatic Modular Monolith & Clean Boundaries)
 
-## Core Principles
+1. **Strict Directional Dependencies:** `HTTP / Transport Layer -> Application / Use-Case Service -> Domain Logic -> Repository / Persistence Adapter`. Inner domain logic must never import HTTP request/response objects (`req`, `res`, `NextRequest`).
+2. **Contract-First at Every Boundary (`SILC-###`):** Lock request schemas, response DTOs, and deterministic error envelopes before writing handler code. Never return raw ORM/database entities directly to clients.
+3. **Validate at the Edge, Trust Internally:** Parse and coerce untrusted input into strict typed domain structures at the transport boundary (Zod / Valibot / Pydantic / JSON Schema).
+4. **Idempotency by Default for Mutations:** Every state-changing endpoint subject to network retries (`POST /orders`, `POST /payments`, webhook receivers) must enforce idempotency keys (`Idempotency-Key` header + atomic storage lock).
+5. **Transactional Integrity & Outbox Pattern:** Never publish external events or trigger third-party side effects inside an uncommitted database transaction. Use the **Transactional Outbox Pattern** so database state and domain events commit atomically.
+6. **Bounded Resource Budgets:** Every outbound network call, database query, and worker job must specify an explicit timeout (`AbortSignal.timeout`), bounded connection pool, and backpressure limit.
 
-- Validate and sanitize every external input at trust boundaries.
-- Keep architecture layered and dependencies directional.
-- Preserve explicit API contracts and version compatibility.
-- Centralize error handling and keep user-facing errors safe.
-- Design for observability: logs, metrics, traces, and correlation IDs.
-- Prefer idempotent operations for retriable endpoints.
-- Keep business logic in services, not controllers.
-- Ensure persistence operations are atomic where required.
-- Use consistent response envelope and status semantics.
-- Avoid hidden side effects in request handlers.
+---
 
-## Decision Tree
+## 2. Decision Trees
 
-### Decision Tree A: API Lifecycle and Contract Evolution
+### Decision Tree A: Architecture & Module Boundary Selection
 
-- If change is backward compatible, update current version with contract tests.
-- If change modifies required fields or semantics, introduce version strategy.
-- If endpoint is public and high traffic, add deprecation window and telemetry.
-- If request/response shape changes, update schema docs and client contract checks.
-- If route behavior differs by role, enforce policy at authorization layer.
-- If endpoint may be retried by clients, ensure idempotency key or safe semantics.
-
-### Decision Tree B: Reliability and Failure Matrix
-
-| Failure Signal | Immediate Action | Long-Term Pattern |
+| System Context | Recommended Structure | Why |
 | --- | --- | --- |
-| transient downstream timeout | bounded retry with jitter and timeout budget | circuit breaker + dependency SLO |
-| repeated validation failures | tighten schema and input normalization | add API contract examples and guardrails |
-| deadlock or write conflict | retry safe transaction path | redesign lock granularity |
-| partial write in workflow | compensate or rollback transaction | saga or orchestration pattern |
-| queue processing lag | prioritize and backpressure | partitioning and worker scaling |
-| noisy 5xx spikes | isolate failing dependency and degrade gracefully | resilience playbook and chaos drills |
+| Single repo or product team (default) | **Feature-Scoped Modular Monolith** (`modules/<domain>/{controller,service,repository,schema,types}.ts`) | High cohesion, explicit module interfaces, zero network-hop overhead |
+| Shared cross-module side effects | **In-process Domain Events / Transactional Outbox** | Decouples modules without premature microservice complexity |
+| Independent scaling or regulatory isolation | **Bounded Service with OpenAPI 3.1 / gRPC Contract** | Only split services when repo evidence proves independent deployment/scaling need |
 
-## Implementation Patterns
+### Decision Tree B: Failure & Resilience Matrix
 
-- Keep controller thin: auth, validation, delegation, response mapping.
-- Use service layer for orchestration and business rules.
-- Use repository or data access layer for DB query isolation.
-- Validate payloads with strict schemas and normalize before service entry.
-- Map domain errors to stable API error codes.
-- Adopt structured logging with request IDs and actor context.
-- Add timeout budgets and retry policies per dependency.
-- Use circuit breaker or fallback around unstable external integrations.
-- Implement pagination with deterministic ordering and cursor support.
-- Use explicit transactions for multi-step consistency operations.
-- Keep migration scripts additive and reversible when possible.
-- Use feature flags for risky behavioral changes.
-- Add idempotency guarantees for create-like operations.
-- Maintain compatibility tests for shared API consumers.
-- Instrument performance-critical paths with traces.
+| Failure Signal | Immediate Guardrail | Production Architecture Pattern |
+| --- | --- | --- |
+| Transient downstream timeout (`502/503/504`) | Bounded timeout (`3s–5s`) + exponential backoff with full jitter | Circuit breaker + fallback response or async queue deferral |
+| Duplicate client/webhook submission | Reject or replay cached response via `Idempotency-Key` | Unique DB constraint on `(tenant_id, idempotency_key)` with status state machine |
+| Partial write across DB + external API | Move external call outside DB transaction | Transactional Outbox table + background relay worker |
+| Concurrent balance/inventory update | Optimistic concurrency (`version` column) or `SELECT ... FOR UPDATE` | Atomic conditional update (`UPDATE ... WHERE id = $1 AND version = $2`) |
 
-## Architecture Patterns
+---
 
-### Layered Architecture (recommended default)
+## 3. Production Implementation Patterns (TypeScript Strict)
 
-Controller -> Service -> Repository -> Database  
-Middleware (auth, validation, logging) wraps request flow.
+### A. Thin Controller + Pure Use-Case Service + Explicit DTO Mapper
 
-Rules:
-- Controllers: HTTP parsing and response formatting only. No business logic.
-- Services: business rules, orchestration, validation. No HTTP awareness.
-- Repositories: data access abstraction. No business rules.
-- Never skip layers (controller direct to DB).
+```typescript
+// modules/enrollments/enrollment.controller.ts
+export async function createEnrollmentHandler(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const input = CreateEnrollmentSchema.parse(req.body);
+    const idempotencyKey = req.header("Idempotency-Key");
 
-### Clean Architecture
+    const result = await enrollmentService.enrollCandidate({
+      tenantId: req.actor.tenantId,
+      actorId: req.actor.userId,
+      idempotencyKey,
+      payload: input,
+    });
 
-Entities (core business objects, zero dependencies)  
-Use Cases (application-specific business rules)  
-Interface Adapters (controllers, presenters, gateways)  
-Frameworks and Drivers (Express, Mongoose, PostgreSQL)
-
-Rules:
-- Inner layers never import from outer layers.
-- Dependencies point inward only.
-- Use dependency injection for database and external services.
-
-### Middleware Pipeline Pattern (Express/Koa)
-
-```javascript
-// Order matters: auth -> validate -> rate-limit -> handler -> error-handler
-app.use(cors());
-app.use(helmet());
-app.use(authMiddleware);        // Parse JWT, attach req.user
-app.use(rateLimiter);           // Prevent abuse
-app.use('/api/v1', apiRouter);  // Route handlers
-app.use(errorHandler);          // Centralized error formatting
-```
-
-### Error Handling Pattern
-
-```javascript
-// AppError class for operational errors
-class AppError extends Error {
-  constructor(message, statusCode, code) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
-    this.isOperational = true;
+    return res.status(result.replayed ? 200 : 201).json({
+      data: toEnrollmentDto(result.enrollment),
+      meta: { requestId: req.id, idempotentReplay: result.replayed },
+    });
+  } catch (err) {
+    next(err);
   }
 }
-
-// Use: throw new AppError('User not found', 404, 'USER_NOT_FOUND');
-// Error handler middleware catches and formats consistently.
 ```
 
-### Request Validation Pattern
+### B. Transactional Outbox Pattern (Atomic State + Event Emission)
 
-```javascript
-// Validate at boundary, trust internally
-const createUserSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().min(8).max(128).required(),
-  role: Joi.string().valid('user', 'admin').default('user'),
-});
+```typescript
+// Never call external webhooks/brokers inside a DB transaction.
+// Write both the domain record and the outbox event in the same transaction:
+export async function confirmOrderPayment(db: DatabaseClient, cmd: ConfirmPaymentCmd) {
+  return db.transaction(async (tx) => {
+    const updated = await tx.orders.updateWhere(
+      { id: cmd.orderId, status: "pending_payment" },
+      { status: "paid", paidAt: new Date() },
+    );
+    if (!updated) {
+      throw new AppError("ORDER_STATE_CONFLICT", "Order is already processed or cannot transition to paid", 409);
+    }
 
-// Middleware: validate(createUserSchema) -> req.validated
+    await tx.outboxEvents.insert({
+      aggregateType: "order",
+      aggregateId: cmd.orderId,
+      eventType: "order.paid.v1",
+      payload: { orderId: cmd.orderId, amountCents: updated.amountCents, tenantId: cmd.tenantId },
+      status: "pending",
+    });
+
+    return updated;
+  });
+}
 ```
 
-## Anti-Patterns
+---
 
-1. ❌ Bad: Embedding complex business logic directly in controllers.
-   ✅ Good: Keep controllers focused on input/output orchestration and move business rules into service/domain modules.
+## 4. Backend Anti-Patterns to Reject
 
-2. ❌ Bad: Returning inconsistent response formats across endpoints.
-   ✅ Good: Use a shared response serializer and error mapper so endpoint outputs remain contract-consistent.
+1. **Fat Controllers / Anemic Services:** Mixing SQL/ORM queries, permission checks, and HTTP status formatting inside route handlers.
+2. **Raw Entity Leakage:** Returning `await db.user.findUnique(...)` directly without stripping internal fields (`passwordHash`, internal flags, audit metadata).
+3. **Unbounded `Promise.all` over User Input:** Firing `Promise.all(ids.map(fetchItem))` without concurrency control (`p-limit` or batch query), exhausting DB connection pools.
+4. **Fire-and-Forget Async (`void sendEmail()`):** Dropping promises in request handlers where failures vanish silently without retry or dead-letter visibility.
+5. **Missing Tenant Scope in Queries:** Querying by `id` alone (`WHERE id = $1`) instead of composite tenant isolation (`WHERE id = $1 AND tenant_id = $2`).
 
-3. ❌ Bad: Exposing internal exception details to clients.
-   ✅ Good: Return sanitized error messages with request identifiers and keep stack traces in server logs.
+---
 
-4. ❌ Bad: Mixing authorization logic across multiple layers without ownership.
-   ✅ Good: Centralize authorization checks in a single owned policy layer and call it consistently.
+## 5. Pre-Handoff Verification Checklist
 
-5. ❌ Bad: Running unbounded retries without timeout budgets.
-   ✅ Good: Set bounded retries with jitter, max attempts, and total timeout budgets per dependency.
-
-6. ❌ Bad: Writing raw string-concatenated SQL queries.
-   ✅ Good: Use parameterized queries or query builders to prevent injection and improve query plan reuse.
-
-7. ❌ Bad: Executing schema changes directly in production manually.
-   ✅ Good: Apply schema changes through versioned migrations in the CI/CD pipeline with audit history.
-
-8. ❌ Bad: Ignoring transaction boundaries in multi-write workflows.
-   ✅ Good: Wrap related writes in explicit transactions and rollback on any intermediate failure.
-
-9. ❌ Bad: Shipping endpoints without rate limiting for abusive paths.
-   ✅ Good: Apply route-level rate limits on auth, search, and high-cost endpoints with clear quotas.
-
-10. ❌ Bad: Treating 200 status as success wrapper for failed operations.
-   ✅ Good: Map failures to proper HTTP statuses and keep 2xx responses for successful operations only.
-
-11. ❌ Bad: Logging secrets, tokens, or raw sensitive payloads.
-   ✅ Good: Redact or hash sensitive fields before logging and block raw secret logging in code review.
-
-12. ❌ Bad: Skipping compatibility checks when changing DTO fields.
-   ✅ Good: Run backward-compatibility tests and version adapters when DTO contracts evolve.
-
-13. ❌ Bad: Catching errors broadly and swallowing root cause context.
-   ✅ Good: Catch specific exception types, preserve causal context, and include correlation IDs.
-
-14. ❌ Bad: Ignoring slow-query signals and index health.
-   ✅ Good: Track slow-query metrics, inspect execution plans, and add or tune indexes for repeated hotspots.
-
-## Code Review Checklist
-
-- [ ] Yes/No: Does this change stay within the scope and triggers defined in this reference?
-- [ ] Yes/No: Is each major decision traceable to an explicit if/then or matrix condition in the Decision Tree section?
-- [ ] Yes/No: Are ownership boundaries and dependencies explicit?
-- [ ] Yes/No: Are high-risk failure paths guarded by validations, limits, or fallbacks?
-- [ ] Yes/No: Is there a documented rollback or containment path if production behavior regresses?
-- [ ] Yes/No: Are controllers thin and business logic implemented in services or domain modules?
-- [ ] Yes/No: Are authentication and authorization checks enforced in a single owned boundary?
-- [ ] Yes/No: Are transaction boundaries explicit for every multi-write operation touched?
-- [ ] Yes/No: Are retry, timeout, and rate-limit policies defined for risky endpoints?
-- [ ] Yes/No: Are logs sanitized to prevent PII or secret leakage?
-
-## Testing and Verification Checklist
-
-- [ ] Yes/No: Is there at least one positive-path test that verifies intended behavior?
-- [ ] Yes/No: Is there at least one negative-path test that verifies rejection/failure handling?
-- [ ] Yes/No: Is a regression test added for the highest-risk scenario touched?
-- [ ] Yes/No: Do tests cover boundary inputs and edge conditions relevant to this change?
-- [ ] Yes/No: Are integration boundaries verified where this change crosses module/service/UI layers?
-- [ ] Yes/No: Do integration tests cover the full controller-service-repository path for changed endpoints?
-- [ ] Yes/No: Is transaction rollback verified when one write in a multi-step flow fails?
-- [ ] Yes/No: Are timeout and retry behaviors tested against transient dependency failures?
-- [ ] Yes/No: Do contract compatibility tests catch DTO changes for existing consumers?
-- [ ] Yes/No: Are performance checks or alerts defined for modified heavy queries?
-
-## Cross-References
-
-- `api-design-rules.md` for versioning, pagination, and error envelope policy.
-- `database-rules.md` for schema, indexing, migration, and query safety.
-- `security-rules.md` for threat modeling and auth hardening.
-- `performance-rules.md` for latency budgets and hotspot triage.
-- `testing-rules.md` for layered backend testing strategy.
-- `devops-rules.md` for deployment, rollback, and operational controls.
-- `typescript-rules.md` for typed DTO and contract consistency.
-
-### Scenario Walkthroughs
-
-- Scenario: Checkout workflow writes order, payment, and inventory in one request.
-  - Action: Wrap all writes in one transaction boundary and rollback all writes when payment fails.
-  - Action: Add integration tests that force mid-flow failure and assert no partial persistence remains.
-- Scenario: Public search endpoint receives abusive traffic spikes.
-  - Action: Add route-level rate limiting with per-IP and per-token quotas.
-  - Action: Monitor reject counts and latency to tune limits without breaking legitimate users.
-- Scenario: Legacy client breaks after DTO field rename.
-  - Action: Reintroduce old field alias with deprecation notice and maintain both fields temporarily.
-  - Action: Add compatibility tests against the legacy client contract before full removal.
-
-### Delivery Notes
-
-- Keep release notes for API behavior changes and known caveats.
-- Capture root cause and follow-up actions for reliability incidents.
-- Prefer progressive rollout for high-impact backend contract changes.
-- Validate rollback viability before announcing completion.
-
-- Revalidate this domain checklist after each major release cycle.
-- Capture one representative example per recurring issue class.
-- Ensure cross-reference links stay consistent with routing table updates.
+- [ ] Every endpoint validates body, query, and path params at the boundary before invoking domain services.
+- [ ] Response payloads use explicit DTO mappers matching the `SILC-###` contract—never raw database models.
+- [ ] State-mutating endpoints enforce authorization, tenant isolation, and idempotency/conflict protection (`409 Conflict` / `Idempotency-Key`).
+- [ ] All outbound I/O calls define explicit timeouts and structured correlation logging (`requestId` / `traceId`).

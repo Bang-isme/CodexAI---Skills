@@ -1,148 +1,89 @@
-﻿# Error Handling Patterns
+﻿# Error Handling & Resilience Patterns
 
 ## Scope and Triggers
 
-Use when designing error boundaries, server/client exception handling, retry behavior, and incident visibility.
+Use when designing server/client error boundaries, domain exception hierarchies, retry/circuit-breaker policies, and structured incident telemetry.
 
-## Core Principles
+---
 
-- Classify errors before handling.
-- Keep user-facing messages safe and actionable.
-- Preserve diagnostic context for operators.
-- Never silently swallow errors.
+## 1. Error Taxonomy & Action Matrix
 
-## Error Taxonomy
+Classify every failure into one of four categories before deciding how to handle it:
 
-| Type | Example | Handling |
-| --- | --- | --- |
-| Operational | timeout, validation failure | expected branch + recover |
-| Programming | null dereference, wrong type | fail fast + fix code |
-| External dependency | API outage, DB unavailable | retry/fallback/circuit breaker |
-| Security | auth tampering, invalid signature | block + audit |
+| Category | Examples | HTTP Status | Client Behavior (`SILC-###`) | Operator / Log Action |
+| --- | --- | --- | --- | --- |
+| **1. Domain / Validation (`Operational`)** | Invalid input, insufficient funds, duplicate slug, expired invite | `400 / 409 / 422` | Show inline `fieldErrors` or actionable recovery banner; preserve form state | Log at `warn`/`info` with `requestId` and `code`; never page on-call |
+| **2. Auth / Permission (`Security`)** | Expired JWT, missing scope, cross-tenant access attempt | `401 / 403 / 404` | Redirect to re-auth or show permission-denied state; mask resource existence on cross-tenant `404` | Log security audit event with actor, IP, and target resource |
+| **3. Transient Dependency (`External`)** | Upstream payment gateway timeout, DB connection pool busy, `429` | `502 / 503 / 504` | Show non-destructive retry CTA + preserve user draft | Bounded retry with jitter; trip circuit breaker if error rate exceeds threshold; log at `error` |
+| **4. Programmer / Invariant Bug (`Fatal`)** | Null dereference, schema drift, unhandled promise rejection | `500` | Render safe generic error message + `requestId` for support | Log full stack trace + correlation context at `error`/`fatal`; alert engineering |
 
-## React Error Boundary Pattern
+---
 
-Use for render-time failures in component trees.
+## 2. Backend Domain Error Hierarchy (TypeScript)
 
-Rules:
-- place boundaries around risky feature zones
-- show fallback UI with retry/navigation action
-- log error + component stack to monitoring
+```typescript
+export class AppError extends Error {
+  public readonly code: string;
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+  public readonly fieldErrors?: Array<{ field: string; code: string; message: string }>;
 
-Limitations:
-- does not catch async event handler errors by default
-- does not catch SSR errors on server runtime
+  constructor(
+    code: string,
+    message: string,
+    statusCode = 400,
+    options?: {
+      isOperational?: boolean;
+      fieldErrors?: Array<{ field: string; code: string; message: string }>;
+      cause?: unknown;
+    },
+  ) {
+    super(message, { cause: options?.cause });
+    this.name = "AppError";
+    this.code = code;
+    this.statusCode = statusCode;
+    this.isOperational = options?.isOperational ?? true;
+    this.fieldErrors = options?.fieldErrors;
+  }
+}
 
-## Frontend Try/Catch Strategy
+// Centralized Express/Fastify/Next error boundary
+export function globalErrorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
+  const requestId = req.header("x-request-id") ?? "unknown";
 
-- wrap async actions at use-case boundaries
-- map network/validation/auth errors to typed UI states
-- avoid generic `catch` that discards context
+  if (err instanceof AppError && err.isOperational) {
+    logger.warn({ err, requestId, code: err.code, path: req.path }, "Operational request error");
+    return res.status(err.statusCode).json({
+      error: {
+        code: err.code,
+        title: err.message,
+        status: err.statusCode,
+        requestId,
+        fieldErrors: err.fieldErrors ?? [],
+      },
+    });
+  }
 
-Pattern:
-- `loading`
-- `error`
-- `data`
+  logger.error({ err, requestId, path: req.path }, "Unhandled internal exception");
+  return res.status(500).json({
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      title: "An unexpected error occurred. Please retry or contact support with the request ID.",
+      status: 500,
+      requestId,
+      fieldErrors: [],
+    },
+  });
+}
+```
 
-Maintain all three states explicitly.
+---
 
-## Backend Error Envelope
+## 3. Frontend Error Boundary & Async Recovery (`SILC-###` Consumer)
 
-Standard response fields:
-- `success: false`
-- `code`: stable machine-readable code
-- `message`: safe user-facing text
-- `correlationId`: trace id for support
-
-Never expose stack traces in production responses.
-
-## AppError Pattern
-
-Use explicit domain errors for operational failures.
-
-Fields:
-- `statusCode`
-- `code`
-- `isOperational`
-- optional `details`
-
-Global error middleware maps known errors and logs unknowns.
-
-## Logging Layers
-
-### Application Logs
-
-- request start/end
-- domain decision points
-- handled error branches
-
-### Infrastructure Logs
-
-- load balancer, gateway, db, queue logs
-
-### Correlation
-
-- propagate `correlationId` across services
-- include id in every error log line
-
-## Error Reporting (Sentry-style)
-
-Capture:
-- exception class and stack
-- user/tenant context (redacted)
-- release version
-- environment
-- breadcrumbs/traces
-
-Sampling:
-- 100% for critical auth/payment paths
-- reduced sampling for noisy low-priority errors
-
-## Retry Strategies
-
-Retry only transient errors:
-- 408, 429, 5xx, connection resets
-
-Use:
-- exponential backoff + jitter
-- max attempts (3-5)
-- timeout budget
-
-Do not retry:
-- 4xx validation/auth errors (except 429 with policy)
-
-## Circuit Breaker Integration
-
-- open breaker after threshold failures
-- short-circuit quickly while open
-- half-open trial requests to detect recovery
-
-## Graceful Degradation
-
-- show cached/stale data when fresh fetch fails
-- disable non-critical features during outage
-- provide retry actions and status indicators
-
-## Anti-Patterns
-
-1. Catch-all blocks returning success anyway.
-2. Retrying every error indiscriminately.
-3. Logging full secrets/PII in errors.
-4. Throwing raw dependency errors directly to clients.
-5. No correlation id in distributed systems.
-
-## Testing Error Paths
-
-- unit test domain error mapping
-- integration test dependency failure branches
-- e2e test user-facing fallback flows
-- chaos tests for transient outages
-
-## Review Checklist
-
-- Are errors classified and mapped explicitly?
-- Are user-safe messages separated from internal details?
-- Is global error middleware present and consistent?
-- Are retries bounded and selective?
-- Is monitoring/reporting wired with context?
-- Are critical failure paths covered by tests?
+1. **Scoped UI Error Boundaries:** Wrap independent route segments, charts, and third-party widgets in dedicated Error Boundaries so a single widget failure degrades locally with a `"Retry section"` button instead of crashing the whole app shell.
+2. **Typed Async Result Handling:** Map API responses directly from the `SILC-###` error envelope:
+   - `422` with `fieldErrors` -> bind directly to form field error state and move focus to the first invalid input.
+   - `409 Conflict` -> explain the state conflict and offer to refresh/merge latest server data.
+   - `429 / 503` -> respect `Retry-After` and keep user input intact.
+3. **Never Swallow Errors:** `catch (err) { console.log(err) }` is a blocking quality failure. Every catch block must either recover deterministically, transition UI state to `error`, or rethrow with enriched context.

@@ -187,6 +187,21 @@ def collect_missing_docs(project_root: Path, manifest: Dict[str, Any]) -> List[s
     return missing
 
 
+def collect_stub_docs(project_root: Path, manifest: Dict[str, Any]) -> List[str]:
+    stubs: List[str] = []
+    root = docs_root(project_root)
+    if not root.exists():
+        return stubs
+    for rel_path in expected_doc_paths(manifest):
+        absolute = project_root / rel_path
+        if not absolute.exists():
+            continue
+        text = absolute.read_text(encoding="utf-8", errors="replace")
+        if "Population: stub" in text or text.count("- Not recorded") >= 6:
+            stubs.append(normalize_rel(absolute.relative_to(project_root)))
+    return stubs
+
+
 def collect_stale_docs(project_root: Path, suggestions: List[Dict[str, str]]) -> List[Dict[str, str]]:
     stale: List[Dict[str, str]] = []
     for suggestion in suggestions:
@@ -195,6 +210,15 @@ def collect_stale_docs(project_root: Path, suggestions: List[Dict[str, str]]) ->
         if not changed_path.exists() or not doc_path.exists():
             continue
         doc_text = doc_path.read_text(encoding="utf-8", errors="replace")
+        if "Population: stub" in doc_text or doc_text.count("- Not recorded") >= 6:
+            stale.append(
+                {
+                    "changed_file": suggestion["changed_file"],
+                    "doc": suggestion["doc"],
+                    "reason": "role doc is still an unpopulated template stub",
+                }
+            )
+            continue
         if suggestion["changed_file"] not in doc_text:
             stale.append(
                 {
@@ -228,6 +252,7 @@ def check_role_docs(project_root: Path, changed_files: List[str] | None = None) 
             "overall": "skip",
             "changed_files": [],
             "missing_docs": [],
+            "stub_docs": [],
             "stale_docs": [],
             "suggested_updates": [],
             "summary": "Role docs are not initialized for this project; advisory check skipped.",
@@ -237,8 +262,9 @@ def check_role_docs(project_root: Path, changed_files: List[str] | None = None) 
     for changed_file in files:
         suggestions.extend(map_changed_file(changed_file, manifest))
     missing = collect_missing_docs(project_root, manifest)
+    stubs = collect_stub_docs(project_root, manifest)
     stale = collect_stale_docs(project_root, suggestions)
-    overall = "warn" if missing or stale or suggestions else "pass"
+    overall = "warn" if missing or stale or suggestions or stubs else "pass"
     return {
         "status": "checked",
         "project_root": str(project_root),
@@ -246,6 +272,7 @@ def check_role_docs(project_root: Path, changed_files: List[str] | None = None) 
         "overall": overall,
         "changed_files": files,
         "missing_docs": missing,
+        "stub_docs": stubs,
         "stale_docs": stale,
         "suggested_updates": suggestions,
     }

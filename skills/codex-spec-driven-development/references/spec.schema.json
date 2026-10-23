@@ -10,6 +10,7 @@
     "Goals",
     "Non-Goals",
     "Requirements",
+    "System Integration Contracts (SILC)",
     "Acceptance Criteria",
     "Implementation Tickets",
     "Security Model",
@@ -17,6 +18,17 @@
     "Validation Plan",
     "Traceability"
   ],
+  "silc_contracts": {
+    "id_format": "SILC-001",
+    "required_subfields": [
+      "Seam",
+      "Producer",
+      "Consumer",
+      "Payload / Schema Contract",
+      "Error / Fallback Contract",
+      "Verification"
+    ]
+  },
   "acceptance_criteria": {
     "id_format": "AC-001",
     "required_subfields": ["Files", "Validation"]

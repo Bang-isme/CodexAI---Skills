@@ -76,8 +76,8 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 AWS_KEY_PATTERN = re.compile(r"\bAKIA[0-9A-Z]{16}\b")
 GITHUB_TOKEN_PATTERN = re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")
-# Private key blocks
-PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN\s+(RSA|EC|DSA|OPENSSH|PGP)\s+PRIVATE\s+KEY-----")
+# Private key blocks (including PKCS#8 BEGIN PRIVATE KEY)
+PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN\s+(?:(?:RSA|EC|DSA|OPENSSH|PGP)\s+)?PRIVATE\s+KEY-----")
 # JWT tokens (eyJ prefix = base64 of {"alg":...})
 JWT_PATTERN = re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b")
 # Database connection strings with credentials
@@ -94,13 +94,14 @@ WEBHOOK_PATTERN = re.compile(
 HIGH_ENTROPY_ASSIGNMENT = re.compile(
     r"""(?i)\b(?:api[_-]?key|secret|token|password|credential|auth)\b\s*[:=]\s*["']([A-Za-z0-9+/=_-]{32,})["']"""
 )
-EVAL_CALL_PATTERN = re.compile(r"(^|[^A-Za-z0-9_\"'])eval\s*\(")
-EXEC_CALL_PATTERN = re.compile(r"(^|[^A-Za-z0-9_\"'])exec\s*\(")
+EVAL_CALL_PATTERN = re.compile(r"(?<![A-Za-z0-9_.\"'$])\beval\s*\(")
+EXEC_CALL_PATTERN = re.compile(r"(?<![A-Za-z0-9_.\"'$])\bexec\s*\(")
 HTTP_PATTERN = re.compile(r"http://[^\s\"')`]+")
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME|HACK)\b", re.IGNORECASE)
 CONSOLE_PATTERN = re.compile(r"\bconsole\.(log|debug)\s*\(")
 PRINT_PATTERN = re.compile(r"(^|\s)print\s*\(")
-LOCAL_HTTP_HOSTS = ("http://localhost", "http://127.0.0.1", "http://0.0.0.0")
+LOCAL_HTTP_HOSTS = ("http://localhost", "http://127.0.0.1", "http://0.0.0.0", "http://www.w3.org/", "http://schemas.")
+AWS_DOCUMENTATION_EXAMPLE_KEYS = {"AKIAIOSFODNN7EXAMPLE"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -244,12 +245,12 @@ def read_gitignore_rules(project_root: Path) -> Set[str]:
 
 
 def env_ignored_by_rules(rules: Set[str]) -> bool:
-    accepted = {".env", ".env.*", "*.env", "**/.env", "**/.env.*", ".env.local"}
+    accepted = {".env", ".env*", ".env.*", "*.env", "**/.env", "**/.env*", "**/.env.*", ".env.local"}
     if accepted & rules:
         return True
     for rule in rules:
         lowered = rule.lower()
-        if lowered.endswith("/.env") or lowered.endswith("/.env.*"):
+        if lowered.endswith("/.env") or lowered.endswith("/.env*") or lowered.endswith("/.env.*"):
             return True
     return False
 
@@ -295,7 +296,8 @@ def scan(project_root: Path) -> Dict[str, object]:
                             seen.add(key)
                             critical.append(item)
 
-            if AWS_KEY_PATTERN.search(line):
+            aws_match = AWS_KEY_PATTERN.search(line)
+            if aws_match and aws_match.group(0) not in AWS_DOCUMENTATION_EXAMPLE_KEYS:
                 item = build_issue(rel, idx, "Potential AWS access key exposure", "critical")
                 key = (item["file"], item["line"], item["issue"], item["severity"])
                 if key not in seen:

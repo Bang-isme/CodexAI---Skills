@@ -29,6 +29,29 @@
     "fix": "debug",
     "docs": "handoff"
   },
+  "confirmation_policy": {
+    "needs_confirmation": {
+      "clear_explicit_request_with_no_open_material_decisions": false,
+      "material_ambiguity_without_safe_default": true,
+      "unrequested_destructive_irreversible_high_impact_or_external_action": true,
+      "scope_expansion": true
+    },
+    "authorization": {
+      "explicit_request_authorizes_stated_scope": true,
+      "extends_to_adjacent_work": false,
+      "reversible_defaults_allowed_when_scope_is_clear": true
+    },
+    "plan_only_request": {
+      "stop_after_plan": true
+    },
+    "implementation_request_using_plan": {
+      "proceed_within_authorized_scope": true,
+      "pause_on_unapproved_scope_or_risk": true
+    },
+    "preserved_review_gates": [
+      "A required spec or design review remains a checkpoint when it presents a new artifact or material decision; approval covers only that artifact or decision."
+    ]
+  },
   "overlays": {
     "scrum": {
       "signals": [

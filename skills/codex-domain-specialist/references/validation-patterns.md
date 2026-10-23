@@ -1,125 +1,111 @@
-﻿# Validation Patterns
+﻿# Input Validation & Schema Boundary Patterns
 
 ## Scope and Triggers
 
-Use when handling user input, API requests, form submissions, or data transformation boundaries.
+Use when handling user input, API request payloads, query parameters, environment variables, webhook payloads, or form submissions.
 
 ## Core Principle
 
-Validate at boundaries, trust internally. Every external input is untrusted.
+**Parse, don't just validate.** Every external boundary (HTTP body, query string, URL params, webhook payload, `process.env`, LLM output) is untrusted until parsed through a strict schema that strips unknown keys, normalizes strings, and outputs a static TypeScript/Python type.
 
-## Backend Validation (Joi)
+---
 
-```javascript
-import Joi from 'joi';
+## 1. Shared Contract Validation with Zod (TypeScript Strict)
 
-const schemas = {
-  createUser: Joi.object({
-    email: Joi.string().email().required().max(255).lowercase().trim(),
-    password: Joi.string().min(8).max(128).required()
-      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-      .message('Password must contain lowercase, uppercase, and number'),
-    firstName: Joi.string().trim().min(1).max(100).required(),
-    lastName: Joi.string().trim().min(1).max(100).required(),
-    role: Joi.string().valid('user', 'manager', 'admin').default('user'),
-  }),
+Define schemas once per domain module and infer static types directly so validation rules and TypeScript types never drift:
 
-  updateUser: Joi.object({
-    email: Joi.string().email().max(255).lowercase().trim(),
-    firstName: Joi.string().trim().min(1).max(100),
-    lastName: Joi.string().trim().min(1).max(100),
-  }).min(1),
+```typescript
+import { z } from "zod";
 
-  pagination: Joi.object({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-    sort: Joi.string().valid('createdAt', 'name', 'email').default('createdAt'),
-    order: Joi.string().valid('asc', 'desc').default('desc'),
-    search: Joi.string().trim().max(200).allow(''),
-  }),
-
-  mongoId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).message('Invalid ID format'),
-};
-
-const validate = (schema, source = 'body') => (req, res, next) => {
-  const { error, value } = schema.validate(req[source], {
-    abortEarly: false,
-    stripUnknown: true,
-    convert: true,
+export const CreateCampaignSchema = z
+  .object({
+    name: z.string().trim().min(3, "Campaign name must be at least 3 characters").max(120),
+    slug: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase kebab-case"),
+    budgetCents: z.number().int().min(500, "Minimum budget is 500 cents ($5.00)").max(100_000_000),
+    currency: z.enum(["USD", "EUR", "VND"]),
+    startAt: z.string().datetime({ offset: true }),
+    endAt: z.string().datetime({ offset: true }),
+    tags: z.array(z.string().trim().min(1).max(32)).max(10).default([]),
+  })
+  .strict() // Reject unexpected/injected properties
+  .refine((data) => new Date(data.endAt) > new Date(data.startAt), {
+    path: ["endAt"],
+    message: "End time must be after start time",
   });
 
-  if (error) {
-    return res.status(422).json({
-      success: false,
-      message: 'Validation failed',
-      errors: error.details.map((d) => ({
-        field: d.path.join('.'),
-        message: d.message.replace(/"/g, ''),
-      })),
-    });
-  }
+export type CreateCampaignInput = z.infer<typeof CreateCampaignSchema>;
 
-  req.validated = value;
-  next();
-};
+export const CursorPaginationSchema = z.object({
+  cursor: z.string().trim().max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
 ```
 
-## Frontend Validation (React)
+---
 
-```jsx
-const useFormValidation = (schema) => {
-  const [errors, setErrors] = useState({});
+## 2. Boundary Validation Middleware (`SILC-###` Error Mapping)
 
-  const validate = (data) => {
-    const { error } = schema.validate(data, { abortEarly: false });
-    if (!error) {
-      setErrors({});
-      return true;
+Map schema validation failures directly to the canonical `422 Unprocessable Entity` error envelope with `fieldErrors`:
+
+```typescript
+import { AnyZodObject, ZodError } from "zod";
+import { AppError } from "../errors/app-error";
+
+export function validateRequest(schemas: {
+  body?: AnyZodObject;
+  query?: AnyZodObject;
+  params?: AnyZodObject;
+}) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      if (schemas.body) req.body = schemas.body.parse(req.body);
+      if (schemas.query) req.query = schemas.query.parse(req.query);
+      if (schemas.params) req.params = schemas.params.parse(req.params);
+      next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const fieldErrors = err.issues.map((issue) => ({
+          field: issue.path.join(".") || "root",
+          code: issue.code.toUpperCase(),
+          message: issue.message,
+        }));
+        return next(
+          new AppError("VALIDATION_FAILED", "Request validation failed", 422, { fieldErrors }),
+        );
+      }
+      next(err);
     }
-
-    const fieldErrors = {};
-    error.details.forEach((d) => {
-      fieldErrors[d.path[0]] = d.message.replace(/"/g, '');
-    });
-    setErrors(fieldErrors);
-    return false;
   };
-
-  const clearError = (field) => {
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-  };
-
-  return { errors, validate, clearError };
-};
+}
 ```
 
-## Sanitization Rules
+---
 
-| Input Type | Sanitize | Example |
-| --- | --- | --- |
-| Email | lowercase + trim | `  User@MAIL.com  ` -> `user@mail.com` |
-| String fields | trim | `  John  ` -> `John` |
-| HTML content | escape/strip tags | prevent XSS |
-| File upload | MIME + extension + size validation | do not trust only `Content-Type` |
-| URL params | format checks (ObjectId, UUID, int) | `/users/abc` -> 400 |
-| Search query | trim + max length + regex escaping | avoid ReDoS |
+## 3. Fail-Fast Environment Configuration Validation
 
-## Anti-Patterns
+Never read raw `process.env.SOME_KEY` deep inside business services. Validate all environment variables at process boot:
 
-- Validate only on frontend.
-- Trust uploaded content type headers.
-- Allow unbounded string length.
-- Hand-write fragile regex where library validators exist.
-- Return raw database errors directly.
+```typescript
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  DATABASE_URL: z.string().url(),
+  SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
+});
 
-## Review Checklist
+export const env = EnvSchema.parse(process.env);
+```
 
-- Are all external boundaries validated?
-- Are unknown fields stripped or rejected?
-- Are error responses consistent and safe?
-- Are ids and pagination params validated?
-- Is sanitization done before persistence and rendering?
+---
+
+## 4. Defense-in-Depth Sanitization & Security Rules
+
+1. **Mass-Assignment Prevention:** Always use `.strict()` or explicit field allowlists; never pass raw `req.body` into `db.update()` or `Object.assign()`.
+2. **File Upload Validation:** Validate file size, extension allowlist, and magic-byte MIME signature on the server; store uploaded files with generated UUID names outside the web root or via presigned object storage URLs.
+3. **Webhook Signature Verification:** Verify HMAC cryptographic signatures (`Stripe-Signature`, `X-Hub-Signature-256`) against the raw request buffer before parsing JSON.
+4. **Unicode & Whitespace Normalization:** `.trim()` and normalize user-supplied identifiers (emails, slugs, usernames) before uniqueness checks or database persistence.

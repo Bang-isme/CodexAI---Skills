@@ -27,6 +27,13 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import output_guard as output_guard_script
 import editorial_review as editorial_review_script
+import finding_contract as finding_contract_script
+from _native_test_runners import (
+    discover_node_test_files,
+    discover_unittest_test_files,
+    has_node_test_runner,
+    has_pytest_tests,
+)
 
 
 @dataclass
@@ -132,8 +139,18 @@ def detect_test_command(project_root: Path, is_windows: bool, package_data: Dict
         or contains_pyproject_section(project_root, "[tool.pytest.ini_options]")
         or (project_root / "pytest.ini").exists()
         or (project_root / "conftest.py").exists()
+        or has_pytest_tests(project_root)
     ):
         return make_command([sys.executable, "-m", "pytest"], "pytest", is_windows)
+
+    unittest_tests = discover_unittest_test_files(project_root)
+    node_tests = discover_node_test_files(project_root)
+    if unittest_tests and node_tests:
+        return None
+    if unittest_tests:
+        return make_command([sys.executable, "-m", "unittest", *unittest_tests], "unittest", is_windows)
+    if node_tests or has_node_test_runner(project_root):
+        return make_command(["node", "--test", *node_tests], "node", is_windows)
 
     if (project_root / "tests").is_dir():
         return make_command([sys.executable, "-m", "pytest", "tests"], "pytest", is_windows)
@@ -513,6 +530,21 @@ def build_gate_report(
         effective_deliverable_kind,
         effective_editorial_min_score,
     )
+    finding_contract_result: Dict[str, Any] = {"executed": False, "status": "skipped", "errors": []}
+    if effective_deliverable_kind == "review" and (output_file is not None or output_text is not None):
+        review_source_text = output_text
+        if review_source_text is None and output_file is not None:
+            resolved_review_path = resolve_optional_path(project_root, output_file)
+            review_source_text = read_text(resolved_review_path) if resolved_review_path is not None else ""
+        finding_contract_result = finding_contract_script.validate_review_report(review_source_text or "")
+        finding_contract_result["executed"] = True
+        if not finding_contract_result.get("ok"):
+            contract_errors = [str(err) for err in finding_contract_result.get("errors", []) if str(err).strip()]
+            msg = "Review deliverable failed 4-part finding contract: " + "; ".join(contract_errors[:5])
+            if effective_strict_output:
+                blocking_issues.append(msg)
+            else:
+                warnings.append(msg)
 
     lint_detected = bool(lint_result["detected"])
     test_detected = bool(test_result["detected"])
@@ -536,13 +568,22 @@ def build_gate_report(
         elif editorial_result.get("status") != "pass":
             warnings.append("Written deliverable failed advisory editorial quality checks.")
 
+    mixed_native_runners = bool(
+        discover_unittest_test_files(project_root) and discover_node_test_files(project_root)
+    )
     if not lint_detected and not test_detected and not skip_lint and not skip_test:
-        warnings.append("No lint/test tools detected. Consider adding linting and testing tools to your project.")
+        if mixed_native_runners:
+            warnings.append("Multiple native test runners detected; define one project test script to run both suites.")
+        else:
+            warnings.append("No lint/test tools detected. Consider adding linting and testing tools to your project.")
     else:
         if not lint_detected and not skip_lint:
             warnings.append("No linter detected.")
         if not test_detected and not skip_test:
-            warnings.append("No test runner detected.")
+            if mixed_native_runners:
+                warnings.append("Multiple native test runners detected; define one project test script to run both suites.")
+            else:
+                warnings.append("No supported test runner detected.")
 
     gate_passed = len(blocking_issues) == 0
     return {
@@ -551,6 +592,7 @@ def build_gate_report(
         "test": test_result,
         "output_guard": output_result,
         "editorial_review": editorial_result,
+        "finding_contract": finding_contract_result,
         "strict_output_requested": strict_output,
         "strict_output_effective": effective_strict_output,
         "strict_output": effective_strict_output,
@@ -622,6 +664,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--strict-output", action="store_true", help="Block gate completion when output guard fails")
     parser.add_argument(
         "--deliverable-kind",
+        "--deliverable-type",
+        dest="deliverable_kind",
         choices=("auto", "generic", "plan", "review", "handoff"),
         default="auto",
         help="Deliverable type used for output-quality enforcement (default: auto)",

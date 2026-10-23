@@ -1,108 +1,67 @@
-﻿# Caching Patterns
+﻿# Caching, Singleflight & Stampede Protection Patterns
 
 ## Scope and Triggers
 
-Use when optimizing read-heavy endpoints, reducing database load, or implementing session/token storage.
+Use when optimizing read-heavy endpoints, reducing database load, caching computed aggregations, or managing distributed session/rate-limit state.
 
-## Core Principles
+---
 
-- Cache is acceleration, not storage: always have a fallback to source.
-- Set TTL on everything: no immortal cache entries.
-- Invalidate on write: stale data is a bug.
-- Monitor hit ratio: below 70% usually means strategy issues.
+## 1. Core Caching Principles
 
-## Cache-Aside Pattern (most common)
+1. **Cache Is an Ephemeral Accelerator, Never the Source of Truth:** The system must remain functionally correct (though slower) if the cache is completely cold or unavailable.
+2. **Every Key Requires an Explicit TTL + Jitter:** Immortal keys leak memory and serve stale data forever. Add ±10% random TTL jitter (`ttl + random(-30, 30)`) to prevent mass synchronized expiration (thundering herd).
+3. **Namespace & Tenant-Scope Every Key:** Format keys as `<env>:<tenantId>:<domain>:<entityId>:v<schemaVersion>` (e.g., `prod:t_89:campaign:c_42:v2`). Never store tenant-specific data under a global un-scoped key.
+4. **Protect Hot Keys with Singleflight (Request Coalescing):** When a hot cache key expires under high concurrency, coalesce concurrent in-process misses into a single database query.
 
-Request -> Check Cache -> HIT -> Return cached data -> MISS -> Query DB -> Store in cache (with TTL) -> Return.
+---
 
-```javascript
-const getUser = async (userId) => {
-  const cacheKey = `user:${userId}`;
+## 2. Cache-Aside + Singleflight (Anti-Stampede Pattern)
 
-  // 1. Try cache
+```typescript
+const inflightRequests = new Map<string, Promise<unknown>>();
+
+export async function getOrSetCache<T>(
+  cacheKey: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  // 1. Fast path: check Redis cache
   const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached !== null) {
+    return JSON.parse(cached) as T;
+  }
 
-  // 2. Cache miss -> query DB
-  const user = await User.findById(userId).lean();
-  if (!user) return null;
+  // 2. Singleflight: coalesce concurrent misses for the same key within this process
+  const existing = inflightRequests.get(cacheKey) as Promise<T> | undefined;
+  if (existing) {
+    return existing;
+  }
 
-  // 3. Store with TTL
-  await redis.setEx(cacheKey, 300, JSON.stringify(user)); // 5 min TTL
-  return user;
-};
+  const promise = (async () => {
+    try {
+      const fresh = await fetcher();
+      if (fresh !== null && fresh !== undefined) {
+        const jitter = Math.floor(ttlSeconds * 0.1 * (Math.random() * 2 - 1));
+        await redis.setEx(cacheKey, Math.max(1, ttlSeconds + jitter), JSON.stringify(fresh));
+      }
+      return fresh;
+    } finally {
+      inflightRequests.delete(cacheKey);
+    }
+  })();
 
-// 4. Invalidate on write
-const updateUser = async (userId, data) => {
-  const user = await User.findByIdAndUpdate(userId, data, { new: true });
-  await redis.del(`user:${userId}`); // invalidate cache
-  return user;
-};
+  inflightRequests.set(cacheKey, promise);
+  return promise;
+}
 ```
 
-## TTL Strategy
+---
 
-| Data Type | TTL | Reason |
+## 3. Cache Invalidation & Negative Caching Matrix
+
+| Scenario | Recommended Pattern | Why |
 | --- | --- | --- |
-| User session | 30 min | Security |
-| API token validation | 5 min | Balance freshness/performance |
-| Dashboard summary | 15-60 min | Expensive to compute |
-| Config/settings | 10 min | Changes are rare |
-| Static lookup (countries) | 24 hours | Almost never changes |
-| Search results | 2-5 min | Stale is acceptable briefly |
-
-## Invalidation Patterns
-
-### Write-Through
-
-Write -> Update DB -> Update Cache -> Return.
-
-Pros: cache is fresh after writes.  
-Cons: write latency increases.
-
-### Write-Behind (async)
-
-Write -> Update Cache -> Return -> (async) Update DB.
-
-Pros: faster writes.  
-Cons: data loss risk on crash before DB write.
-
-### Event-Based Invalidation
-
-Write -> Update DB -> Publish event -> Cache subscriber invalidates.
-
-Best for microservices and distributed caches.
-
-## Anti-Patterns
-
-- Bad: cache without TTL -> memory leak and stale data forever.
-- Bad: cache user-specific data in shared keys -> data leak risk.
-- Bad: cache huge payloads (>1MB per key) -> Redis memory pressure.
-- Bad: cache stampede on misses.
-- Good: singleflight/mutex so only first miss hits DB.
-
-## In-Memory vs Redis
-
-| Feature | In-Memory (Map/LRU) | Redis |
-| --- | --- | --- |
-| Speed | Fastest (~1us) | Fast (~1ms) |
-| Shared across instances | No | Yes |
-| Persistence | Lost on restart | Optional |
-| Best for | Single-process, small data | Multi-instance, sessions, queues |
-
-## Observability
-
-Track and alert on:
-- hit ratio
-- miss ratio
-- evictions
-- key size outliers
-- latency p95/p99 for cache operations
-
-## Review Checklist
-
-- Is TTL defined for each key family?
-- Is invalidation implemented for every write path?
-- Is stale fallback behavior explicit?
-- Are keys namespaced and tenant-safe?
-- Is cache hit ratio measured and reviewed?
+| **Standard CRUD Entity Read/Write** | **Cache-Aside + Delete-on-Write** (`await redis.del(key)` after DB commit) | Deleting on write avoids race conditions where two concurrent writes overwrite cache out of order |
+| **Repeated Queries for Non-Existent IDs** (Cache Penetration attack) | **Negative Caching** (store sentinel `"__NULL__"` with short `30s–60s` TTL) | Prevents attackers or broken clients from bypassing cache and hammering the database with misses |
+| **Expensive Dashboard Aggregations** | **Stale-While-Revalidate (Soft TTL + Hard TTL)** | Serve slightly stale data immediately while refreshing asynchronously in the background |
+| **Immutable Reference Data** | **In-Memory LRU + Versioned Key** | Ultra-fast sub-millisecond access without network hop |

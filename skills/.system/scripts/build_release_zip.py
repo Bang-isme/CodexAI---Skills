@@ -29,7 +29,7 @@ EXCLUDED_FILE_NAMES = {
     ".codex-system-skills.marker",
 }
 EXCLUDED_RELATIVE_PREFIXES = {
-    "docs/superpowers/",
+    "docs/internal/",
 }
 EXCLUDED_SUFFIXES = {
     ".pyc",
@@ -46,7 +46,6 @@ DEFAULT_ALLOWED_TOP_LEVEL = {
     ".cursor-plugin",
     ".coveragerc",
     "antigravity",
-    "THIRD_PARTY_NOTICES.md",
     "hooks",
     "skills",
     ".editorconfig",

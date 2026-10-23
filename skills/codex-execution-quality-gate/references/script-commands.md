@@ -130,6 +130,13 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - Run tests:
   `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\playwright_runner.py" --project-root <path> --mode run --browser chromium`
 
+### Finding Contract, Shortcut Ledger, Safety Self-Test, and Live Assets
+
+- `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\finding_contract.py" --file <review.md> --format json`
+- `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\shortcut_ledger.py" --project-root <path> --format json`
+- `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\safety_selftest.py" --format json`
+- `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\verify_live_assets.py" --project-root <path> --manifest <manifest.json> --format json`
+
 ### Server Lifecycle Helper Command
 
 - `python "<SKILLS_ROOT>\codex-execution-quality-gate\scripts\with_server.py" --help`

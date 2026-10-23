@@ -19,15 +19,96 @@ Treat motion as progressive enhancement: essential content is visible and contro
 
 - For one coordinated pinned/scrubbed scene, use a **single timeline or progress controller** as its source of truth. Drive child motion from that normalized progress and timeline labels; avoid unrelated ScrollTriggers that compete for the same elements or scene.
 - Derive the pin span from meaningful mapped stages and the actual content. There is no default `300%` length. Prefer no pin when a simple reveal, sticky layout, or native sequence carries the same information.
-- Scrub is directly linked when `scrub: true`; a numeric scrub intentionally adds catch-up lag. Select based on the scene and device, then verify it does not feel disconnected from the user's input. Scroll-linked tweens commonly use `ease: "none"` for predictable progress; ordinary time-based UI motion can use a purposeful easing curve.
+- Scrub is directly linked when `scrub: true`; a numeric scrub intentionally adds catch-up lag and must sit in `0.8–1.4`. Below 0.8 the scene jitters with the scrollbar. Above 1.4 it feels disconnected from the user's input. Scroll-linked tweens commonly use `ease: "none"` for predictable progress; ordinary time-based UI motion can use a purposeful easing curve. Do not animate `width`, `height`, or `top` on a scroll-linked tween.
 - Snapping is opt-in. Keep it subtle and interruptible, and preserve ordinary scroll and direct navigation.
-- Use `gsap.matchMedia()` when separate responsive or `prefers-reduced-motion` setups are needed. Keep the same story and controls in a stable reduced-motion mode; desktop choreography may be simplified or replaced on mobile. Avoid duplicating setup when only a small value changes.
+- Use `gsap.matchMedia()` when separate responsive or `prefers-reduced-motion` setups are needed. Keep the same story and controls in a stable reduced-motion mode that renders a designed still frame, not a `0.01ms` animation of a hidden initial state; desktop choreography may be simplified or replaced on mobile. Avoid duplicating setup when only a small value changes.
 - Give each component/scene local ownership. For component cleanup in React, use the project's supported `useGSAP()` or a scoped GSAP context; clean it up with `context.revert()` (or the hook's cleanup). Remove event listeners and custom render loops in the same owner. Do not kill every ScrollTrigger on route leave unless this module owns every instance.
 - Refresh measurements after a layout/content change that affects trigger positions; do not call global refresh on every render. Keep development markers/debug progress out of production.
 
 These lifecycle APIs are documented by GSAP: [matchMedia](https://gsap.com/docs/v3/GSAP/gsap.matchMedia/), [context](https://gsap.com/docs/v3/GSAP/gsap.context/), and [ScrollTrigger](https://gsap.com/docs/v3/Plugins/ScrollTrigger/).
 
 ---
+
+## Numerical bands and the chapter scroll-state contract
+
+The user-facing bands live in `../../codex-frontend-design/references/motion.md`. Implementation uses the same numbers. An out-of-band duration, stagger, travel distance, or scrub lag fails unless the brief records an exception. Caps are strict.
+
+| Job | Band | Bug prevented |
+| --- | --- | --- |
+| Control feedback | `120–220ms` | Dropped presses, or a control that stays busy after release |
+| Toggle, popover, toast | `180–320ms` | A surface that vanishes before the eye acquires it, or lags the next gesture |
+| Section entrance | `400–800ms` | Flash cuts, or entrances that delay reading |
+| Editorial masks | `500–760ms` | A clipped type reveal, or a headline held hostage |
+| Hero sequence | `800–1600ms` with at least two internal beats | One undifferentiated fade, or a sequence that outlasts the claim |
+| Scroll scrub lag | `0.8–1.4` | Scrollbar jitter, or a scene disconnected from input |
+| Word / line / card stagger | `0.035–0.07s` / `0.08–0.14s` / `0.06–0.10s` | Block fades, typewriter copy, or a cascade that delays scanning |
+| Reveal travel | `12–24px` product UI; `24–48px` narrative | Invisible motion, or a slide that reads as a scene change |
+| Text blur reveal | `4–10px` resolving to `0px` | A no-op blur, illegible type, or a headline that stays soft |
+| Hover | scale `< 1.03`, tilt `< 4deg`, travel `< 16px` | Pointer chase and layout shift |
+| Parallax | `< 5%` of viewport travel | Layer drift and vection |
+| Reveal trigger | `20–30%` visible, or `start: "top 82%"` | Offscreen starts, or a reveal that fires after the block was already read |
+
+A utility or `operate` page that staggers every card fails even inside the card band. Scroll-linked tweens use `x`, `y`, `scale`, `rotation`, and `opacity`. Animating `width`, `height`, or `top` on scroll fails the contract.
+
+### Horizontal & Pinned Chapter Scroll-State Contract
+
+Scroll position is the sole state source. One pure function owns normalized progress, using the live viewport so a mobile URL bar cannot drift the scene:
+
+```javascript
+function scrollProgress(scrollY, scrollHeight, innerHeight) {
+  const travel = scrollHeight - innerHeight;
+  if (travel <= 0) return 0;
+  return Math.min(1, Math.max(0, scrollY / travel));
+}
+```
+
+`progress = scrollY / (scrollHeight - innerHeight)`. Default scene cadence is dwell `1.15` screens and move `0.85` screens. Track length is `(span + 1) * 100vh`. Scene weight stays inside `0.7–1.8` viewport heights unless the brief records an exception.
+
+The active chapter index flips at progress `0.39`, not `0.50`. For later chapters, `threshold(i) = (i - 1 + 0.39) / (chapter_count - 1)`. Drive the index from that threshold inside the single timeline or progress controller. Do not keep a second scroll listener that derives a different index.
+
+Hidden chapters must set `inert`, not only `opacity: 0`. An opacity tween that leaves the chapter in the tab order traps keyboard focus. When a chapter's resolved opacity is 0, set `inert` in the same update that hides it, and remove `inert` when it becomes the active chapter.
+
+```javascript
+function syncChapter(chapter, active) {
+  const hidden = !active;
+  gsap.set(chapter, { autoAlpha: hidden ? 0 : 1 });
+  chapter.toggleAttribute("inert", hidden);
+}
+```
+
+Disable `scroll-behavior: smooth` on `html` during programmatic jumps and capture jumps so screenshots never land mid-transition:
+
+```javascript
+function jumpForCapture(y) {
+  const root = document.documentElement;
+  const previous = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
+  window.scrollTo(0, y);
+  root.style.scrollBehavior = previous;
+}
+```
+
+Fast-skip across multiple scenes plays only the final transition. Forward scroll, reverse scroll, direct anchor jump, and reload at depth must produce the identical scene signature. Build that signature from progress, the active index, and chapter ids. Do not fold scroll direction into it.
+
+Reduced motion seeks the timeline to the designed still frame (`gsap.set` the resolved opacity, transform, and blur) and does not play a `0.01ms` tween from a hidden `from()` state.
+
+### Runtime clamp and profiling ablation
+
+Clamp `dt <= 1/30s` (a resumed tab must not integrate a multi-second step). Cap `devicePixelRatio <= 2`. Pause the ticker when `document.hidden` or the canvas is offscreen, and keep `offscreen running animations == 0`.
+
+```javascript
+const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+gsap.ticker.add((time, deltaTime) => {
+  if (document.hidden || canvasOffscreen) return;
+  const dt = Math.min(deltaTime / 1000, 1 / 30);
+  integrateScene(dt);
+});
+```
+
+Deterministic profiling ablation order, stopping at the first step that recovers the frame: lower DPR -> disable post-processing -> freeze shadows -> disable particles -> hide groups -> swap LOD -> replace materials.
+
+---
+
 
 ## 1. Core Architecture — Tweens & Timelines
 
@@ -81,7 +162,7 @@ const tl = gsap.timeline({
   defaults: {
     duration: 0.8,
     ease: "power3.out",
-    stagger: 0.05,
+    stagger: 0.08,
   },
   paused: true,       // Don't auto-play (useful for ScrollTrigger or manual control)
   onComplete: () => { /* cleanup */ },
@@ -157,13 +238,13 @@ These are API modes, not a recipe to combine them. In particular, do not add pin
 ```javascript
 gsap.utils.toArray(".reveal").forEach((el) => {
   gsap.from(el, {
-    y: 60,
+    y: 20,
     opacity: 0,
     duration: 1,
     ease: "power3.out",
     scrollTrigger: {
       trigger: el,
-      start: "top 85%",   // trigger when top of el hits 85% of viewport
+      start: "top 82%",   // top of el at 82% of the viewport, inside the reveal band
       toggleActions: "play none none none",
     },
   });
@@ -174,7 +255,7 @@ gsap.utils.toArray(".reveal").forEach((el) => {
 
 ```javascript
 gsap.to(".bg-layer", {
-  yPercent: -30,
+  yPercent: -4,        // stay under 5% of viewport travel
   ease: "none",
   scrollTrigger: {
     trigger: ".parallax-section",
@@ -210,7 +291,7 @@ const storytl = gsap.timeline({
   scrollTrigger: {
     trigger: ".story-section",
     pin: true,
-    scrub: 0.5,
+    scrub: 1,            // numeric lag stays inside 0.8–1.4
     start: "top top",
     end: "bottom top",    // derive the scene's span from its real layout; avoid copied 300% durations
   },
@@ -578,10 +659,10 @@ ScrollTrigger.batch(".reveal-item", {
   onEnter: (batch) => gsap.to(batch, {
     opacity: 1,
     y: 0,
-    stagger: 0.05,
+    stagger: 0.08,
     ease: "power3.out",
   }),
-  start: "top 85%",
+  start: "top 82%",
 });
 
 // Refresh after dynamic content load
@@ -607,8 +688,8 @@ function HeroSection() {
     // All GSAP code here is auto-scoped to container
     // Auto-reverts on unmount (no manual cleanup needed)
     const tl = gsap.timeline();
-    tl.from(".title", { y: 100, opacity: 0, duration: 1 })
-      .from(".subtitle", { y: 50, opacity: 0, duration: 0.8 }, "-=0.5");
+    tl.from(".title", { y: 24, opacity: 0, duration: 1 })
+      .from(".subtitle", { y: 16, opacity: 0, duration: 0.8 }, "-=0.5");
   }, { scope: container }); // Scope all selectors to this ref
 
   return (
@@ -626,7 +707,7 @@ function HeroSection() {
 useEffect(() => {
   const ctx = gsap.context(() => {
     // All animations created here are tracked
-    gsap.from(".box", { x: -100 });
+    gsap.from(".box", { x: -16 });
     ScrollTrigger.create({ /* ... */ });
   }, containerRef);
 
@@ -665,10 +746,10 @@ heroTl
 ```javascript
 ScrollTrigger.batch(".grid-item", {
   onEnter: (batch) => gsap.fromTo(batch, 
-    { y: 60, opacity: 0, scale: 0.95 },
+    { y: 20, opacity: 0, scale: 0.95 },
     { y: 0, opacity: 1, scale: 1, stagger: 0.08, duration: 0.8, ease: "power3.out" }
   ),
-  start: "top 90%",
+  start: "top 82%",
 });
 ```
 
@@ -745,7 +826,7 @@ gsap.to(currentFrame, {
   scrollTrigger: {
     trigger: ".sequence-section",
     pin: true,
-    scrub: 0.5,
+    scrub: 1,            // numeric lag stays inside 0.8–1.4
     start: "top top",
     end: "+=500%",
   },

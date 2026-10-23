@@ -80,9 +80,7 @@ Read `references/project-memory-tools.json` (schema `2.0`) for:
 
 Do not scrape prose from `script-commands.md` for automation; use the JSON manifest and `references/output-schemas.md` for field shapes.
 
-## Scale SLA (medium → very large repos)
-
-See `references/scale-sla.md` for tier definitions and `run_scale_gate.py` report fields. It suggests schedules for a consuming repository; the source pack does not ship those scheduled jobs.
+## Scale guidelines (medium -> very large repos)
 
 Quick rules:
 

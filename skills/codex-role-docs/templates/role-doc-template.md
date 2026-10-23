@@ -1,12 +1,20 @@
 # {{title}}
 
+Doc-ID: {{doc_id}}
 Owner role: {{role}}
 Owner agents: {{owner_agents}}
+Stage: Stage 0: From-Scratch Bootstrap
+Population: stub
+Linked-Spec: None
+Linked-AC: None
+Linked-SILC: None
 Last updated: {{date}}
 
 ## Purpose
 
 {{purpose}}
+
+{{domain_blueprint}}
 
 ## Current Decisions
 
@@ -38,4 +46,4 @@ Last updated: {{date}}
 
 ## Update Log
 
-- {{date}}: Initialized {{title}}.
+- {{date}}: Initialized {{title}} (`Stage 0: From-Scratch Bootstrap`).

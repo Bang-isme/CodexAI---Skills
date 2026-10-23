@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""Scaffold and run DESIGN.md contract workflows."""
+"""Native CodexAI DESIGN.md contract engine: scaffold, lint, diff, export, and spec."""
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional
 
 try:
     import yaml
@@ -18,7 +15,6 @@ except ModuleNotFoundError:  # pragma: no cover - exercised in clean Python envi
     yaml = None  # type: ignore[assignment]
 
 
-SOURCE_REPO_ENV_VAR = "CODEX_DESIGN_MD_SOURCE_REPO"
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 TEMPLATE_PATH = SKILL_DIR / "assets" / "design-md-template.md"
@@ -59,7 +55,7 @@ def is_allowed_color(value: str) -> bool:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Scaffold and run DESIGN.md contract workflows from the CodexAI skill pack.",
+        description="Scaffold and validate DESIGN.md contracts with the native CodexAI engine.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -75,47 +71,28 @@ def parse_args() -> argparse.Namespace:
     scaffold.add_argument("--force", action="store_true", help="Overwrite the target file if it already exists")
     scaffold.add_argument("--format", choices=("json", "markdown"), default="json", help="Output format")
 
-    doctor = subparsers.add_parser("doctor", help="Report available DESIGN.md runtimes and source paths.")
-    doctor.add_argument(
-        "--source-repo",
-        default="",
-        help=f"Optional path to an upstream design.md source repo. If omitted, auto-discovery checks `{SOURCE_REPO_ENV_VAR}` and nearby folders.",
-    )
-    doctor.add_argument("--prefer", choices=("auto", "local", "npx"), default="auto", help="Runner preference")
+    doctor = subparsers.add_parser("doctor", help="Report native CodexAI DESIGN.md contract engine readiness.")
     doctor.add_argument("--format", choices=("json", "text"), default="json", help="Output format")
 
     lint = subparsers.add_parser("lint", help="Validate a DESIGN.md contract.")
     lint.add_argument("file", help="Path to DESIGN.md")
     lint.add_argument("--format", default="json", help="Output format: json or text")
-    add_proxy_common_args(lint)
 
     diff = subparsers.add_parser("diff", help="Compare two DESIGN.md contracts.")
     diff.add_argument("before", help="Before DESIGN.md path")
     diff.add_argument("after", help="After DESIGN.md path")
     diff.add_argument("--format", default="json", help="Output format: json or text")
-    add_proxy_common_args(diff)
 
-    export = subparsers.add_parser("export", help="Export DESIGN.md tokens to other formats.")
+    export = subparsers.add_parser("export", help="Export DESIGN.md tokens to Tailwind or DTCG formats.")
     export.add_argument("file", help="Path to DESIGN.md")
     export.add_argument("--format", choices=("tailwind", "dtcg"), required=True, help="Export format")
-    add_proxy_common_args(export)
 
     spec = subparsers.add_parser("spec", help="Print the DESIGN.md specification.")
-    spec.add_argument("--rules", action="store_true", help="Append bundled lint-rule descriptions")
-    spec.add_argument("--rules-only", action="store_true", help="Output only bundled lint-rule descriptions")
+    spec.add_argument("--rules", action="store_true", help="Append native lint-rule descriptions")
+    spec.add_argument("--rules-only", action="store_true", help="Output only native lint-rule descriptions")
     spec.add_argument("--format", choices=("markdown", "json"), default="markdown", help="Output format")
-    add_proxy_common_args(spec)
 
     return parser.parse_args()
-
-
-def add_proxy_common_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--source-repo",
-        default="",
-        help=f"Optional path to an upstream design.md source repo. If omitted, auto-discovery checks `{SOURCE_REPO_ENV_VAR}` and nearby folders.",
-    )
-    parser.add_argument("--prefer", choices=("auto", "local", "npx"), default="auto", help="Runner preference")
 
 
 def emit(payload: Dict[str, object], fmt: str) -> None:
@@ -126,125 +103,16 @@ def emit(payload: Dict[str, object], fmt: str) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def is_upstream_source_repo(candidate: Path) -> bool:
-    if not candidate.exists():
-        return False
-    has_spec = (candidate / "docs" / "spec.md").exists()
-    has_cli = (
-        (candidate / "packages" / "cli" / "src" / "index.ts").exists()
-        or (candidate / "packages" / "cli" / "dist" / "index.js").exists()
-    )
-    return has_spec and has_cli
-
-
-def resolve_source_repo(source_repo_arg: str) -> Optional[Path]:
-    explicit = source_repo_arg.strip()
-    if explicit:
-        return Path(explicit).expanduser().resolve()
-
-    env_value = os.environ.get(SOURCE_REPO_ENV_VAR, "").strip()
-    if env_value:
-        return Path(env_value).expanduser().resolve()
-
-    search_roots: List[Path] = [Path.cwd().resolve(), *Path.cwd().resolve().parents, *SCRIPT_DIR.resolve().parents]
-    seen: set[Path] = set()
-    for root in search_roots:
-        if root in seen:
-            continue
-        seen.add(root)
-        if is_upstream_source_repo(root):
-            return root
-        for child_name in ("design.md-main", "design.md"):
-            candidate = root / child_name
-            if is_upstream_source_repo(candidate):
-                return candidate.resolve()
-    return None
-
-
-def detect_runtime_paths(source_repo: Optional[Path]) -> Dict[str, object]:
-    node_path = shutil.which("node")
-    npx_path = shutil.which("npx")
-    bun_path = shutil.which("bun")
-    local_dist = source_repo / "packages" / "cli" / "dist" / "index.js" if source_repo else None
-    local_src = source_repo / "packages" / "cli" / "src" / "index.ts" if source_repo else None
-    local_spec = source_repo / "docs" / "spec.md" if source_repo else None
+def build_doctor_payload() -> Dict[str, object]:
+    spec_summary = SKILL_DIR / "references" / "spec-essentials.md"
     return {
-        "source_repo": str(source_repo) if source_repo else "",
-        "source_exists": source_repo.exists() if source_repo else False,
-        "node_path": node_path or "",
-        "npx_path": npx_path or "",
-        "bun_path": bun_path or "",
-        "local_dist": str(local_dist) if local_dist else "",
-        "local_dist_exists": local_dist.exists() if local_dist else False,
-        "local_src": str(local_src) if local_src else "",
-        "local_src_exists": local_src.exists() if local_src else False,
-        "local_spec": str(local_spec) if local_spec else "",
-        "local_spec_exists": local_spec.exists() if local_spec else False,
-    }
-
-
-def resolve_upstream_runner(source_repo: Optional[Path], prefer: str) -> tuple[Optional[List[str]], str]:
-    runtime = detect_runtime_paths(source_repo)
-    node_path = str(runtime["node_path"])
-    npx_path = str(runtime["npx_path"])
-    bun_path = str(runtime["bun_path"])
-
-    local_candidates: List[tuple[List[str], str]] = []
-    if runtime["local_dist_exists"] and node_path:
-        local_candidates.append(([node_path, str(runtime["local_dist"])], "local-dist"))
-    if runtime["local_src_exists"] and bun_path:
-        local_candidates.append(([bun_path, "run", str(runtime["local_src"])], "local-bun"))
-
-    npx_candidate: Optional[tuple[List[str], str]] = None
-    if npx_path:
-        npx_candidate = (
-            [npx_path, "--yes", "--package", "@google/design.md", "design.md"],
-            "npx-package",
-        )
-
-    if prefer == "local":
-        if local_candidates:
-            return local_candidates[0]
-        return None, "local-unavailable"
-    if prefer == "npx":
-        if npx_candidate:
-            return npx_candidate
-        return None, "npx-unavailable"
-
-    if local_candidates:
-        return local_candidates[0]
-    if npx_candidate:
-        return npx_candidate
-    return None, "no-upstream-runner"
-
-
-def build_doctor_payload(source_repo: Optional[Path], prefer: str) -> Dict[str, object]:
-    runtime = detect_runtime_paths(source_repo)
-    runner, runner_kind = resolve_upstream_runner(source_repo, prefer)
-    payload: Dict[str, object] = {
         "status": "checked",
-        "bundled_engine": True,
-        "source_repo_env_var": SOURCE_REPO_ENV_VAR,
-        "source_repo": {
-            "path": str(source_repo) if source_repo else "",
-            "exists": runtime["source_exists"],
-        },
-        "local_repo": {
-            "dist_available": runtime["local_dist_exists"],
-            "src_available": runtime["local_src_exists"],
-            "spec_available": runtime["local_spec_exists"],
-        },
-        "runtimes": {
-            "node": bool(runtime["node_path"]),
-            "npx": bool(runtime["npx_path"]),
-            "bun": bool(runtime["bun_path"]),
-        },
-        "selected_runner": "bundled-python" if prefer == "auto" else runner_kind,
-        "selected_command": [] if prefer == "auto" else (runner or []),
-        "upstream_runner": runner_kind,
-        "upstream_command": runner or [],
+        "native_engine": True,
+        "engine": "codexai-native-python",
+        "template_exists": TEMPLATE_PATH.exists(),
+        "spec_exists": spec_summary.exists(),
+        "yaml_parser": "pyyaml" if yaml is not None else "builtin-simple-yaml",
     }
-    return payload
 
 
 def normalize_newlines(content: str) -> str:
@@ -548,45 +416,12 @@ def render_text_diff(payload: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def run_upstream_capture(base_command: Sequence[str], extra_args: Sequence[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [*base_command, *extra_args],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-
-
-def maybe_emit_upstream(result: subprocess.CompletedProcess[str]) -> bool:
-    stdout = (result.stdout or "").strip()
-    stderr = (result.stderr or "").strip()
-    if result.returncode != 0:
-        if result.stdout:
-            sys.stdout.write(result.stdout)
-        if result.stderr:
-            sys.stderr.write(result.stderr)
-        return True
-    if stdout:
-        sys.stdout.write(result.stdout)
-        if result.stderr:
-            sys.stderr.write(result.stderr)
-        return True
-    if stderr:
-        sys.stderr.write(result.stderr)
-    return False
-
-
-def render_spec_payload(source_repo: Optional[Path], include_rules: bool, rules_only: bool) -> Dict[str, Any]:
-    spec_path = source_repo / "docs" / "spec.md" if source_repo else None
-    fallback_summary_path = SKILL_DIR / "references" / "spec-essentials.md"
-    if spec_path and spec_path.exists():
+def render_spec_payload(include_rules: bool, rules_only: bool) -> Dict[str, Any]:
+    spec_path = SKILL_DIR / "references" / "spec-essentials.md"
+    if spec_path.exists():
         spec_text = spec_path.read_text(encoding="utf-8")
-    elif fallback_summary_path.exists():
-        spec_text = fallback_summary_path.read_text(encoding="utf-8")
     else:
-        spec_text = "# DESIGN.md Format\n\nBundled spec summary is not available.\n"
+        spec_text = "# DESIGN.md Format\n\nNative spec summary is not available.\n"
     rules = [
         {"name": "broken-ref", "severity": "error", "description": "Token references must resolve to a defined token."},
         {"name": "duplicate-section", "severity": "error", "description": "Recognized sections cannot appear more than once."},
@@ -645,7 +480,7 @@ def handle_scaffold(args: argparse.Namespace) -> int:
     return 0
 
 
-def execute_bundled(args: argparse.Namespace) -> int:
+def execute_native(args: argparse.Namespace) -> int:
     if args.command == "lint":
         report = lint_content(load_file(args.file))
         if args.format == "text":
@@ -690,17 +525,17 @@ def execute_bundled(args: argparse.Namespace) -> int:
         return 1 if report["summary"]["errors"] > 0 else 0
 
     if args.command == "spec":
-        payload = render_spec_payload(resolve_source_repo(args.source_repo), args.rules, args.rules_only)
+        payload = render_spec_payload(args.rules, args.rules_only)
         if args.format == "markdown":
             if args.rules_only:
-                lines = ["## Bundled Lint Rules", ""]
+                lines = ["## Native Lint Rules", ""]
                 for rule in payload["rules"]:
                     lines.append(f"- `{rule['name']}` ({rule['severity']}): {rule['description']}")
                 sys.stdout.write("\n".join(lines) + "\n")
             else:
                 sys.stdout.write(payload["spec"])
                 if args.rules:
-                    sys.stdout.write("\n\n## Bundled Lint Rules\n\n")
+                    sys.stdout.write("\n\n## Native Lint Rules\n\n")
                     for rule in payload["rules"]:
                         sys.stdout.write(f"- `{rule['name']}` ({rule['severity']}): {rule['description']}\n")
                 if not payload["spec"].endswith("\n"):
@@ -710,38 +545,6 @@ def execute_bundled(args: argparse.Namespace) -> int:
         return 0
 
     raise ValueError(f"Unsupported command: {args.command}")
-
-
-def handle_proxy(args: argparse.Namespace) -> int:
-    source_repo = resolve_source_repo(args.source_repo)
-    if args.prefer != "auto":
-        base_command, _runner_kind = resolve_upstream_runner(source_repo, args.prefer)
-        if base_command is not None:
-            if args.command == "lint":
-                result = run_upstream_capture(base_command, ["lint", args.file, "--format", args.format])
-            elif args.command == "diff":
-                result = run_upstream_capture(base_command, ["diff", args.before, args.after, "--format", args.format])
-            elif args.command == "export":
-                result = run_upstream_capture(base_command, ["export", args.file, "--format", args.format])
-            elif args.command == "spec":
-                extra_args = ["spec", "--format", args.format]
-                if args.rules:
-                    extra_args.append("--rules")
-                if args.rules_only:
-                    extra_args.append("--rules-only")
-                result = run_upstream_capture(base_command, extra_args)
-            else:
-                raise ValueError(f"Unsupported proxy command: {args.command}")
-
-            if maybe_emit_upstream(result):
-                return result.returncode
-            sys.stderr.write("warning: upstream DESIGN.md CLI produced no stdout; falling back to bundled engine.\n")
-        elif args.prefer == "npx":
-            sys.stderr.write("warning: requested npx runner is unavailable; falling back to bundled engine.\n")
-        elif args.prefer == "local":
-            sys.stderr.write("warning: requested local upstream runner is unavailable; falling back to bundled engine.\n")
-
-    return execute_bundled(args)
 
 
 def main() -> int:
@@ -759,11 +562,9 @@ def main() -> int:
     if args.command == "scaffold":
         return handle_scaffold(args)
     if args.command == "doctor":
-        source_repo = resolve_source_repo(args.source_repo)
-        payload = build_doctor_payload(source_repo, args.prefer)
-        emit(payload, args.format)
+        emit(build_doctor_payload(), args.format)
         return 0
-    return handle_proxy(args)
+    return execute_native(args)
 
 
 if __name__ == "__main__":

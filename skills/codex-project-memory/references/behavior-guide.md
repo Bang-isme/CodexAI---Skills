@@ -23,10 +23,15 @@
 
 ### Session Summary Generator
 
-1. Trigger when user requests end-of-session summary.
-2. Run `scripts/generate_session_summary.py`.
+1. Trigger when the user requests an end-of-session summary, or before pausing multi-step work for context compaction or handoff.
+2. Run `scripts/generate_session_summary.py`. Use `--since last-session` for a follow-up checkpoint when the newest summary is complete. For the first checkpoint of work that began before today, pass the task's actual start time as an ISO datetime so earlier commits are included.
 3. Default output directory: `<project-root>/.codex/sessions/`.
-4. Return output path, commit count, and changed file count from script JSON.
+4. Read the generated Markdown. It records the checkpoint time, Git root, branch, HEAD, recent commit subjects, and staged/unstaged/untracked paths, but not dirty-file contents, task meaning, or command results. Confirm the commit range covers the task.
+5. Replace every bracketed prompt with the goal, status, completed work, exact resume point, blockers, decisions with reasons and alternatives, commands actually verified, actionable next steps, and open questions. Use `in_progress` for a resumable pause and `None` for empty sections. Expand generated decision titles using the matching `.codex/decisions/` record or current conversation; do not infer rationale from a title. Do not claim a checkpoint is ready while prompts remain.
+6. Reconcile the path snapshot with `git status --short --untracked-files=all`. For paths listed as both staged and unstaged, inspect `git diff --cached -- <path>` and `git diff -- <path>` separately; inspect the contents of untracked files before describing them.
+7. Each run creates a new dated summary file; it does not update the prior one. The filename is reserved exclusively so concurrent runs cannot replace each other's summaries. The generated `Checkpoint created` timestamp is immutable and stored to whole-second precision; editing task fields does not move it. When the prior checkpoint has a committed HEAD, `last-session` summarizes the exact `checkpoint HEAD..current HEAD` range, including descendants with old committer dates. If the prior checkpoint says `HEAD: unborn`, it includes all commits reachable from current HEAD. With no prior checkpoint, it uses the timestamp cutoff. The resolver scopes checkpoints to the current Git branch and repository, requires the recorded HEAD to be an ancestor of current HEAD, and refuses to use the newest matching checkpoint while its generated prompts remain. For legacy summaries without a timestamp, it uses midnight on the date in the filename for the fallback cutoff; these summaries still need matching branch identity, a valid HEAD or `unborn`, and complete task-state fields with no blank or generic TODO entries. Rootless legacy summaries are accepted only when the summary directory is inside the current repository. When summaries exist but none matches the current branch/repository/history, pass an explicit ISO `--since` value or create a checkpoint there; with no prior summaries, `last-session` falls back to today. If another task has a newer checkpoint on the same branch, find the matching task's `in_progress` summary by Goal and resume its narrative directly; `last-session` is branch-wide and does not identify a task. If the worktree changes after generation, run the generator again, carry forward the task narrative and verified commands, and complete every prompt in the new file.
+8. A session summary resumes work only when the receiving agent can access the same repository state. For a different checkout, provide the recorded branch/HEAD or an authorized patch; a list of dirty paths does not transfer their contents. For a portable project handoff, also use `generate_handoff.py`.
+9. Return the completed summary path plus branch, HEAD, commit, committed-file, and working-tree counts from script JSON.
 
 ### Changelog Generator
 
@@ -34,13 +39,6 @@
 2. Run `scripts/generate_changelog.py`.
 3. Default source range: latest tag or last 30 days.
 4. Return categorized markdown output and summary JSON.
-
-### Growth Report Generator
-
-1. Trigger when user asks for learning trends or improvement planning.
-2. Run `scripts/generate_growth_report.py`.
-3. Aggregate feedback, sessions, and usage analytics.
-4. Return report path and prioritized improvement areas.
 
 ### Pattern Learner
 
@@ -56,13 +54,6 @@
 3. Persist entries under `<project-root>/.codex/feedback/`.
 4. On `$feedback-summary`, run `scripts/track_feedback.py --aggregate` and return trend summary.
 
-### Skill Evolution Tracker
-
-1. Trigger when user asks to track skill performance across tasks.
-2. Run `scripts/track_skill_usage.py --record` for single usage entries.
-3. Run `scripts/track_skill_usage.py --report` for aggregate effectiveness analysis.
-4. Use report output to identify underperforming or unused skills.
-
 ### Knowledge Graph Builder
 
 1. Trigger when user asks for deep project structure mapping.
@@ -71,12 +62,12 @@
 4. Before complex refactors, read `knowledge-graph.json` first to understand boundaries and dependencies.
 5. Treat `code_index` as the structural source of truth for modules/imports and `codebase_index` as the richer symbol/chunk/search source.
 
-### Knowledge Index and Dashboard
+### Knowledge Index
 
 1. Trigger on `$knowledge`, "build knowledge index", or when a task needs durable project context.
 2. Run `scripts/build_knowledge_index.py --project-root <path>`.
 3. Default output directory: `<project-root>/.codex/knowledge/`.
-4. Return `index_path`, `graph_path`, `codebase_index_path`, `html_path`, `coverage`, and `warnings`.
+4. Return `index_path`, `graph_path`, `codebase_index_path`, `coverage`, and `warnings`.
 5. For large projects, pass traversal limits explicitly (`--max-files`, `--max-total-bytes`, `--max-file-bytes`) and report any truncation or graph/codebase file-set divergence.
 6. For direct lookup, use `--query "<terms>" --top-k <n>` and return the ranked local results.
 
@@ -99,4 +90,3 @@
 1. Log major technical choices via `decision_logger.py`.
 2. Generate release communication via `generate_changelog.py`.
 3. Keep continuity via `generate_session_summary.py`.
-4. Track long-term improvement via `generate_growth_report.py`.

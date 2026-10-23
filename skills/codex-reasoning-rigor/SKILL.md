@@ -135,12 +135,21 @@ For medium or high-stakes work:
 
 For plans, reviews, and handoffs, treat strict output validation as the default quality bar, not an optional extra.
 
+## Smallest Complete Change
+
+Before adding code, walk the [6-rung precision ladder](references/precision-ladder.md): does it need to exist, can this repository already do it, is there a standard-library or native feature, is the dependency already installed, will one readable line do, or is the minimum complete edge-case handling required?
+
+Grep every caller before changing a signature, and fix the shared function once. Keep trust-boundary validation, data-loss handling, security controls, accessibility, calibration, and explanations the user asked for. A `shortcut: <ceiling>, <when to upgrade>` comment is a documented ceiling, not a silent guess.
+
+Session intensity is `off`, `lite`, `full`, or `ultra` (default `full`). One-shot commands (`review`, `audit`, `debt`, `help`) do not replace that level. See the ladder reference for the state machine, compaction rule, and instruction filter.
+
 ## Resources
 
 - `scripts/build_reasoning_brief.py`: generate a structured execution brief for complex, high-signal work.
 - `references/anti-generic-patterns.md`: common signs of generic output and concrete repair moves.
 - `references/document-clarity.md`: token economy, Vietnamese document structure, and mojibake-safe writing rules.
 - `references/evidence-ladder.md`: how to rank evidence from weak intuition to strong verification.
+- `references/precision-ladder.md`: 6-rung smallest-complete-change ladder, caller-grep rule, shortcut marker contract, never-cut carve-outs, and session mode state machine.
 - `references/monitoring-loops.md`: how to attach health signals and follow-up actions to workflows.
 - `references/output-contracts.md`: response shapes that push outputs toward specificity and accountability.
 - `assets/reasoning-brief-template.md`: markdown template used by the brief generator.

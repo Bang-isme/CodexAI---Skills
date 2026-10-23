@@ -36,6 +36,12 @@ Generate `.codex/context/genome.md` for macro project understanding. Load `genom
 
 ## How to Use Context
 
+Follow the 4-Tier Unified Memory Architecture (`../codex-project-memory/references/unified-memory-architecture.md`):
+- **Tier 1 (L0):** Check `.codex/profile.json` and active session/pulse state first.
+- **Tier 2 (L1):** Load `.codex/context/genome.md` and `.codex/knowledge/INDEX.md` for macro orientation.
+- **Tier 3 (L2):** Honor active `.codex/specs/<slug>/SPEC.md`, `DESIGN.md`, and `.codex/decisions/*.md` as normative authority over generated summaries.
+- **Tier 4 (L3):** Load only the active role's `.codex/project-docs/<role>/*.md` and `.codex/context/modules/{module-name}.md`.
+
 After loading `genome.md`:
 
 1. You now know the tech stack, directory structure, entry points, data models, API surface, and coding conventions.
@@ -50,6 +56,12 @@ After loading `genome.md`:
 
 - Use `generate_genome.py` from `codex-project-memory`.
 - See `skills/.system/REGISTRY.md` for full script paths.
+
+## Sanitized Reuse Map
+
+For rung 2 of the precision ladder, build a compact helper index with `../codex-runtime-hook/scripts/reuse_map.py`. The script lives with the runtime hook because this skill does not ship a `scripts/` directory.
+
+The index stays under 2000 characters, lists shared folders first (`utils`, `lib`, `shared`, `common`, `helpers`, `services`), and skips `tests`, `node_modules`, `dist`, `vendor`, `.git`, and `.codex`. It does not follow symlinks. Folder names and exported symbols that are not plain identifiers are dropped, including names that contain newlines or instruction-injection text. On any unexpected error the map is empty.
 
 ## Script Invocation Discipline
 

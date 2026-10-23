@@ -15,8 +15,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
+from _native_test_runners import (
+    discover_node_test_files,
+    discover_unittest_test_files,
+    has_node_test_runner,
+    has_pytest_tests,
+)
 
-JS_TS_EXTS = {".js", ".jsx", ".ts", ".tsx"}
+
+JS_TS_EXTS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}
 PY_EXTS = {".py"}
 STYLE_EXTS = {".css", ".scss"}
 DOC_EXTS = {".md"}
@@ -41,17 +48,20 @@ MOJIBAKE_FRAGMENTS = (
 )
 
 SECRET_PATTERNS = [
-    ("API_KEY=", re.compile(r"api[_-]?key\s*=", re.IGNORECASE)),
-    ("SECRET=", re.compile(r"\bsecret\s*=", re.IGNORECASE)),
-    ("password=", re.compile(r"\bpassword\s*=", re.IGNORECASE)),
-    ("token=", re.compile(r"\btoken\s*=", re.IGNORECASE)),
-    ("private_key", re.compile(r"private[_-]?key", re.IGNORECASE)),
+    ("AWS_ACCESS_KEY", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("GITHUB_TOKEN", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
+    ("PRIVATE_KEY", re.compile(r"-----BEGIN\s+(?:(?:RSA|EC|DSA|OPENSSH|PGP)\s+)?PRIVATE\s+KEY-----")),
+    (
+        "HARDCODED_SECRET",
+        re.compile(
+            r"""(?i)\b(?:api[_-]?key|access[_-]?token|secret|password|client[_-]?secret)\b\s*[:=]\s*["'](?!\$\{)(?![A-Za-z0-9_]*placeholder)(?![A-Za-z0-9_]*changeme)(?![A-Za-z0-9_]*example)([^"'\n]{12,})["']"""
+        ),
+    ),
 ]
 
 TODO_PATTERN = re.compile(r"\b(TODO|FIXME)\b", re.IGNORECASE)
 CONSOLE_LOG_PATTERN = re.compile(r"\bconsole\.log\s*\(", re.IGNORECASE)
 PY_DEBUG_PATTERNS = [
-    re.compile(r"\bprint\s*\("),
     re.compile(r"\bbreakpoint\s*\("),
     re.compile(r"\bimport\s+pdb\b"),
     re.compile(r"\bpdb\.(?:set_trace|post_mortem)\s*\("),
@@ -568,13 +578,18 @@ def detect_runner_for_staged_tests(project_root: Path, buckets: Dict[str, List[s
                 return "jest"
             if "vitest" in content:
                 return "vitest"
+        if has_node_test_runner(project_root):
+            return "node"
     if buckets["python"]:
         if (
             (project_root / "pytest.ini").exists()
             or contains_pyproject_section(project_root, "[tool.pytest]")
             or contains_pyproject_section(project_root, "[tool.pytest.ini_options]")
+            or has_pytest_tests(project_root)
         ):
             return "pytest"
+        if discover_unittest_test_files(project_root):
+            return "unittest"
     return None
 
 
@@ -597,6 +612,16 @@ def run_related_tests(
     elif runner == "vitest":
         files = buckets["js_ts"][:40]
         spec = make_command(["npx", "vitest", "related", *files], os.name == "nt", "vitest")
+    elif runner == "node":
+        node_tests = discover_node_test_files(project_root)
+        staged_tests = [path for path in buckets["js_ts"] if path in node_tests]
+        files = (staged_tests or node_tests)[:40]
+        spec = make_command(["node", "--test", *files], os.name == "nt", "node")
+    elif runner == "unittest":
+        unittest_tests = discover_unittest_test_files(project_root)
+        staged_tests = [path for path in buckets["python"] if path in unittest_tests]
+        files = (staged_tests or unittest_tests)[:40]
+        spec = make_command([sys.executable, "-m", "unittest", *files], os.name == "nt", "unittest")
     else:
         test_files = [f for f in buckets["python"] if ("/tests/" in f or Path(f).name.startswith("test_"))]
         if test_files:

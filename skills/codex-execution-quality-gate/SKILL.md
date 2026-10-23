@@ -52,11 +52,11 @@ Task type -> Pre-flight/setup?
         |
         |- Complex implementation? -> worktree ($worktree) + subagent execution ($sdd)
         |
-        |- Deploy/ship? -> run: security_scan + lighthouse_audit + playwright_runner
+        |- Deploy/ship? -> run: security_scan + safety_selftest + verify_live_assets + lighthouse_audit + playwright_runner
         |
-        |- Review/audit? -> run: quality_trend + suggest_improvements + tech_debt_scan
+        |- Review/audit? -> run: finding_contract + shortcut_ledger + quality_trend + suggest_improvements + tech_debt_scan
         |
-        |- Written deliverable quality? -> run: output_guard
+        |- Written deliverable quality? -> run: output_guard + editorial_review + finding_contract (for reviews)
         |
         `- No code -> skip quality gate
 ```
@@ -82,6 +82,21 @@ Task type -> Pre-flight/setup?
 - If user says `skip gate` or `force complete`, comply and warn: "Quality gate skipped. Lint/test/security status is unknown."
 - For each invoked script, capture output, summarize passes/warnings/blockers, ask whether to fix blocking errors when present, and rerun after fixes to verify.
 - See `skills/.system/REGISTRY.md` for full script paths.
+
+## Precision Review Contracts
+
+- `scripts/finding_contract.py` checks a review against the 4-part finding contract: concrete case, continuous numbering, shortcut ceilings, and fabricated savings claims.
+- `scripts/shortcut_ledger.py` reads code comments for `shortcut: <ceiling>, <when to upgrade>` and tags a missing trigger as `no-trigger`. Markdown prose and string literals are ignored.
+- `scripts/safety_selftest.py` runs 12 paired good/bad edge-case fixtures. `--format json` exits 0 only when every good fixture passes and every bad fixture is caught. The JSON report includes `status: pass` only in that case.
+- `scripts/verify_live_assets.py` fails a `200` page when a required script, stylesheet, or image returns `404` or `5xx`. A `301` or `302` that resolves to `200` passes. An auth route returning `404` is `auth_gate_missing`; `400`, `401`, and `403` are `auth_gate_present`. A private file returning `200` is `private_asset_exposed`. Uploads above 50 MB return `ask_user` with code `upload_exceeds_50mb`. Non-fast-forward pushes (`non_fast_forward_refused`) and dirty-worktree capture archives (`dirty_worktree_capture_archive_refused`) are refused.
+- `scripts/output_guard.py` fails a deliverable that invents per-repo line or token savings.
+
+```bash
+python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/finding_contract.py" --file <review.md> --format json
+python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/shortcut_ledger.py" --project-root <path> --format json
+python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/safety_selftest.py" --format json
+python "<SKILLS_ROOT>/codex-execution-quality-gate/scripts/verify_live_assets.py" --project-root <path> --manifest <manifest.json> --format json
+```
 
 ## Reference Files
 

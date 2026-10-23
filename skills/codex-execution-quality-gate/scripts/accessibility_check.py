@@ -479,16 +479,22 @@ def check_markup_file(
 
     for control in FORM_CONTROL_PATTERN.finditer(content):
         tag = control.group(0)
-        if re.search(r"\btype\s*=\s*['\"]hidden['\"]", tag, re.IGNORECASE):
+        if re.search(r"\btype\s*=\s*['\"](?:hidden|submit|button|reset)['\"]", tag, re.IGNORECASE):
             continue
         if re.search(r"\b(aria-label|aria-labelledby)\s*=", tag, re.IGNORECASE):
             continue
         id_match = re.search(r"\bid\s*=\s*['\"]([^'\"]+)['\"]", tag, re.IGNORECASE)
         if id_match:
             control_id = re.escape(id_match.group(1))
-            label_pattern = re.compile(rf"<label\b[^>]*for\s*=\s*['\"]{control_id}['\"]", re.IGNORECASE)
+            label_pattern = re.compile(rf"<label\b[^>]*(?:for|htmlFor)\s*=\s*['\"]{control_id}['\"]", re.IGNORECASE)
             if label_pattern.search(content):
                 continue
+        # Check if wrapped inside an ancestor <label>...</label>
+        preceding = content[max(0, control.start() - 400) : control.start()]
+        last_open_label = preceding.rfind("<label")
+        last_close_label = preceding.rfind("</label>")
+        if last_open_label != -1 and last_open_label > last_close_label:
+            continue
         add_issue(
             issues,
             seen,
@@ -498,7 +504,7 @@ def check_markup_file(
             "3.3.2",
             "critical",
             "Form control missing associated label.",
-            "Add <label for='...'> or aria-label/aria-labelledby.",
+            "Add <label for='...'> / <label htmlFor='...'> or aria-label/aria-labelledby.",
         )
 
     id_locations: Dict[str, List[int]] = {}
@@ -636,6 +642,7 @@ def main() -> None:
         "level": args.level,
         "files_scanned": len(markup_files) + len(style_files),
         "total_issues": len(issues),
+        "by_severity": by_severity,
         "by_wcag": dict(sorted(by_wcag.items(), key=lambda item: item[0])),
         "issues": issues,
         "compliance_score": compliance_score,

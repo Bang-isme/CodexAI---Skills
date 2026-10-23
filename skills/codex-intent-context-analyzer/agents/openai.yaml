@@ -1,4 +1,4 @@
 interface:
   display_name: "Codex Intent Analyzer"
-  short_description: "Analyze prompt intent with Socratic clarification gating"
-  default_prompt: "Use $codex-intent-context-analyzer to produce structured intent JSON and confirm scope."
+  short_description: "Analyze prompt intent with conditional clarification"
+  default_prompt: "Use $codex-intent-context-analyzer to produce structured intent JSON; request confirmation only when the shared policy in workflow-routing-contract.json requires it."

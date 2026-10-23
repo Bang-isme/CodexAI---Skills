@@ -32,15 +32,18 @@ UI_EXTENSIONS = {".jsx", ".tsx", ".vue", ".html"}
 STATE_EXTENSIONS = {".jsx", ".tsx", ".vue"}
 STYLE_EXTENSIONS = {".css", ".scss"}
 
-ASYNC_PATTERN = re.compile(r"\b(fetch\s*\(|axios\.[a-z]+|await\s+|useQuery\s*\(|queryClient\.)", re.IGNORECASE)
-LOADING_HINT_PATTERN = re.compile(r"\b(loading|isLoading|spinner|skeleton|pending|setLoading)\b", re.IGNORECASE)
+ASYNC_PATTERN = re.compile(r"\b(fetch\s*\(|axios\.[a-z]+|useQuery\s*\(|useMutation\s*\(|queryClient\.)", re.IGNORECASE)
+LOADING_HINT_PATTERN = re.compile(
+    r"\b(loading|isLoading|isPending|isFetching|isPlaceholderData|submitting|aria-busy|spinner|skeleton|pending|setLoading|Suspense)\b",
+    re.IGNORECASE,
+)
 ERROR_HANDLER_PATTERN = re.compile(r"\b(try\s*{|catch\s*\(|\.catch\s*\()", re.IGNORECASE)
 ERROR_UI_PATTERN = re.compile(
-    r"(error\s*&&|setError\s*\(|errorMessage|<Error\b|role\s*=\s*['\"]alert['\"]|toast\.error|showError)",
+    r"(error\s*&&|setError\s*\(|errorMessage|fieldErrors|<Error\b|role\s*=\s*['\"]alert['\"]|toast\.error|showError)",
     re.IGNORECASE,
 )
 EMPTY_GUARD_PATTERN = re.compile(
-    r"(\.length\s*===\s*0|\.length\s*>\s*0|!\s*[A-Za-z0-9_.]+\s*\.length|empty\s*state|No\s+[A-Za-z])",
+    r"(\.length\s*===\s*0|\.length\s*>\s*0|!\s*[A-Za-z0-9_?.]+\s*\.length|empty\s*state|no\s+items|nothing\s+here)",
     re.IGNORECASE,
 )
 VALIDATION_PATTERN = re.compile(
@@ -355,9 +358,9 @@ def scan_style_file(path: Path, project_root: Path, issues: List[Dict[str, objec
         selectors = [item.strip() for item in selector_text.split(",") if item.strip()]
         for selector in selectors:
             base = normalize_selector_base(selector)
-            if ":hover" in selector:
+            if ":hover" in selector and INTERACTIVE_SELECTOR_PATTERN.search(selector):
                 hover_bases.append((base, start_line, selector))
-            if ":focus-visible" in selector:
+            if ":focus-visible" in selector or ":focus" in selector:
                 focus_bases.add(base)
 
         if INTERACTIVE_SELECTOR_PATTERN.search(selector_text):

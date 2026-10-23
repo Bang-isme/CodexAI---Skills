@@ -5,7 +5,7 @@ load_priority: on-demand
 ---
 
 ## TL;DR
-Create `{task-slug}.md` plan file for complex requests. Map file structure first. Required sections: Overview, Success Criteria, Tech Stack, File Structure, Task Breakdown (TDD steps, dependencies, verify), Phase X Checklist. No placeholders. Self-review before presenting. Offer execution handoff. Wait for user approval.
+Create `{task-slug}.md` plan file for complex requests. Map file structure first. Required sections: Overview, Success Criteria, Tech Stack, File Structure, Task Breakdown (TDD steps, dependencies, verify), Phase X Checklist. No placeholders. Self-review before presenting. Follow the shared confirmation policy in `skills/codex-workflow-autopilot/references/workflow-routing-contract.json`: for a plan-only request, present the plan and stop; when the user explicitly requested implementation, an internal plan may proceed within the authorized scope. Pause only for an unapproved material decision, risk, or scope change.
 
 # Plan Writer
 
@@ -66,9 +66,9 @@ If the spec covers multiple independent subsystems, it should have been broken i
 
 - selected technologies and rationale
 
-### 4. File Structure
+### 4. File Structure & SILC Integration Seams
 
-**Before defining tasks, map out which files will be created or modified and what each one is responsible for.** This is where decomposition decisions get locked in.
+**Before defining tasks, map out which files will be created or modified, what each one is responsible for, and where cross-module / cross-domain seams (`SILC-###`) meet.** This is where decomposition decisions and integration contracts get locked in.
 
 - Design units with clear boundaries and well-defined interfaces
 - Each file should have one clear responsibility
@@ -76,20 +76,22 @@ If the spec covers multiple independent subsystems, it should have been broken i
 - Files that change together should live together
 - Split by responsibility, not by technical layer
 - In existing codebases, follow established patterns
+- **For multi-module or fullstack work (SILC Rule):** Explicitly state the shared contract between producer and consumer (e.g., DB schema ↔ Backend service ↔ API DTO/Error Envelope ↔ Frontend state/view) and order tasks so the contract and producer are verified before the consumer is wired.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
-### 5. Task Breakdown
+### 5. Task Breakdown (SDLC + SILC Ordered)
 
 For each task include:
 
 - task name and id
-- domain (`frontend | backend | mobile | debug`)
+- domain (`frontend | backend | data | devops | qa | mobile | debug`)
+- linked `AC-###` and `SILC-###` contract IDs (when a spec or cross-module seam exists)
 - priority (`P0 | P1 | P2 | P3`)
 - dependencies
 - input
 - output
-- verify method
+- verify method (unit TDD + SILC seam verification when crossing module/API boundaries)
 - rollback strategy
 
 ### 5.5 Evidence & Monitoring
@@ -196,13 +198,13 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 **2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
 
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
+**3. Type & SILC Seam Consistency:** Do the types, method signatures, API routes, request/response DTO fields, error envelopes, and property names used in consumer tasks (e.g., Frontend UI) match what you defined in producer tasks (e.g., Backend API / DB schema)? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7, or an API returning `userId` while the UI reads `user_id`, is a plan failure.
 
 If you find issues, fix them inline. If you find a spec requirement with no task, add the task.
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+For a standalone plan-only request, present the plan and offer an execution choice. When the plan supports an already-authorized implementation request, follow that workflow and continue within its scope without asking the user to approve the same work again.
 
 **"Plan complete and saved to `./{task-slug}.md`. Two execution options:**
 
@@ -234,7 +236,7 @@ Plan writing is complete only when:
 2. all required sections exist (including File Structure and No Placeholders)
 3. self-review completed (spec coverage, placeholder scan, type consistency)
 4. the plan can survive strict deliverable validation via `run_gate.py --output-file <plan.md>` without falling back to generic filler
-5. user has reviewed and approved the plan
+5. for a plan-only request, the plan is presented and the workflow stops before implementation; an internal plan for an explicit implementation request proceeds within the authorized scope unless a new material decision or risk requires approval
 
 ## Reference Files
 

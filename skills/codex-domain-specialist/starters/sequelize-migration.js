@@ -1,110 +1,93 @@
 ﻿// ============================================
-// SEQUELIZE MIGRATION STARTER - Safe Patterns
+// SEQUELIZE / SQL MIGRATION STARTER — Zero-Downtime Expand-and-Contract
 // ============================================
-'use strict';
 
 /**
- * Pattern 1: SAFE ADDITIVE - Add optional column
+ * Pattern 1: SAFE ADDITIVE (Expand Phase) + CONCURRENT INDEX
+ * Note: CREATE INDEX CONCURRENTLY cannot run inside a transaction block.
  */
-module.exports = {
+export const expandEmployeesMiddleNameMigration = {
   async up(queryInterface, Sequelize) {
-    // Pre-check: avoid error if column exists (idempotent)
     const tableDesc = await queryInterface.describeTable('employees');
     if (!tableDesc.middle_name) {
       await queryInterface.addColumn('employees', 'middle_name', {
         type: Sequelize.STRING(100),
-        allowNull: true, // always nullable first
+        allowNull: true,
         defaultValue: null,
       });
     }
 
-    // Add index
-    await queryInterface.addIndex('employees', ['department_id', 'is_active'], {
-      name: 'idx_employees_dept_active',
-      where: { is_active: true }, // partial index for performance
-    });
+    await queryInterface.sequelize.query(
+      'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_employees_dept_active ON employees (tenant_id, department_id) WHERE is_active = true;'
+    );
   },
 
   async down(queryInterface) {
-    await queryInterface.removeIndex('employees', 'idx_employees_dept_active');
+    await queryInterface.sequelize.query('DROP INDEX CONCURRENTLY IF EXISTS idx_employees_dept_active;');
     await queryInterface.removeColumn('employees', 'middle_name');
   },
 };
 
 /**
- * Pattern 2: PHASED - Add required column (3-step)
- *
- * Migration 1: Add column as NULLABLE
- *   await queryInterface.addColumn('orders', 'tracking_code', {
- *     type: Sequelize.STRING(50), allowNull: true,
- *   });
- *
- * Migration 2: Backfill data
- *   await queryInterface.sequelize.query(
- *     `UPDATE orders SET tracking_code = CONCAT('TRK-', id) WHERE tracking_code IS NULL`
- *   );
- *
- * Migration 3: Set NOT NULL after backfill confirmed
- *   await queryInterface.changeColumn('orders', 'tracking_code', {
- *     type: Sequelize.STRING(50), allowNull: false,
- *   });
+ * Pattern 2: KEYSET-CHUNKED BACKFILL (Prevent Table Lock & Replication Lag)
  */
-
-/**
- * Pattern 3: LARGE TABLE - Chunked backfill (prevent lock timeouts)
- */
-const backfillChunked = async (queryInterface, tableName, updateSQL, batchSize = 5000) => {
-  let affected = batchSize;
+export const runKeysetBackfill = async (sequelize, { batchSize = 1000, pauseMs = 50 } = {}) => {
+  let lastId = '00000000-0000-0000-0000-000000000000';
   let totalUpdated = 0;
 
-  while (affected >= batchSize) {
-    const [, metadata] = await queryInterface.sequelize.query(`${updateSQL} LIMIT ${batchSize}`);
-    affected = metadata?.affectedRows ?? metadata ?? 0;
-    totalUpdated += affected;
+  while (true) {
+    const [rows] = await sequelize.query(
+      `SELECT id
+       FROM orders
+       WHERE id > :lastId AND tracking_code IS NULL
+       ORDER BY id ASC
+       LIMIT :batchSize`,
+      { replacements: { lastId, batchSize } }
+    );
 
-    if (affected > 0) {
-      // Small delay to reduce lock contention
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    if (!Array.isArray(rows) || rows.length === 0) break;
+
+    const ids = rows.map((r) => r.id);
+    await sequelize.query(
+      `UPDATE orders
+       SET tracking_code = CONCAT('TRK-', id)
+       WHERE id IN (:ids) AND tracking_code IS NULL`,
+      { replacements: { ids } }
+    );
+
+    lastId = rows[rows.length - 1].id;
+    totalUpdated += rows.length;
+    await new Promise((resolve) => setTimeout(resolve, pauseMs));
   }
 
-  return totalUpdated;
+  return { totalUpdated, lastCursor: lastId };
 };
 
-// Usage:
-// await backfillChunked(queryInterface, 'employees',
-//   `UPDATE employees SET annual_earnings = 0 WHERE annual_earnings IS NULL`
-// );
-
 /**
- * Pattern 4: CREATE TABLE with constraints
+ * Pattern 3: CREATE TABLE with Integer Cents (BIGINT) & Tenant Isolation
  */
-const createTableExample = {
+export const createEarningsSummaryMigration = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('earnings_summary', {
-      id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+      id: { type: Sequelize.STRING(36), primaryKey: true, allowNull: false },
+      tenant_id: { type: Sequelize.STRING(36), allowNull: false },
       employee_id: {
-        type: Sequelize.STRING(20),
+        type: Sequelize.STRING(36),
         allowNull: false,
-        references: { model: 'employees', key: 'employee_id' },
+        references: { model: 'employees', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT',
       },
       year: { type: Sequelize.INTEGER, allowNull: false },
-      total: { type: Sequelize.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
-      computed_at: { type: Sequelize.DATE, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
+      total_cents: { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 },
+      version: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+      computed_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
     });
 
-    // Composite unique constraint
     await queryInterface.addConstraint('earnings_summary', {
-      fields: ['employee_id', 'year'],
+      fields: ['tenant_id', 'employee_id', 'year'],
       type: 'unique',
-      name: 'uq_earnings_emp_year',
-    });
-
-    // Performance index
-    await queryInterface.addIndex('earnings_summary', ['year', 'employee_id'], {
-      name: 'idx_earnings_year_emp',
+      name: 'uq_earnings_tenant_emp_year',
     });
   },
 
@@ -113,25 +96,4 @@ const createTableExample = {
   },
 };
 
-/**
- * Pattern 5: RENAME COLUMN (safe - no data loss)
- */
-const renameExample = {
-  async up(queryInterface) {
-    await queryInterface.renameColumn('employees', 'fname', 'first_name');
-  },
-
-  async down(queryInterface) {
-    await queryInterface.renameColumn('employees', 'first_name', 'fname');
-  },
-};
-
-/**
- * SAFETY RULES:
- * 1. Always write both up() and down()
- * 2. Never DROP column in up() without backup plan
- * 3. Add columns as NULLABLE first, backfill, then constrain
- * 4. Large tables (>100k rows): use chunked backfill
- * 5. Test migration on staging with production-size data
- * 6. Run down() in dev to verify rollback before deploying
- */
+export default expandEmployeesMiddleNameMigration;

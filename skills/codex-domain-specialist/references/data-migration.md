@@ -1,82 +1,79 @@
-﻿# Data Migration & Seed Patterns
+﻿# Zero-Downtime Data Migration & Backfill Patterns
 
-## Core Principles
+## Scope and Triggers
 
-- Migrations are code and must be version-controlled.
-- Every migration has `up()` and `down()` paths.
-- Rehearse on staging with production-like data volumes.
-- Seed scripts are for development/testing, not production bootstrapping.
+Use when altering database schemas, backfilling production tables, splitting/merging columns, or seeding deterministic development fixtures.
 
-## Seed Script Pattern
+---
 
-```javascript
-const seedData = async () => {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('Cannot seed production. Aborting.');
-    process.exit(1);
-  }
+## 1. The Expand-and-Contract Protocol (Zero-Downtime Schema Evolution)
 
-  console.log('Seeding database...');
+Never perform a breaking schema change (renaming a column, changing a column type, or dropping a column) in a single step. Execute the **4-Phase Expand-and-Contract lifecycle**:
 
-  await Promise.all([
-    User.deleteMany({}),
-    Department.deleteMany({}),
-  ]);
-
-  const departments = await Department.insertMany([
-    { name: 'Engineering' },
-    { name: 'Marketing' },
-    { name: 'Finance' },
-  ]);
-
-  const users = [];
-  for (let i = 0; i < 100; i += 1) {
-    users.push({
-      firstName: `User${i}`,
-      lastName: `Test${i}`,
-      email: `user${i}@test.com`,
-      password: await bcrypt.hash('Test1234!', 10),
-      departmentId: departments[i % departments.length]._id,
-      role: i === 0 ? 'admin' : 'user',
-    });
-  }
-
-  await User.insertMany(users);
-  console.log(`Seeded: ${departments.length} departments, ${users.length} users`);
-};
+```
+Phase 1: EXPAND (DB)      -> Add new nullable column / table alongside old column (non-blocking)
+Phase 2: DUAL-WRITE (App) -> Deploy app code that writes to BOTH old and new columns, reads from old
+Phase 3: BACKFILL (Job)   -> Run chunked, throttled background backfill for historical rows; verify parity
+Phase 4: CONTRACT (App/DB)-> Switch app reads to new column, remove old-column writes, then drop old column in a later release
 ```
 
-## ETL / Backfill Pattern (Production-Safe)
+### Safe vs Unsafe DDL Operations (PostgreSQL)
 
-```javascript
-const backfill = async () => {
-  const BATCH_SIZE = 1000;
-  let processed = 0;
-  const cursor = Employee.find({ annualEarnings: null }).lean().cursor();
+| Change Goal | Unsafe (Blocks Production Traffic) | Safe Zero-Downtime Pattern |
+| --- | --- | --- |
+| Add index on large table | `CREATE INDEX idx_name ON tbl(col);` | `CREATE INDEX CONCURRENTLY idx_name ON tbl(col);` |
+| Add `NOT NULL` column | `ALTER TABLE tbl ADD col TEXT NOT NULL;` (without default on old DBs or full rewrite) | Add nullable -> backfill in batches -> add `CHECK (col IS NOT NULL) NOT VALID` -> `VALIDATE CONSTRAINT` |
+| Add Foreign Key | `ALTER TABLE child ADD FOREIGN KEY ...` (locks both tables) | `ALTER TABLE child ADD CONSTRAINT fk_name FOREIGN KEY (...) NOT VALID;` then `ALTER TABLE child VALIDATE CONSTRAINT fk_name;` |
+| Drop column | `ALTER TABLE tbl DROP COLUMN col;` while app still queries `SELECT *` | Stop referencing column in code + deploy first -> drop column in next release |
 
-  for await (const emp of cursor) {
-    const earnings = await calculateEarnings(emp.employeeId);
-    await Employee.updateOne(
-      { _id: emp._id },
-      { annualEarnings: earnings, annualEarningsYear: 2026 }
+---
+
+## 2. Production-Safe Chunked Backfill Pattern
+
+Never run an unbounded `UPDATE table SET ...` across millions of rows in a single transaction—it bloats WAL/undo logs, holds row locks, and spikes replication lag.
+
+```typescript
+// Keyset-chunked, idempotent, throttled backfill runner
+export async function runChunkedBackfill(db: DatabaseClient, batchSize = 1000, pauseMs = 50) {
+  let lastId = "00000000-0000-0000-0000-000000000000";
+  let totalUpdated = 0;
+
+  while (true) {
+    const batch = await db.query<{ id: string; legacyAmount: number }>(
+      `SELECT id, legacy_amount AS "legacyAmount"
+       FROM invoices
+       WHERE id > $1 AND amount_cents IS NULL
+       ORDER BY id ASC
+       LIMIT $2`,
+      [lastId, batchSize],
     );
 
-    processed += 1;
-    if (processed % BATCH_SIZE === 0) {
-      console.log(`Processed ${processed}...`);
-      await new Promise((r) => setTimeout(r, 50));
-    }
+    if (batch.rows.length === 0) break;
+
+    await db.transaction(async (tx) => {
+      for (const row of batch.rows) {
+        await tx.query(
+          `UPDATE invoices
+           SET amount_cents = $1
+           WHERE id = $2 AND amount_cents IS NULL`,
+          [Math.round(row.legacyAmount * 100), row.id],
+        );
+      }
+    });
+
+    lastId = batch.rows[batch.rows.length - 1].id;
+    totalUpdated += batch.rows.length;
+    await new Promise((resolve) => setTimeout(resolve, pauseMs));
   }
 
-  console.log(`Backfilled ${processed} employees`);
-};
+  return { totalUpdated, lastCursor: lastId };
+}
 ```
 
-## Safety Rules
+---
 
-- Run on staging first with production-like volume.
-- Process in chunks for large tables/collections.
-- Log progress periodically.
-- Throttle to protect primary workload.
-- Use transactions when atomicity is required.
-- Keep rollback/undo strategy documented.
+## 3. Migration & Seed Safety Checklist
+
+- [ ] Every migration is deterministic, versioned, and has a documented `down` / rollback path.
+- [ ] Seed scripts explicitly guard against running in production (`if (env.NODE_ENV === "production") process.exit(1)`).
+- [ ] Large backfills use keyset cursor batching (`WHERE id > last_id LIMIT 1000`), idempotency predicates (`WHERE new_col IS NULL`), and inter-batch throttling.

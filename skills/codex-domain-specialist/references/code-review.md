@@ -8,6 +8,50 @@
 - **Specific, actionable comments with rationale.** Not "this is bad" but "this creates N+1 queries because..."
 - **Code review is about the code, not the person.** Avoid "you" — prefer "this function" or "this approach".
 
+## 4-Part Finding Contract
+
+Review in this priority order: **Correct -> Safe -> Holds at expected load -> Tested -> Fast -> Lean**.
+
+Every finding needs a concrete input or scenario that produces a wrong result. **No concrete case = no finding.** Number findings continuously across the groups below. Omit a group that has no findings. Do not restart numbering in the next group.
+
+Each finding has four parts:
+
+1. **What it is (file:line)**
+2. **The problem (concrete failing input/case)**
+3. **The smallest fix**
+4. **What happens if skipped**
+
+The report states **Assumed Load** and **Not Checked / Out of Scope**.
+
+A code comment `shortcut: <ceiling>, <when to upgrade>` is a documented decision, not a finding, unless Assumed Load exceeds `<ceiling>`. A shortcut comment missing the upgrade trigger is unfinished.
+
+Do not invent per-repository savings. Claims such as "this repo saved 450 lines" or "you saved 35% tokens" are not findings and are not evidence.
+
+```markdown
+Priority: Correct -> Safe -> Holds at expected load -> Tested -> Fast -> Lean
+
+Assumed Load: 100
+
+Not Checked / Out of Scope:
+- deployment topology
+
+## Must-Fix
+
+1. What it is (file:line): `billing/invoice.py:42`
+   The problem (concrete failing input/case): input `transfer("alice", 80)` twice leaves a negative balance.
+   The smallest fix: reject the debit inside the shared transfer when funds are insufficient.
+   What happens if skipped: account balances become negative.
+
+## Should-Fix
+
+2. What it is (file:line): `web/delete.tsx:18`
+   The problem (concrete failing input/case): clicking delete with `confirmed=false` still calls `onDelete()`.
+   The smallest fix: return before `onDelete` unless confirmation is exactly true.
+   What happens if skipped: a single mis-click destroys the record.
+```
+
+Validate a report with `skills/codex-execution-quality-gate/scripts/finding_contract.py`. List shortcut comments with `skills/codex-execution-quality-gate/scripts/shortcut_ledger.py`.
+
 ## Review Checklist
 
 ### Correctness

@@ -21,9 +21,11 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 ### Session Summary Generator
 
 - Windows:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since last-session`
 - macOS/Linux:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since today`
+  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_session_summary.py" --project-root <path> --since last-session`
+
+After generation, complete the task-state and verification prompts in the Markdown before using it as a pause or handoff checkpoint.
 
 ### Changelog Generator
 
@@ -31,13 +33,6 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
 - macOS/Linux:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_changelog.py" --project-root <path> --since "30 days ago"`
-
-### Growth Report Generator
-
-- Windows:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "<SKILLS_ROOT>"`
-- macOS/Linux:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/generate_growth_report.py" --project-root <path> --skills-root "<SKILLS_ROOT>"`
 
 ### Pattern Learner
 
@@ -55,13 +50,6 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - Aggregate:
   `python ".../track_feedback.py" --project-root <path> --aggregate`
 
-### Skill Evolution Tracker
-
-- Windows:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_skill_usage.py" --skills-root "<SKILLS_ROOT>" --record --skill <skill-name> --task <task> --outcome <success|partial|failed> --notes <text>`
-- Report:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/track_skill_usage.py" --skills-root "<SKILLS_ROOT>" --report`
-
 ### Knowledge Graph Builder
 
 - Windows:
@@ -71,20 +59,20 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - Output:
   `.codex/knowledge-graph.json` by default, including `code_index`, `entrypoints`, `external_dependencies`, `module_boundaries`, `api_routes`, `data_models`, `risk_signals`, `ai_context`, and `human_context`.
 
-### Knowledge Index and Optional HTML Dashboard
+### Knowledge Index
 
 - Windows:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path>`
 - macOS/Linux:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path>`
 - Output:
-  `.codex/knowledge/index.json`, `.codex/knowledge/INDEX.md`, `.codex/knowledge/knowledge-graph.json`, and `.codex/knowledge/codebase-index.json`, all written atomically (temp file + rename). `index.json` carries `source.git_head` and `source.tree_fingerprint` for staleness checks. Add `--html` (or `--watch`/`--serve`) to also write `.codex/knowledge/index.html`.
+  `.codex/knowledge/index.json`, `.codex/knowledge/INDEX.md`, `.codex/knowledge/knowledge-graph.json`, and `.codex/knowledge/codebase-index.json`, all written atomically (temp file + rename). `index.json` carries `source.git_head` and `source.tree_fingerprint` for staleness checks.
 - Query:
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/build_knowledge_index.py" --project-root <path> --query "<terms>" --top-k 10`
 - Incremental:
   On by default; unchanged files are reused by content hash. `--no-incremental` disables reuse, `--rebuild` discards the previous codebase index entirely.
 - Full flag list:
-  `--output-dir`, `--progress-file`, `--html`, `--watch`/`--serve` with `--host`/`--port`, `--query`/`--top-k`, `--incremental`/`--no-incremental`, `--rebuild`, `--no-redaction`, `--format json|text`.
+  `--output-dir`, `--progress-file`, `--query`/`--top-k`, `--incremental`/`--no-incremental`, `--rebuild`, `--no-redaction`, `--format json|text`.
 - Scale controls:
   Use traversal flags `--max-files` (1000), `--max-file-bytes` (256 KiB), `--max-total-bytes` (20 MiB), `--include`, `--exclude`, and `--follow-symlinks true|false` when building large projects. Hard-skipped directories include `.git`, `node_modules`, `dist`, `build`, `target`, `.venv`, `.codex`, `.codexai-backups`.
 
@@ -101,18 +89,9 @@ Canonical command paths are centralized in `skills/.system/REGISTRY.md`.
 - Verify file tree against the recorded fingerprint (slower; catches uncommitted changes):
   `python "<SKILLS_ROOT>/codex-project-memory/scripts/memory_status.py" --project-root <path> --verify-tree`
 - Output:
-  JSON status (`pass`, `warn`, or `fail`) with `policy`, artifact checks, age staleness, `source` staleness (git HEAD vs `index.json.source.git_head`, optional tree fingerprint), and graph/codebase coherence. Coherence compares `code_index` to the LANGUAGE_REGISTRY subset of the indexer; `.md`/config extras are `expected_extras` (not warnings). `index.html` is never checked.
+  JSON status (`pass`, `warn`, or `fail`) with `policy`, artifact checks, age staleness, `source` staleness (git HEAD vs `index.json.source.git_head`, optional tree fingerprint), and graph/codebase coherence. Coherence compares `code_index` to the LANGUAGE_REGISTRY subset of the indexer; `.md`/config extras are `expected_extras` (not warnings).
 - See also:
   `references/ci-readiness.md`, `references/artifact-lifecycle-policy.md`, `references/project-memory-tools.json`
-
-### Memory Scale Gate
-
-- Run a synthetic scale gate (fixture -> index -> incremental reuse -> memory_status):
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/run_scale_gate.py" --tier medium --report-path scale-gate-report-medium.json --format json`
-- Tiers: `medium` (2500 files, max 5000, 420 s budget) and `large` (8000 files, max 10000, 900 s budget, standalone graph required). Overrides: `--file-count`, `--max-files`, `--budget-seconds`, `--seed`, `--keep-fixture`, `--project-root`.
-- Summarize for CI job summaries:
-  `python "<SKILLS_ROOT>/codex-project-memory/scripts/write_scale_gate_summary.py" --report-path scale-gate-report-medium.json --title "Memory scale gate (medium)"`
-- See also: `references/scale-sla.md`.
 
 ### Project Genome Generator
 

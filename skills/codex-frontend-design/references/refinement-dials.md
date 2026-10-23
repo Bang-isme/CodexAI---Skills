@@ -1,25 +1,25 @@
-# Refinement Dials
+# CodexAI Refinement Dials
 
-Adapted from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) command names. Each dial is a pass, then `$visual-gate`. Do not copy detector runtimes.
+Targeted UI refinement passes inside `codex-frontend-design`. Execute one focused pass at a time, then verify with `$visual-gate`.
 
-| Dial | Alias | Does |
+| Dial | Alias | Focus |
 | --- | --- | --- |
-| polish | `$polish` | Alignment, spacing, detail |
-| critique | `$critique` | Hierarchy, IA, emotion, action |
-| audit | `$audit-ui` | A11y, responsive, theming report |
-| animate | `$animate` | Purposeful motion only |
-| adapt | | Cross-device layout |
-| bolder | | Increase impact |
-| quieter | | Reduce visual noise |
-| simplify | | Strip nonessential UI |
-| clarify | | Microcopy |
-| colorize | | Strategic color |
-| delight | | One memorable moment |
-| extract | | Tokens/components into system |
-| harden | | Errors, overflow, i18n |
-| normalize | | Match design system |
-| onboard | | Empty and first-run |
-| optimize | | Perf of UI/motion |
-| teach-impeccable | | Persist design context via `DESIGN.md` |
+| `polish` | `$polish` | Optical alignment, spacing rhythm, border/surface consistency, micro-detail |
+| `critique` | `$critique` | Visual hierarchy, information architecture, focal anchor, primary action clarity |
+| `audit` | `$audit-ui` | Accessibility, responsive reflow, state completeness, token compliance |
+| `animate` | `$animate` | Purposeful choreography, compositor-safe transitions, reduced-motion parity |
+| `adapt` | | Cross-viewport layout adaptation (320px–2560px) and container queries |
+| `bolder` | | Stronger typographic contrast, focal weight, and spatial asymmetry |
+| `quieter` | | Strip competing chrome, decorative noise, and redundant borders |
+| `simplify` | | Reduce cognitive load, collapse secondary controls, flatten nested cards |
+| `clarify` | | Action-oriented microcopy, honest labels, error recovery guidance |
+| `colorize` | | Perceptual OKLCH contrast, tinted neutrals, semantic status hues |
+| `delight` | | One product-specific signature micro-interaction with zero task friction |
+| `extract` | | Promote repeated UI primitives and magic values into design system tokens |
+| `harden` | | Long-label resilience, overflow protection, slow-network/error/empty states |
+| `normalize` | | Align drifted components back to the incumbent `DESIGN.md` contract |
+| `onboard` | | First-time user orientation, empty-state activation, progressive disclosure |
+| `optimize` | | Render performance, layout-shift elimination, asset sizing, animation cleanup |
+| `persist-contract` | `$design-md` | Persist approved visual tokens and rationale into `DESIGN.md` |
 
 Invoke with `$refine <dial>` or `.workflows/refine.md`.

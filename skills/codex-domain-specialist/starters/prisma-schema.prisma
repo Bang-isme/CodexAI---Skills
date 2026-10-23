@@ -1,67 +1,21 @@
-// Prisma Schema Starter Template
-// Adapt to your project: rename models, adjust relations, customize fields.
-// Run: npx prisma init (first time) | npx prisma migrate dev (after changes)
+// ============================================================================
+// Prisma Schema Starter — Production Multi-Tenant & SILC-002 Compliant
+// Money in Cents (BigInt) + Optimistic Locking (version) + Idempotency + Outbox
+// ============================================================================
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // or "mysql" | "sqlite" | "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-// ─── User Model ───────────────────────────────────────────────
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String   // bcrypt hash, never store plain text
-  role      Role     @default(USER)
-  isActive  Boolean  @default(true)
-  
-  // Relations
-  posts     Post[]
-  sessions  Session[]
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Indexes
-  @@index([email])
-  @@index([role, isActive])
-  @@map("users") // table name convention
 }
 
 enum Role {
   USER
+  MANAGER
   ADMIN
-  VIEWER
-}
-
-// ─── Post Model (Example CRUD entity) ────────────────────────
-model Post {
-  id        String     @id @default(cuid())
-  title     String
-  content   String?    @db.Text
-  slug      String     @unique
-  status    PostStatus @default(DRAFT)
-  
-  // Relations
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorId  String
-  tags      Tag[]
-  
-  // Timestamps
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  
-  // Indexes for common queries
-  @@index([authorId])
-  @@index([status, createdAt(sort: Desc)])
-  @@index([slug])
-  @@map("posts")
 }
 
 enum PostStatus {
@@ -70,72 +24,123 @@ enum PostStatus {
   ARCHIVED
 }
 
-// ─── Tag Model (Many-to-Many) ─────────────────────────────────
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model User {
+  id               String    @id @default(cuid())
+  tenantId         String
+  email            String
+  name             String
+  passwordHash     String
+  role             Role      @default(USER)
+  isActive         Boolean   @default(true)
+  tokenVersion     Int       @default(0)
+  refreshTokenHash String?
+  version          Int       @default(1)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  posts            Post[]
+  sessions         Session[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, role, isActive])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("users")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  tenantId    String
+  authorId    String
+  title       String
+  slug        String
+  content     String?    @db.Text
+  budgetCents BigInt     @default(0)
+  status      PostStatus @default(DRAFT)
+  version     Int        @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  tags        Tag[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, authorId])
+  @@map("posts")
+}
+
 model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
-  posts Post[]
-  
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+  posts    Post[]
+
+  @@unique([tenantId, name])
   @@map("tags")
 }
 
-// ─── Session Model (Auth) ─────────────────────────────────────
 model Session {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  
-  @@index([token])
-  @@index([userId])
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
   @@index([expiresAt])
   @@map("sessions")
 }
 
-// ─── Audit Log (Append-only) ──────────────────────────────────
-model AuditLog {
-  id        String   @id @default(cuid())
-  action    String   // CREATE | UPDATE | DELETE
-  entity    String   // User | Post | etc.
-  entityId  String
-  userId    String?  // Who performed the action
-  metadata  Json?    // Additional context
-  createdAt DateTime @default(now())
-  
-  @@index([entity, entityId])
-  @@index([userId, createdAt(sort: Desc)])
-  @@map("audit_logs")
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  tenantId       String
+  idempotencyKey String
+  payloadHash    String
+  statusCode     Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
 }
 
-// ─── Usage Notes ──────────────────────────────────────────────
-//
-// Client usage:
-//   import { PrismaClient } from '@prisma/client';
-//   const prisma = new PrismaClient();
-//
-//   // Create
-//   const user = await prisma.user.create({ data: { email, name, password } });
-//
-//   // Read with relations
-//   const posts = await prisma.post.findMany({
-//     where: { authorId: user.id, status: 'PUBLISHED' },
-//     include: { author: true, tags: true },
-//     orderBy: { createdAt: 'desc' },
-//     take: 20,
-//     skip: 0,
-//   });
-//
-//   // Transaction
-//   await prisma.$transaction([
-//     prisma.post.update({ where: { id }, data: { status: 'ARCHIVED' } }),
-//     prisma.auditLog.create({ data: { action: 'UPDATE', entity: 'Post', entityId: id } }),
-//   ]);
-//
-// Commands:
-//   npx prisma migrate dev --name init     # Create migration
-//   npx prisma migrate deploy              # Apply in production
-//   npx prisma db seed                     # Run seed script
-//   npx prisma studio                      # Visual DB browser
-//   npx prisma generate                    # Regenerate client
+model OutboxEvent {
+  id            String       @id @default(cuid())
+  tenantId      String
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, entity, entityId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}

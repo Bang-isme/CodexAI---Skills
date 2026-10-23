@@ -1,6 +1,6 @@
 # DESIGN.md Spec Essentials
 
-Source studied from the upstream DESIGN.md repository documents `docs/spec.md` and `README.md`.
+Canonical specification for the CodexAI `DESIGN.md` visual identity contract.
 
 ## Purpose
 
@@ -68,7 +68,7 @@ components:
     padding: 12px
 ```
 
-Common properties supported by the upstream CLI:
+Common properties supported by the native CLI:
 
 - `backgroundColor`
 - `textColor`
@@ -88,7 +88,7 @@ Common properties supported by the upstream CLI:
 
 ## What The Linter Cares About
 
-The upstream `lint` command validates structure and token references, and it also checks contrast findings in some token combinations. High-value failure cases:
+The native `lint` command validates structure and token references:
 
 - broken token references
 - missing `primary` color when colors exist

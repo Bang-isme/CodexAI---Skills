@@ -281,7 +281,7 @@ def convention_mapping(
                 "high",
             )
 
-        if any("schema" in segment or "model" in segment for segment in lowered):
+        if any("schema" in segment or "model" in segment or "migration" in segment for segment in lowered):
             if (project_root / "docs/database.md").exists():
                 add_candidate(
                     candidates,
@@ -294,6 +294,38 @@ def convention_mapping(
                     candidates,
                     "docs/schema.md",
                     "Schema/model change detected",
+                    "high",
+                )
+            if (project_root / ".codex/project-docs/backend/BE-02-database-design.md").exists():
+                add_candidate(
+                    candidates,
+                    ".codex/project-docs/backend/BE-02-database-design.md",
+                    "Schema/migration change impacts BE-02 database design role doc",
+                    "high",
+                )
+
+        if any(seg in {"routes", "controllers", "api", "services"} for seg in lowered):
+            if (project_root / ".codex/project-docs/backend/BE-01-api-contracts.md").exists():
+                add_candidate(
+                    candidates,
+                    ".codex/project-docs/backend/BE-01-api-contracts.md",
+                    "Backend API/service change impacts BE-01 API contracts role doc",
+                    "high",
+                )
+
+        if any(rel.endswith(ext) for ext in (".tsx", ".jsx", ".vue", ".css", ".scss")):
+            if (project_root / "DESIGN.md").exists():
+                add_candidate(
+                    candidates,
+                    "DESIGN.md",
+                    "Frontend UI/style change may affect DESIGN.md contract",
+                    "medium",
+                )
+            if (project_root / ".codex/project-docs/frontend/FE-00-architecture.md").exists():
+                add_candidate(
+                    candidates,
+                    ".codex/project-docs/frontend/FE-00-architecture.md",
+                    "Frontend UI change impacts FE-00 architecture role doc",
                     "high",
                 )
 
@@ -331,7 +363,11 @@ def collect_markdown_files(project_root: Path) -> List[Path]:
     docs_dir = project_root / "docs"
     if docs_dir.exists():
         files.extend(path for path in docs_dir.rglob("*.md") if path.is_file())
-    for root_file in ("README.md", "CHANGELOG.md"):
+    for codex_sub in (".codex/project-docs", ".codex/specs", ".codex/design"):
+        sub_dir = project_root / codex_sub
+        if sub_dir.exists():
+            files.extend(path for path in sub_dir.rglob("*.md") if path.is_file())
+    for root_file in ("README.md", "CHANGELOG.md", "DESIGN.md"):
         path = project_root / root_file
         if path.exists():
             files.append(path)

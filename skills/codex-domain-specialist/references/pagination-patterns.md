@@ -1,122 +1,97 @@
-﻿# Pagination Patterns
+﻿# Pagination Patterns (Cursor & Keyset Default)
 
 ## Scope and Triggers
 
-Use when returning lists of data that may be large. Every list endpoint must support pagination.
+Use when designing or implementing list endpoints, infinite feeds, data tables, or batch exports. Every list endpoint must bound its page size and use deterministic ordering.
 
-## Core Principle
+---
 
-Never return unbounded lists. Always paginate. Default `limit = 20`, max `limit = 100` (or up to 1000 for export-only endpoints).
+## 1. Core Principles
 
-## Offset-Based Pagination
+1. **Keyset / Cursor Pagination Is the Default:** Never use unbounded queries, and avoid `OFFSET` on growing tables. Cursor pagination (`WHERE (created_at, id) < ($1, $2)`) guarantees `O(1)` index-seek performance at any depth and prevents skipped/duplicate rows during concurrent inserts.
+2. **Bounded Page Sizes:** Enforce `limit` at the schema boundary (`default: 25`, `min: 1`, `max: 100`).
+3. **Deterministic Tie-Breaker Sort:** Always sort by a timestamp or sequence column **plus a unique tie-breaker column** (`ORDER BY created_at DESC, id DESC`).
+4. **Canonical Envelope (`SILC-001`):** Return `{ data, meta: { requestId, pagination: { limit, nextCursor, hasMore } } }` without a redundant `success: true` boolean.
 
-`GET /api/items?page=2&limit=20`
+---
 
-Response:
+## 2. Keyset / Cursor Pagination Implementation (TypeScript + SQL / ORM)
 
-```json
-{
-  "data": [],
-  "meta": { "page": 2, "limit": 20, "total": 150, "pages": 8 }
+### Cursor Encoding & Decoding
+
+```typescript
+export interface PaginationCursor {
+  createdAt: string;
+  id: string;
+}
+
+export function encodeCursor(row: { createdAt: Date; id: string }): string {
+  return Buffer.from(
+    JSON.stringify({ createdAt: row.createdAt.toISOString(), id: row.id }),
+    "utf-8",
+  ).toString("base64url");
+}
+
+export function decodeCursor(raw?: string): PaginationCursor | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf-8"));
+    if (typeof parsed?.createdAt === "string" && typeof parsed?.id === "string") {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 ```
 
-```javascript
-const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
-const skip = (page - 1) * limit;
+### Query & Response Pattern (`limit + 1` Lookahead)
 
-const [items, total] = await Promise.all([
-  Item.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).lean(),
-  Item.countDocuments(query),
-]);
+```typescript
+// Fetch limit + 1 rows to determine hasMore without an expensive COUNT(*) query
+const decoded = decodeCursor(query.cursor);
+const rows = await db.query(
+  `SELECT id, name, status, created_at AS "createdAt"
+   FROM campaigns
+   WHERE tenant_id = $1
+     AND ($2::timestamptz IS NULL OR (created_at, id) < ($2::timestamptz, $3::text))
+   ORDER BY created_at DESC, id DESC
+   LIMIT $4`,
+  [tenantId, decoded?.createdAt ?? null, decoded?.id ?? null, limit + 1],
+);
 
-res.json({
-  success: true,
-  data: items,
-  meta: { page, limit, total, pages: Math.ceil(total / limit) },
-});
-```
+const hasMore = rows.length > limit;
+const pageItems = hasMore ? rows.slice(0, limit) : rows;
+const nextCursor = hasMore ? encodeCursor(pageItems[pageItems.length - 1]) : null;
 
-Pros: simple, supports "jump to page X".  
-Cons: slow on very large offsets, less consistent under concurrent inserts/deletes.
-
-## Cursor-Based Pagination (recommended for large datasets)
-
-`GET /api/items?cursor=<id>&limit=20`
-
-Response:
-
-```json
-{
-  "data": [],
-  "meta": { "nextCursor": "abc", "hasMore": true }
-}
-```
-
-```javascript
-const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
-const cursor = req.query.cursor;
-
-const query = cursor
-  ? { _id: { $lt: cursor }, ...filters }
-  : { ...filters };
-
-const items = await Item.find(query)
-  .sort({ _id: -1 })
-  .limit(limit + 1) // fetch one extra
-  .lean();
-
-const hasMore = items.length > limit;
-if (hasMore) items.pop();
-
-res.json({
-  success: true,
-  data: items,
+return res.status(200).json({
+  data: pageItems.map(toCampaignDto),
   meta: {
-    nextCursor: hasMore ? items[items.length - 1]._id : null,
-    hasMore,
+    requestId: req.id,
+    pagination: {
+      limit,
+      nextCursor,
+      hasMore,
+    },
   },
 });
 ```
 
-Pros: O(1)-like behavior for deep pages, stable under concurrent writes.  
-Cons: cannot jump directly to arbitrary page number.
+---
 
-## When to Use Which
+## 3. When Offset Pagination Is Permitted (`shortcut:` Ceiling Required)
 
-| Scenario | Pattern |
-| --- | --- |
-| Admin table with page selector | Offset (<100k rows) |
-| Infinite scroll feed | Cursor |
-| Large dataset (>100k rows) | Cursor |
-| External API with simple client needs | Offset |
-| Real-time feed (messages/logs) | Cursor |
-| CSV export | Streaming cursor (no page API) |
+Use `OFFSET` pagination **only** for bounded, small back-office tables where the product explicitly requires arbitrary page-number jumps (`Page 1, 2, ... 12`) AND the dataset is guaranteed to stay small. When used, annotate the query with an explicit shortcut ceiling:
 
-## Frontend Pagination Pattern
-
-```jsx
-// URL-driven pagination (back button works)
-const [searchParams, setSearchParams] = useSearchParams();
-const page = parseInt(searchParams.get('page') || '1', 10);
-const setPage = (p) => setSearchParams({ ...Object.fromEntries(searchParams), page: String(p) });
+```typescript
+// shortcut: 10000 rows, migrate to keyset cursor pagination when table exceeds 10000 rows
 ```
 
-## SQL Pagination Performance
+---
 
-```sql
--- BAD: OFFSET scans and discards rows
-SELECT * FROM items ORDER BY id DESC LIMIT 20 OFFSET 100000;
+## 4. Review Checklist
 
--- GOOD: Keyset pagination
-SELECT * FROM items WHERE id < :last_seen_id ORDER BY id DESC LIMIT 20;
-```
-
-## Review Checklist
-
-- Is default and max limit enforced?
-- Is sorting deterministic and indexed?
-- Is metadata consistent across endpoints?
-- Is large dataset path using cursor/keyset?
-- Are docs explicit about pagination contract?
+- [ ] Does the schema clamp `limit` to `1..100` (with a sensible default such as `25`)?
+- [ ] Does the `ORDER BY` clause include a unique tie-breaker (`created_at DESC, id DESC`) backed by a matching composite index?
+- [ ] Does the response use `meta.pagination = { limit, nextCursor, hasMore }`?

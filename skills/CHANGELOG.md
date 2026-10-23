@@ -2,15 +2,20 @@
 
 ## [Unreleased]
 
-## [18.1.1] - 2026-10-05
-
 ### Added
-- Added a context-led scroll narrative workflow that maps user progression and communication goals to motion scenes before choosing effects.
-- Added implementation guidance for scene ownership, responsive and reduced-motion behavior, lifecycle cleanup, and purposeful GSAP pinning or scrubbing.
+- **100% Proprietary CodexAI Architecture & Native Engines:** Removed all third-party skill clones, external detector wrappers, upstream CLI proxies, and unused HTML dashboard/scorecard bloat (`frontend-skill-guide.html`, `dashboard_template.html`, `skill-scorecard.html`). `codex-design-md` (`design_contract.py`) and `codex-visual-quality-gate` (`visual_quality_gate.py`) now run as 100% self-contained native CodexAI engines.
+- **`/codex-frontend` & `$codex-frontend` Command Gate:** Added first-class routing and aliases for `/codex-frontend` and `$codex-frontend`, enforcing the **7-Point Frontend Design Blueprint**, **Spatial Layout Mathematics Matrix**, **Perceptual OKLCH Color System**, **6-State Interactive Completeness Matrix**, and **12-Point AI Slop & Gimmick Rejection Matrix** before UI implementation.
+- **4-Tier Unified Project Memory Architecture (`unified-memory-architecture.md`):** Established a strict 4-tier read hierarchy (`Tier 1 Active State -> Tier 2 Genome/Knowledge Index -> Tier 3 Normative Contracts -> Tier 4 Role Micro-Context`), SSOT conflict precedence, and deterministic Write-Back Protocol across `codex-context-engine`, `codex-project-memory`, `codex-role-docs`, and `codex-project-pulse`.
+- **7-Stage SDLC + SILC Closed-Loop Workflow (`SILC-###` Contracts):** Upgraded `codex-spec-driven-development` (`spec.schema.json`, `init_spec.py`, `check_spec.py`), `codex-plan-writer`, and `codex-workflow-autopilot` to lock and verify **System Integration Contracts (`SILC-001`, `SILC-002`)** across FE ↔ BE ↔ Data ↔ Auth/Infra seams.
+- **Modernized Domain Specialist Knowledge & 10 Deep Agent Playbooks:** Rebuilt Backend, API, Validation, Error Handling, Database, Migration, Caching, Testing, DevOps, Observability, and Deployment references around modern production standards (TypeScript Strict + Zod, RFC 9457 Problem Details, Transactional Outbox, Idempotency Keys, Expand-and-Contract Zero-Downtime Migrations, Singleflight Caching, Testing Trophy, OpenTelemetry, Hardened Non-Root Containers) and upgraded all 10 `skills/.agents/*.md` files into comprehensive execution playbooks.
 
-### Changed
-- Connected the frontend design, implementation, architecture, and visual review guidance into a clearer route from UX contract to working prototype.
-- Extended visual evidence review to capture material scroll checkpoints that fall between stitched page slices.
+### Improved
+- Eliminated split-brain frontend routing by removing legacy gimmick references from `codex-domain-specialist` and unifying all UI/UX/creative signals under `codex-frontend-design` and `codex-frontend-implementation` (`references/craft-recipes.md`).
+- `generate_session_summary.py --since last-session` scopes checkpoints to the current repository, branch, and reachable history; it uses the recorded checkpoint HEAD through current HEAD range to include old-dated descendants, rejects incomplete checkpoints, and has a filename-date fallback for complete legacy summaries. Output filenames are reserved against concurrent overwrite, and the CLI reports `git_root`, `checkpoint_created`, and `history_range`.
+- Session summaries now capture branch/HEAD, recent commit subjects, staged, unstaged, and untracked paths, and include task-state prompts for pause/compaction checkpoints.
+- Updated memory guidance to require rationale and verified next steps, distinguish same-worktree resumes from portable code transfer, and match the compactor's five-file/90-day retention policy.
+- Extended the quality-gate selector, pre-commit check, and full gate to recognize Python `unittest` and Node's built-in `node --test` runner; added `.mjs`/`.cjs` discovery and runner-specific result counts.
+- The full gate now warns when a project has both native runners but no unified test script, instead of choosing one suite silently.
 
 ## [18.1.0] - 2026-10-02
 
@@ -88,7 +93,7 @@
 
 ### Added
 - Host loading architecture: `render_core_rules.py`, `aliases.json`, `install.py` / `install.py doctor`, Cursor-native install, and always-on core rules for Codex, Claude, Cursor, and Antigravity.
-- `codex-frontend-design` (fast default, studio on request) and `codex-frontend-implementation` (stack recipes + curated MengTo craft with provenance).
+- `codex-frontend-design` (fast default, studio on request) and `codex-frontend-implementation` (stack recipes + native frontend craft patterns).
 - `design-lead` agent, `$refine` workflow, and OKLCH starters that do not default to Inter.
 - Optional Playwright full-page stitcher for the visual quality gate; single-agent fresh-eyes self-review when an independent reviewer is unavailable.
 

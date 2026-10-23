@@ -1,78 +1,64 @@
-﻿# Observability
+﻿# Observability, OpenTelemetry & SLO Engineering
 
-## Three Pillars
+## Scope and Triggers
 
-Logs (what happened) + Metrics (how much) + Traces (where/how long).
+Use when instrumenting services with structured logs, OpenTelemetry traces, RED/USE metrics, correlation IDs, SLO/error-budget alerts, and incident diagnostics.
 
-## Metrics (Prometheus style)
+---
 
-```javascript
-import promClient from 'prom-client';
+## 1. The Unified Telemetry Contract (Logs + Traces + Metrics)
 
-promClient.collectDefaultMetrics({ prefix: 'app_' });
+Every request, background job, and outbox event must carry a unified correlation context (`traceId`, `spanId`, `requestId`, `tenantId`, `actorId`) so operators can pivot from an alert -> latency histogram -> distributed trace -> exact error log in seconds.
 
-const httpRequestDuration = new promClient.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'HTTP request duration in seconds',
-  labelNames: ['method', 'route', 'status_code'],
-  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
-});
+### Structured JSON Logging Standard
 
-const activeConnections = new promClient.Gauge({
-  name: 'http_active_connections',
-  help: 'Number of active HTTP connections',
-});
+Never use unstructured `console.log("User error", err)` in production services. Emit single-line JSON logs with automatic PII/secret redaction:
 
-const requestCounter = new promClient.Counter({
-  name: 'http_requests_total',
-  help: 'Total HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
-});
+```typescript
+import pino from "pino";
 
-const metricsMiddleware = (req, res, next) => {
-  activeConnections.inc();
-  const end = httpRequestDuration.startTimer();
-
-  res.on('finish', () => {
-    const route = req.route?.path || req.path;
-    const labels = { method: req.method, route, status_code: res.statusCode };
-    end(labels);
-    requestCounter.inc(labels);
-    activeConnections.dec();
-  });
-
-  next();
-};
-
-app.get('/metrics', async (req, res) => {
-  res.set('Content-Type', promClient.register.contentType);
-  res.end(await promClient.register.metrics());
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? "info",
+  redact: {
+    paths: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "*.password",
+      "*.passwordHash",
+      "*.token",
+      "*.secret",
+      "*.apiKey",
+      "*.creditCard",
+    ],
+    censor: "[REDACTED]",
+  },
+  formatters: {
+    level: (label) => ({ level: label }),
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
 });
 ```
 
-## Key Metrics
+---
 
-| Category | Metric | Alert Threshold |
-| --- | --- | --- |
-| Latency | p50, p95, p99 response time | p95 > 500ms |
-| Traffic | requests/second | > 2x baseline |
-| Errors | error rate (5xx / total) | > 1% |
-| Saturation | CPU, memory, connections | > 80% |
-| Business | signups/hour, orders/hour | < 50% baseline |
+## 2. RED & USE Metrics Matrix
 
-## SLO/SLI
+Instrument every HTTP/RPC boundary with **RED** metrics and every infrastructure resource (DB pool, queue, worker) with **USE** metrics:
 
-- SLI: 99.5% of requests return in under 500ms.
-- SLO: maintain SLI across rolling 30 days.
-- Error budget: 0.5% slow/failed requests per month.
+| Signal Family | Metric Name | Type | Labels (Low Cardinality Only!) | Alert / Action Threshold |
+| --- | --- | --- | --- | --- |
+| **Rate (RED)** | `http_requests_total` | Counter | `method`, `route_template`, `status_code` | Sudden drop > 50% or spike > 3x baseline |
+| **Errors (RED)** | `http_server_errors_total` | Counter | `method`, `route_template`, `error_code` | `5xx` rate > 1% over 5 minutes |
+| **Duration (RED)** | `http_request_duration_seconds` | Histogram | `method`, `route_template` | `p95 > 500ms` or `p99 > 1.5s` for 10 minutes |
+| **Utilization (USE)** | `db_pool_active_connections` | Gauge | `pool_name` | Active connections > 85% of `max` pool size |
+| **Saturation (USE)** | `outbox_queue_lag_seconds` | Gauge | `queue_name` | Oldest pending event > 60 seconds |
 
-## Alerting Rules
+**Cardinality Rule:** Never put unbounded values (`userId`, `email`, `orderId`, raw URL path with IDs) into metric labels—always use the normalized route template (`/api/v1/orders/:id`). Put high-cardinality IDs in structured logs and trace span attributes.
 
-- Page: error rate > 5% for 5 minutes, or hard down.
-- Ticket: error rate > 1% for 15 minutes, or p95 > 2s.
-- Log/anomaly: new error type or unusual drift.
+---
 
-## Distributed Tracing
+## 3. SLIs, SLOs, and Multi-Window Burn-Rate Alerting
 
-- Propagate `X-Correlation-ID` across gateway/services/workers.
-- Include the same ID in logs and traces for end-to-end debugging.
+- **Availability SLI:** Proportion of non-`5xx` responses (excluding client `4xx` errors).
+- **Latency SLI:** Proportion of requests completing faster than the target threshold (e.g., `p95 < 400ms`).
+- **Actionable Alerting Rule:** Page on-call **only** when user-visible SLO error budget is burning rapidly (e.g., > 2% error rate sustained for 5+ minutes or readiness probe down). Route slow degradations and disk/pool warnings to ticket queues.

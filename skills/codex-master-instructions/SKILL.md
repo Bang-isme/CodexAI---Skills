@@ -15,9 +15,15 @@ P0 baseline. Stack other skills on top of this file; do not replace it.
 
 Before clarifying, exploring, editing, or answering any workflow-like request, match aliases, agents, and workflows. Load only the smallest sufficient skill set. Do not skip a relevant skill because the task "looks simple". Do not bulk-load unrelated skills.
 
-For a single page or component, use `codex-frontend-design` fast path. For prototype/fullstack, use spec-first `$prototype`. Documents, reports, and guides load `codex-document-writer`.
+For a single page or component, use `codex-frontend-design` fast path (`/codex-frontend` or `$design`). For prototype/fullstack or multi-domain features, use the **7-Stage SDLC + SILC Closed-Loop Pipeline** via `$prototype` (`$hook -> $spec (AC + SILC seams) -> $plan -> TDD + SILC seam verification -> $check-full -> Memory Write-Back`). Documents, reports, and guides load `codex-document-writer`.
 
-## Project File Layout
+## Unified 4-Tier Memory & File Layout
+
+Load project memory in strict 4-tier order (`codex-project-memory/references/unified-memory-architecture.md`):
+1. **Tier 1 (L0 State):** `.codex/profile.json`, `.codex/pulse/sprint-state.json`, latest `.codex/sessions/*.md`.
+2. **Tier 2 (L1 Macro):** `.codex/context/genome.md`, `.codex/knowledge/INDEX.md`.
+3. **Tier 3 (L2 Normative Contracts — Highest Doc Authority):** `.codex/specs/<slug>/SPEC.md`, `DESIGN.md`, `.codex/design/`, `.codex/decisions/*.md`.
+4. **Tier 4 (L3 Active Role Only):** `.codex/project-docs/{frontend,backend,devops,qa,admin}/*.md`.
 
 Before creating files or folders, inspect the repository and follow its existing conventions. Co-locate new code and tests with their owning feature; create only directories needed for the requested work. Do not scaffold every optional CodexAI area, empty placeholders, duplicate outputs, or catch-all folders such as `misc`, `output`, or `final`. Put CodexAI-owned artifacts in the documented owner paths; see `docs/project-artifact-layout.md` and `codex-domain-specialist/references/file-structure.md` when deciding structure.
 
@@ -32,6 +38,7 @@ If the pack is not loaded, identify the installed host and run `python skills/.s
 | `$create` | workflow-create + TDD | codex-workflow-autopilot |
 | `$gate` | `$codex-execution-quality-gate` | codex-execution-quality-gate |
 | `$check` | `auto_gate.py --mode quick` | codex-execution-quality-gate |
+| `$codex-frontend` / `/codex-frontend` | `$codex-frontend-design` | codex-frontend-design |
 | `$design` | `$codex-frontend-design` | codex-frontend-design |
 | `$ux` | `$codex-frontend-design` | codex-frontend-design |
 | `$memory` | `$codex-project-memory` | codex-project-memory |

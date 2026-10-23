@@ -27,7 +27,7 @@ class ProjectArtifactLayoutTests(unittest.TestCase):
             ".codex/sessions/",
             ".codex/decisions/",
             ".codex/feedback/",
-            ".codex/skill-usage/",
+            ".codex/pulse/",
             ".codexai/",
             ".agents/",
             ".claude/",
@@ -45,10 +45,10 @@ class ProjectArtifactLayoutTests(unittest.TestCase):
             user_doc = root / "docs" / "INSTALL.md"
             user_doc.parent.mkdir(parents=True)
             user_doc.write_text("Install guide\n", encoding="utf-8")
-            plan = root / "docs" / "superpowers" / "plans" / "internal-plan.md"
+            plan = root / "docs" / "internal" / "plans" / "internal-plan.md"
             plan.parent.mkdir(parents=True)
             plan.write_text("Internal plan\n", encoding="utf-8")
-            spec = root / "docs" / "superpowers" / "specs" / "internal-spec.md"
+            spec = root / "docs" / "internal" / "specs" / "internal-spec.md"
             spec.parent.mkdir(parents=True)
             spec.write_text("Internal spec\n", encoding="utf-8")
             cursor_manifest = root / ".cursor-plugin" / "plugin.json"
@@ -60,7 +60,7 @@ class ProjectArtifactLayoutTests(unittest.TestCase):
 
             self.assertIn("docs/INSTALL.md", relatives)
             self.assertIn(".cursor-plugin/plugin.json", relatives)
-            self.assertFalse(any(path.startswith("docs/superpowers/") for path in relatives))
+            self.assertFalse(any(path.startswith("docs/internal/") for path in relatives))
 
 
 if __name__ == "__main__":

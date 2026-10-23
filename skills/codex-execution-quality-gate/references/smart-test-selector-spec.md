@@ -11,6 +11,14 @@ It optimizes feedback speed while preserving practical confidence.
 1. Run `smart_test_selector.py` with changed file context.
 2. Read selected test files and selection reasons from JSON output.
 3. Execute only selected tests and summarize risk coverage.
+
+## Supported Runners
+- Jest, Vitest, and Pytest remain supported.
+- Python standard-library `unittest` tests are detected from test modules and run with `python -m unittest`.
+- Node's built-in `node --test` runner is detected from test files or the package test script; `.mjs` and `.cjs` tests are included in discovery.
+- `--runner` accepts `jest`, `vitest`, `pytest`, `unittest`, or `node`.
+- When a project has multiple runners, the selector uses the selected test files to choose a runner. Specify `--runner` when that context is ambiguous. The full gate asks for a unified project test script when both native runners are present and no explicit project test command resolves the choice.
+
 ## Integration Behavior
 - Trigger on `$smart-test` or "which tests to run".
 - Auto-run after pre-commit checks in fast verification loops.

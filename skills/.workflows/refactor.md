@@ -13,9 +13,9 @@ Use for restructuring, renaming, extracting, or simplifying existing code withou
 ## Step Outline
 
 1. Analyze current structure and identify refactor boundaries (files, modules, layers).
-2. Load `workflow-refactor.md` and run tech debt scan to baseline current signals.
-3. Run impact prediction to map blast radius of planned changes.
-4. Implement refactor in small, verifiable increments — never all at once.
+2. Load `workflow-refactor.md`, run `reuse_map.py` to index existing shared helpers, and run `tech_debt_scan.py` + `shortcut_ledger.py` to baseline current debt signals.
+3. Run impact prediction (`predict_impact.py`) and apply the **Caller-Grep Rule** (`../codex-reasoning-rigor/references/precision-ladder.md`) to map every caller of the refactored symbols.
+4. Walk the 6-Rung Precision Ladder and implement the refactor in small, verifiable increments — preserving existing validation at every moved boundary.
 5. Run pre-commit checks and focused tests after each increment.
 6. Verify behavior is preserved (all existing tests pass without modification).
 7. Run improvement suggestions as final quality pass.

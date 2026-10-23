@@ -51,11 +51,15 @@ def product_template(title: str) -> str:
     name = title.strip() or "Product"
     return (
         f"# {name}\n\n"
+        "Stage: Stage 1: Architecture & SILC Contract Lock\n"
+        "Linked-Spec: .codex/specs/<slug>/SPEC.md\n"
+        "Linked-Design-Contract: DESIGN.md\n\n"
         "## Audience\n\nWho the product is for and the job they hire it to do.\n\n"
         "## Offer\n\nProduct claims that visuals must not invent.\n\n"
         "## Proof\n\nEvidence that can sit near the primary action.\n\n"
         "## Constraints\n\nBrand, legal, incumbent system, and technical limits.\n\n"
-        "## Surface mode\n\nDefault `persuade|operate|read|experience` and why.\n"
+        "## Surface mode\n\nDefault `persuade|operate|read|experience` and why.\n\n"
+        "## Typography & OKLCH Tokens\n\nDisplay/Body/Mono stack, `tabular-nums`, and perceptual OKLCH surface/action tokens.\n"
     )
 
 
@@ -63,11 +67,25 @@ def surface_template(slug: str, title: str) -> str:
     name = title.strip() or slug
     return (
         f"# Surface: {name}\n\n"
-        "## Job\n\nSuccess metric for this surface.\n\n"
-        "## Flow\n\nHappy path, failure path, and IA grouping.\n\n"
-        "## States\n\nEmpty, loading, error, success, permission denied.\n\n"
-        "## Responsive\n\nDesktop and mobile reflow notes.\n\n"
-        "## Accessibility\n\nFocus order, names, contrast, reduced motion.\n"
+        "Surface-Mode: operate\n"
+        "Change-Mode: new\n"
+        "Linked-Spec: .codex/specs/<slug>/SPEC.md\n"
+        "Linked-SILC: SILC-001\n\n"
+        "## Job\n\nPrimary user task, audience moment, and measurable success signal.\n\n"
+        "## Flow\n\nHappy path, failure recovery path, IA grouping, and Composition Thesis + Asymmetric Layout Ratio (e.g., 7:5, 8:4, 260px + minmax(0, 1fr)).\n\n"
+        "## Signature Move & Anti-Slop Guardrails\n\n- 10% Signature Move & user benefit: Record one purposeful signature detail.\n- Rejected AI Slop / Gimmicks: No 3-equal-card soup, no AI neon dark-mode cliché, no custom cursor hijacking, no forced 100vh clipping.\n\n"
+        "## States\n\n"
+        "Empty, loading, error, success, permission denied (6-State Interactive Matrix aligned to `SILC-001`):\n\n"
+        "| State | Visual / ARIA Treatment | Microcopy / Action | Linked `SILC-001` Status / Error Code | Recovery Action |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| Default / Rest | Primary hierarchy & >=44px hit target | Action verb CTA | `200 OK` | Ready |\n"
+        "| Hover / Focus-Visible | 2px focus ring (`outline-offset: 2px`) | Accessible label | N/A | Keyboard Tab order |\n"
+        "| Loading / Pending | `aria-busy=\"true\"` layout-matched skeleton | Progress label | In-flight request | Lock double-submit |\n"
+        "| Empty / Zero-Data | Structured empty card with preview | Guided activation CTA | `200 OK` (`data: []`) | Create / reset filter |\n"
+        "| Error / Degraded | Preserve form input + `aria-invalid` | Diagnostic + retry CTA | `400 / 409 / 422 fieldErrors / 503` | Retry / fix field |\n"
+        "| Success / Permission | Confirmation toast / locked state | Undo or request access | `201 / 204 / 401 / 403` | Undo / re-authenticate |\n\n"
+        "## Responsive\n\nDesktop, tablet, and mobile (`320px–2560px`) reflow notes (`minmax(0, 1fr)` and `min-width: 0`).\n\n"
+        "## Accessibility\n\nFocus order, semantic landmarks, WCAG AA contrast (`|ΔL| >= 0.65`), `tabular-nums`, and `prefers-reduced-motion` designed still frame.\n"
     )
 
 

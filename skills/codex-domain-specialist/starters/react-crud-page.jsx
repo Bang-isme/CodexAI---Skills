@@ -1,206 +1,299 @@
 ﻿// ============================================
-// REACT CRUD PAGE STARTER
+// REACT CRUD PAGE STARTER — 6-State Matrix + Cursor Pagination + SILC-001 FieldErrors
 // ============================================
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api-client';
-import './crud-page.css'; // uses design-system.css tokens
 
 export default function ItemsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState({ total: 0, pages: 0 });
+  const [cursor, setCursor] = useState(undefined);
+  const [cursorStack, setCursorStack] = useState([]);
+  const [pagination, setPagination] = useState({ limit: 25, nextCursor: null, hasMore: false });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-
-  const limit = 20;
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [formName, setFormName] = useState('');
+  const [formAmountCents, setFormAmountCents] = useState('0');
 
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/items', { page, limit, search });
-      setItems(res.data);
-      setMeta(res.meta);
+      const res = await api.get('/items', { cursor, limit: 25, search: search.trim() || undefined });
+      setItems(res.data || []);
+      setPagination(res.meta?.pagination || { limit: 25, nextCursor: null, hasMore: false });
     } catch (err) {
       setError(err.message || 'Failed to load items');
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [cursor, search]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this item?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/items/${id}`);
-      fetchItems();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   const openCreate = () => {
     setEditingItem(null);
+    setFormName('');
+    setFormAmountCents('0');
+    setFieldErrors({});
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
     setEditingItem(item);
+    setFormName(item.name || '');
+    setFormAmountCents(String(item.amountCents ?? 0));
+    setFieldErrors({});
     setModalOpen(true);
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setFieldErrors({});
+    setError(null);
+    try {
+      const payload = { name: formName.trim(), amountCents: Number(formAmountCents) };
+      if (editingItem) {
+        await api.patch(`/items/${editingItem.id}`, payload);
+      } else {
+        await api.post('/items', payload);
+      }
+      setModalOpen(false);
+      await fetchItems();
+    } catch (err) {
+      if (err.fieldMap && Object.keys(err.fieldMap).length > 0) {
+        setFieldErrors(err.fieldMap);
+      } else {
+        setError(err.message || 'Unable to save item');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleConfirmDelete = async (id) => {
+    setSubmitting(true);
+    try {
+      await api.delete(`/items/${id}`);
+      setConfirmDeleteId(null);
+      await fetchItems();
+    } catch (err) {
+      setError(err.message || 'Unable to delete item');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (!pagination.nextCursor) return;
+    setCursorStack((prev) => [...prev, cursor]);
+    setCursor(pagination.nextCursor);
+  };
+
+  const handlePrevPage = () => {
+    if (cursorStack.length === 0) return;
+    const nextStack = [...cursorStack];
+    const previousCursor = nextStack.pop();
+    setCursorStack(nextStack);
+    setCursor(previousCursor);
+  };
+
   return (
-    <div className="page">
-      {/* Page Header */}
-      <div className="page-header">
+    <main className="page">
+      <header className="page-header">
         <div>
           <h1 className="page-title">Items</h1>
-          <p className="page-subtitle">{meta.total} items total</p>
+          <p className="page-subtitle">Manage workspace inventory and pricing units</p>
         </div>
-        <button className="btn btn-primary btn-md" onClick={openCreate}>
-          + Add Item
+        <button type="button" className="btn btn-primary" onClick={openCreate}>
+          Create Item
         </button>
-      </div>
+      </header>
 
-      {/* Search Bar */}
-      <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+      <section aria-label="Filter items" style={{ marginBottom: 'var(--space-4)' }}>
+        <label htmlFor="item-search" className="sr-only">
+          Search items
+        </label>
         <input
+          id="item-search"
+          type="search"
           className="input"
-          placeholder="Search items..."
+          placeholder="Filter items by name…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setPage(1);
+            setCursor(undefined);
+            setCursorStack([]);
           }}
         />
-      </div>
+      </section>
 
-      {/* Table */}
-      <div className="card" style={{ padding: 0 }}>
-        {loading ? (
-          <div className="flex items-center justify-center" style={{ padding: 'var(--space-10)' }}>
-            <div className="spinner" />
-          </div>
-        ) : error ? (
-          <div style={{ padding: 'var(--space-6)', color: 'var(--error)', textAlign: 'center' }}>
-            {error}{' '}
-            <button className="btn btn-ghost btn-sm" onClick={fetchItems}>
-              Retry
-            </button>
-          </div>
-        ) : items.length === 0 ? (
-          <div style={{ padding: 'var(--space-10)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            No items found.{" "}
-            <button className="btn btn-ghost btn-sm" onClick={openCreate}>
-              Create one
-            </button>
-          </div>
-        ) : (
+      {loading ? (
+        <section aria-busy="true" aria-label="Loading items" className="card">
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+          <div className="skeleton-row" />
+        </section>
+      ) : error ? (
+        <section role="alert" className="card">
+          <p>{error}</p>
+          <button type="button" className="btn btn-secondary" onClick={fetchItems}>
+            Retry request
+          </button>
+        </section>
+      ) : items.length === 0 ? (
+        <section className="card">
+          <h2>No items recorded yet</h2>
+          <p>Create your first item to start tracking inventory and unit pricing.</p>
+          <button type="button" className="btn btn-primary" onClick={openCreate}>
+            Create first item
+          </button>
+        </section>
+      ) : (
+        <div className="card" style={{ padding: 0 }}>
           <table className="table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Actions</th>
+                <th scope="col">Name</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Amount</th>
+                <th scope="col">Created</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item._id}>
+                <tr key={item.id}>
                   <td>{item.name}</td>
-                  <td>
-                    <span className={`badge badge-${item.status === 'active' ? 'success' : 'neutral'}`}>
-                      {item.status}
-                    </span>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    ${((item.amountCents || 0) / 100).toFixed(2)}
                   </td>
-                  <td>{new Date(item.createdAt).toLocaleDateString()}</td>
-                  <td className="flex gap-2">
-                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>
+                  <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <button type="button" className="btn btn-ghost" onClick={() => openEdit(item)}>
                       Edit
                     </button>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--error)' }}
-                      onClick={() => handleDelete(item._id)}
-                    >
-                      Delete
-                    </button>
+                    {confirmDeleteId === item.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          disabled={submitting}
+                          aria-busy={submitting}
+                          onClick={() => handleConfirmDelete(item.id)}
+                        >
+                          Confirm Delete
+                        </button>
+                        <button type="button" className="btn btn-ghost" onClick={() => setConfirmDeleteId(null)}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="btn btn-ghost" onClick={() => setConfirmDeleteId(item.id)}>
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-      </div>
-
-      {/* Pagination */}
-      {meta.pages > 1 && (
-        <div className="flex items-center justify-between" style={{ marginTop: 'var(--space-4)' }}>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            Page {page} of {meta.pages}
-          </span>
-          <div className="flex gap-2">
-            <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={page >= meta.pages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </button>
-          </div>
         </div>
       )}
 
-      {/* Modal */}
+      <nav aria-label="Pagination" className="flex items-center justify-between" style={{ marginTop: 'var(--space-4)' }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={cursorStack.length === 0 || loading}
+          onClick={handlePrevPage}
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={!pagination.hasMore || loading}
+          onClick={handleNextPage}
+        >
+          Next
+        </button>
+      </nav>
+
       {modalOpen && (
         <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--font-semibold)' }}>
-                {editingItem ? 'Edit Item' : 'New Item'}
-              </h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setModalOpen(false)}>
-                x
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Form fields here */}
-              <label style={{ display: 'block', marginBottom: 'var(--space-4)' }}>
-                <span
-                  style={{
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 'var(--font-medium)',
-                    marginBottom: 'var(--space-1)',
-                    display: 'block',
-                  }}
-                >
-                  Name
-                </span>
-                <input className="input" defaultValue={editingItem?.name || ''} />
-              </label>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary btn-md" onClick={() => setModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary btn-md">{editingItem ? 'Save' : 'Create'}</button>
-            </div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="item-dialog-title"
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form onSubmit={handleSubmit}>
+              <div className="modal-header">
+                <h2 id="item-dialog-title">{editingItem ? 'Edit Item' : 'Create Item'}</h2>
+                <button type="button" aria-label="Close dialog" className="btn btn-ghost" onClick={() => setModalOpen(false)}>
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div>
+                  <label htmlFor="item-name">Item Name</label>
+                  <input
+                    id="item-name"
+                    className="input"
+                    value={formName}
+                    aria-invalid={Boolean(fieldErrors.name)}
+                    aria-describedby={fieldErrors.name ? 'item-name-error' : undefined}
+                    onChange={(e) => setFormName(e.target.value)}
+                    required
+                  />
+                  {fieldErrors.name && (
+                    <p id="item-name-error" role="alert" className="field-error">
+                      {fieldErrors.name}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="item-amount">Amount (cents)</label>
+                  <input
+                    id="item-amount"
+                    type="number"
+                    className="input"
+                    value={formAmountCents}
+                    aria-invalid={Boolean(fieldErrors.amountCents)}
+                    aria-describedby={fieldErrors.amountCents ? 'item-amount-error' : undefined}
+                    onChange={(e) => setFormAmountCents(e.target.value)}
+                    required
+                  />
+                  {fieldErrors.amountCents && (
+                    <p id="item-amount-error" role="alert" className="field-error">
+                      {fieldErrors.amountCents}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={submitting} aria-busy={submitting}>
+                  {submitting ? 'Saving…' : editingItem ? 'Save Changes' : 'Create Item'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

@@ -15,8 +15,16 @@ import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
+from _native_test_runners import (
+    discover_node_test_files,
+    discover_unittest_test_files,
+    has_node_test_runner,
+    has_pytest_tests,
+    package_test_script,
+)
 
-TEST_EXTS = {".js", ".jsx", ".ts", ".tsx", ".py"}
+
+TEST_EXTS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py"}
 SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -57,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--changed-files", default="", help="Comma-separated changed files")
     parser.add_argument("--source", choices=["staged", "unstaged", "branch"], default="staged")
     parser.add_argument("--run", action="store_true", help="Run selected tests")
-    parser.add_argument("--runner", choices=["jest", "pytest", "vitest"], default="")
+    parser.add_argument("--runner", choices=["jest", "pytest", "vitest", "unittest", "node"], default="")
     parser.add_argument("--human", action="store_true", help="Print human-readable summary to stderr")
     return parser.parse_args()
 
@@ -183,20 +191,20 @@ def strategy_convention(
 
         candidates: Set[str] = set()
         for token in tokens:
-            patterns = [
-                f"**/{token}.test.*",
-                f"**/{token}.spec.*",
-                f"**/{token}*.test.*",
-                f"**/{token}*.spec.*",
-                f"**/__tests__/{token}*.*",
-            ]
-            for pattern in patterns:
-                for candidate in project_root.glob(pattern):
-                    if not candidate.is_file():
-                        continue
-                    rel = candidate.resolve().relative_to(project_root.resolve()).as_posix()
-                    if rel in all_tests:
-                        candidates.add(rel)
+            if len(token) < 3 or token.lower() in {"index", "app", "main", "types", "utils"}:
+                continue
+            for test_path in all_test_paths:
+                rel = test_path.as_posix()
+                name_lower = test_path.name.lower()
+                tok_lower = token.lower()
+                if (
+                    name_lower.startswith(f"{tok_lower}.test.")
+                    or name_lower.startswith(f"{tok_lower}.spec.")
+                    or name_lower == f"test_{tok_lower}.py"
+                    or name_lower == f"{tok_lower}_test.py"
+                    or name_lower.startswith(f"test_{tok_lower}_")
+                ):
+                    candidates.add(rel)
 
         if "controller" in stem.lower():
             token = base
@@ -243,7 +251,14 @@ def strategy_import_tracing(
             for token in tokens:
                 from_pattern = re.compile(rf"from\s+['\"][^'\"]*{token}[^'\"]*['\"]")
                 require_pattern = re.compile(rf"require\(['\"][^'\"]*{token}[^'\"]*['\"]\)")
-                if from_pattern.search(content) or require_pattern.search(content):
+                py_from_pattern = re.compile(rf"^\s*from\s+[\w.]*\b{token}\b[\w.]*\s+import\b", re.MULTILINE)
+                py_import_pattern = re.compile(rf"^\s*import\s+[\w.]*\b{token}\b", re.MULTILINE)
+                if (
+                    from_pattern.search(content)
+                    or require_pattern.search(content)
+                    or py_from_pattern.search(content)
+                    or py_import_pattern.search(content)
+                ):
                     add_reason(reasons, test, f"imports {base}")
                     matched = True
                     break
@@ -271,9 +286,30 @@ def strategy_proximity(
                 add_reason(reasons, test_path.as_posix(), "directory proximity")
 
 
-def detect_runner(project_root: Path, explicit_runner: str) -> Optional[str]:
+def detect_runner(
+    project_root: Path,
+    explicit_runner: str,
+    selected_tests: Optional[List[str]] = None,
+) -> Optional[str]:
     if explicit_runner:
         return explicit_runner
+
+    if selected_tests:
+        selected = {Path(path).as_posix() for path in selected_tests}
+        node_tests = set(discover_node_test_files(project_root))
+        if selected and selected.issubset(node_tests):
+            return "node"
+
+        unittest_tests = set(discover_unittest_test_files(project_root))
+        if selected and selected.issubset(unittest_tests):
+            if (project_root / "pytest.ini").exists() or has_pytest_tests(project_root):
+                return "pytest"
+            pyproject = project_root / "pyproject.toml"
+            if pyproject.exists() and "[tool.pytest" in pyproject.read_text(
+                encoding="utf-8", errors="ignore"
+            ).lower():
+                return "pytest"
+            return "unittest"
 
     if any(project_root.glob("jest.config.*")):
         return "jest"
@@ -291,10 +327,28 @@ def detect_runner(project_root: Path, explicit_runner: str) -> Optional[str]:
     package_json = project_root / "package.json"
     if package_json.exists():
         content = package_json.read_text(encoding="utf-8", errors="ignore").lower()
+        test_script = package_test_script(project_root)
         if "jest" in content:
             return "jest"
         if "vitest" in content:
             return "vitest"
+        if re.search(r"\bnode\s+--test\b", test_script):
+            return "node"
+        if "pytest" in test_script:
+            return "pytest"
+        if "unittest" in test_script:
+            return "unittest"
+
+    if has_pytest_tests(project_root):
+        return "pytest"
+    unittest_tests = discover_unittest_test_files(project_root)
+    node_tests = discover_node_test_files(project_root)
+    if unittest_tests and node_tests:
+        return None
+    if unittest_tests:
+        return "unittest"
+    if node_tests or has_node_test_runner(project_root):
+        return "node"
 
     return None
 
@@ -341,8 +395,30 @@ def parse_pass_fail(output: str, default_pass: int, exit_code: int) -> Tuple[int
     lowered = output.lower()
     pass_match = re.search(r"(\d+)\s+passed", lowered)
     fail_match = re.search(r"(\d+)\s+failed", lowered)
-    passed = int(pass_match.group(1)) if pass_match else (default_pass if exit_code == 0 else 0)
-    failed = int(fail_match.group(1)) if fail_match else (0 if exit_code == 0 else 1)
+    if pass_match or fail_match:
+        passed = int(pass_match.group(1)) if pass_match else 0
+        failed = int(fail_match.group(1)) if fail_match else 0
+        return passed, failed
+
+    node_pass = re.search(r"(?m)^#\s*pass\s+(\d+)\s*$", output)
+    node_fail = re.search(r"(?m)^#\s*fail\s+(\d+)\s*$", output)
+    if node_pass or node_fail:
+        passed = int(node_pass.group(1)) if node_pass else 0
+        failed = int(node_fail.group(1)) if node_fail else 0
+        return passed, failed
+
+    unittest_total = re.search(r"(?m)^Ran\s+(\d+)\s+tests?\b", output)
+    if unittest_total:
+        total = int(unittest_total.group(1))
+        failures = re.search(r"failures=(\d+)", lowered)
+        errors = re.search(r"errors=(\d+)", lowered)
+        skipped = re.search(r"skipped=(\d+)", lowered)
+        failed = (int(failures.group(1)) if failures else 0) + (int(errors.group(1)) if errors else 0)
+        passed = max(0, total - failed - (int(skipped.group(1)) if skipped else 0))
+        return passed, failed
+
+    passed = default_pass if exit_code == 0 else 0
+    failed = 0 if exit_code == 0 else 1
     return passed, failed
 
 
@@ -356,7 +432,7 @@ def maybe_run_tests(
         warnings.append("No related tests selected. Consider running full suite.")
         return None, warnings
 
-    runner = detect_runner(project_root, explicit_runner)
+    runner = detect_runner(project_root, explicit_runner, selected_tests)
     if not runner:
         warnings.append("No supported test runner detected. Skipped --run execution.")
         return None, warnings
@@ -365,6 +441,10 @@ def maybe_run_tests(
         cmd = ["npx", "jest", *selected_tests]
     elif runner == "vitest":
         cmd = ["npx", "vitest", "run", *selected_tests]
+    elif runner == "unittest":
+        cmd = [sys.executable, "-m", "unittest", *selected_tests]
+    elif runner == "node":
+        cmd = ["node", "--test", *selected_tests]
     else:
         cmd = ["pytest", *selected_tests]
 
@@ -480,6 +560,9 @@ def main() -> int:
         payload["warnings"] = warnings
 
     emit_with_human(payload, args.human)
+    if args.run and isinstance(payload.get("run_result"), dict):
+        if int(payload["run_result"].get("exit_code", 0) or 0) != 0:
+            return 1
     return 0
 
 

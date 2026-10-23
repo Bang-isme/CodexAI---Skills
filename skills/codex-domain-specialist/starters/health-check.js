@@ -1,85 +1,64 @@
 ﻿// ============================================
-// HEALTH CHECK STARTER - K8s/Docker Ready
+// HEALTH CHECK STARTER — Separate Liveness (/health/live) vs Readiness (/health/ready)
 // ============================================
-import os from 'os';
-import mongoose from 'mongoose';
+let isDraining = false;
 
-const checkMongo = async () => {
-  try {
-    const state = mongoose.connection.readyState;
-    if (state !== 1) return { status: 'unhealthy', message: `State: ${state}` };
-    await mongoose.connection.db.admin().ping();
-    return { status: 'healthy' };
-  } catch (err) {
-    return { status: 'unhealthy', message: err.message };
-  }
+export const setShutdownDraining = (draining) => {
+  isDraining = Boolean(draining);
 };
 
-const checkRedis = async (redisClient) => {
-  try {
-    const pong = await redisClient.ping();
-    return { status: pong === 'PONG' ? 'healthy' : 'unhealthy' };
-  } catch (err) {
-    return { status: 'unhealthy', message: err.message };
-  }
-};
+export const isShutdownDraining = () => isDraining;
 
-const checkSequelize = async (sequelize) => {
-  try {
-    await sequelize.authenticate();
-    return { status: 'healthy' };
-  } catch (err) {
-    return { status: 'unhealthy', message: err.message };
-  }
-};
-
-const checkMemory = () => {
-  try {
-    const free = os.freemem();
-    const total = os.totalmem();
-    const usagePercent = ((total - free) / total) * 100;
-    return {
-      status: usagePercent < 90 ? 'healthy' : 'warning',
-      memoryUsage: `${usagePercent.toFixed(1)}%`,
-    };
-  } catch {
-    return { status: 'unknown' };
-  }
-};
-
-const healthCheck = async (req, res) => {
-  const startTime = Date.now();
-
-  const checks = await Promise.allSettled([
-    checkMongo(),
-    // checkRedis(req.app.get('redis')),
-    // checkSequelize(req.app.get('sequelize')),
-  ]);
-
-  const results = {
-    mongo: checks[0]?.value || { status: 'error' },
-    // redis: checks[1]?.value || { status: 'error' },
-    // sql: checks[2]?.value || { status: 'error' },
-    memory: checkMemory(),
-  };
-
-  const allHealthy = Object.values(results).every((r) => r.status === 'healthy');
-
-  res.status(allHealthy ? 200 : 503).json({
-    status: allHealthy ? 'healthy' : 'degraded',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    responseTime: `${Date.now() - startTime}ms`,
-    version: process.env.APP_VERSION || '1.0.0',
-    checks: results,
+// Liveness Probe: Checks process event-loop responsiveness ONLY.
+// Never check external DB/APIs here, or a brief DB blip will trigger cascading container restarts.
+export const livenessCheck = (_req, res) => {
+  res.status(200).json({
+    status: 'alive',
+    uptimeSeconds: Math.floor(process.uptime()),
   });
 };
 
-const livenessCheck = (req, res) => res.status(200).json({ status: 'alive' });
-const readinessCheck = healthCheck;
+// Readiness Probe: Checks shutdown drain flag + bounded dependency ping (1500ms timeout).
+export const createReadinessCheck = ({ pingDatabase, pingCache } = {}) => async (_req, res) => {
+  if (isDraining) {
+    return res.status(503).json({
+      status: 'draining',
+      ready: false,
+    });
+  }
 
-export { healthCheck, livenessCheck, readinessCheck };
+  const withTimeout = (promise, ms = 1500) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+    ]);
 
-// app.get('/health', healthCheck);
-// app.get('/health/live', livenessCheck);
-// app.get('/health/ready', readinessCheck);
+  const checks = {};
+  let ready = true;
+
+  if (typeof pingDatabase === 'function') {
+    try {
+      await withTimeout(pingDatabase(), 1500);
+      checks.database = 'healthy';
+    } catch {
+      checks.database = 'unhealthy';
+      ready = false;
+    }
+  }
+
+  if (typeof pingCache === 'function') {
+    try {
+      await withTimeout(pingCache(), 1500);
+      checks.cache = 'healthy';
+    } catch {
+      checks.cache = 'unhealthy';
+      ready = false;
+    }
+  }
+
+  return res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not_ready',
+    ready,
+    checks,
+  });
+};

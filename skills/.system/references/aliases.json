@@ -4,10 +4,12 @@
     "$plan",
     "$debug",
     "$create",
+    "$prototype",
+    "/codex-frontend",
+    "$design",
+    "$ux",
     "$gate",
     "$check",
-    "$ux",
-    "$design",
     "$memory",
     "$today",
     "$doctor"
@@ -34,6 +36,8 @@
     {"alias": "$init-docs", "command": "init_role_docs.py", "skill": "codex-role-docs"},
     {"alias": "$check-docs", "command": "check_role_docs.py", "skill": "codex-role-docs"},
     {"alias": "$spec", "command": "init_spec.py / check_spec.py", "skill": "codex-spec-driven-development"},
+    {"alias": "$codex-frontend", "command": "$codex-frontend-design", "skill": "codex-frontend-design"},
+    {"alias": "/codex-frontend", "command": "$codex-frontend-design", "skill": "codex-frontend-design"},
     {"alias": "$design", "command": "$codex-frontend-design", "skill": "codex-frontend-design"},
     {"alias": "$ux", "command": "$codex-frontend-design", "skill": "codex-frontend-design"},
     {"alias": "$direction", "command": "$codex-frontend-design studio", "skill": "codex-frontend-design"},
@@ -83,6 +87,6 @@
     {"alias": "$handoff", "file": ".workflows/handoff.md", "equivalent": "workflow-handoff.md + session summary"},
     {"alias": "$fix", "file": ".workflows/fix.md", "equivalent": "alias of $debug"},
     {"alias": "$docs", "file": ".workflows/docs.md", "equivalent": "alias of $handoff for documentation"},
-    {"alias": "$refine", "file": ".workflows/refine.md", "equivalent": "Impeccable dial + $visual-gate"}
+    {"alias": "$refine", "file": ".workflows/refine.md", "equivalent": "CodexAI refinement dial + $visual-gate"}
   ]
 }

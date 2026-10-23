@@ -64,7 +64,7 @@ Before outputting any UI component, page, or layout:
 
 | Check | Generic Output (❌) | Quality Output (✅) |
 |---|---|---|
-| **Colors** | Default framework colors (`#007bff`, `blue-500`) | Custom HSL palette derived from brand identity |
+| **Colors** | Default framework colors (`#007bff`, `blue-500`) | Perceptual OKLCH palette with tinted neutrals derived from brand identity |
 | **Typography** | System fonts or single-font everything | Intentional font pairing with modular scale |
 | **Layout** | Every section = same heading + 3-column cards | Varied layouts per section (split, bento, sticky, horizontal) |
 | **Spacing** | Random pixel values (`margin: 15px 22px`) | 8px grid system with design tokens |
@@ -143,7 +143,7 @@ Run this **after** generating output, **before** presenting it:
 | 7 | Is there only one state? (success path only) | Add loading, error, empty, partial states |
 | 8 | Does the API return the raw database model? | Map to a DTO with only the fields the client needs |
 | 9 | Would a PM read this code and have no idea what business problem it solves? | Add business-context comments and meaningful naming |
-| 10 | Is the heading font the same size as body text? | Apply typographic scale (see `ui-ux-design-principles.md`) |
+| 10 | Is the heading font the same size as body text? | Apply typographic scale (see `../codex-frontend-design/references/typography.md`) |
 | 11 | Did you add a dependency, queue, cache, service, or abstraction without evidence? | Remove it or add the Scope Fit note with proof |
 | 12 | Did you solve a one-file issue with a platform-wide architecture change? | Shrink to the local change unless a boundary or scale signal requires more |
 
@@ -191,9 +191,10 @@ and a separate PATCH /api/v1/enrollments/:id/verify endpoint."
 
 ## Cross-References
 
-- `creative-development.md` for Creative Brief Decoder and 10% Signature Rule.
-- `ui-ux-design-principles.md` for visual hierarchy and viewport-fit section design.
+- `../codex-frontend-design/references/layout-decision-framework.md` for structural layout mathematics and the 10% Signature Move rule.
+- `../codex-frontend-design/references/composition.md` for visual hierarchy, squint test, and spacing rhythm.
+- `../codex-frontend-design/references/anti-slop.md` for contextual anti-slop and anti-gimmick verification.
 - `backend-rules.md` for API architecture patterns and layered design.
 - `database-rules.md` for schema modeling and index strategy.
-- `frontend-rules.md` for component architecture and design tokens.
-- `css-architecture.md` for design token structure.
+- `../codex-frontend-implementation/references/frontend-rules.md` for component architecture and design tokens.
+- `../codex-frontend-implementation/references/css-architecture.md` for design token structure.

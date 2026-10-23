@@ -1,6 +1,6 @@
 # Patterns
 
-Derived from current layout conventions seen in [Awwwards](https://www.awwwards.com/), [Webflow's design trend library](https://webflow.com/blog/web-design-trends), Framer sites, editorial landing pages, and product homes such as Linear, Stripe, Notion, and Raycast. These are implementation patterns, not vague style notes.
+Canonical spatial and component layout patterns for high-craft web interfaces, editorial pages, and operational products. These are concrete CSS implementation patterns, not vague style notes. Pricing surfaces follow `pricing-architecture.md` before any shell below. Landing order follows `landing-page-anatomy.md`.
 
 ## 1. Bento Grid
 - Description: Uneven grid with one dominant card and several supporting tiles. Good for feature storytelling without repeating identical cards.
@@ -324,9 +324,9 @@ Derived from current layout conventions seen in [Awwwards](https://www.awwwards.
 - Inspiration: Onboarding and roadmap views.
 
 ## 14. Pricing Table
-- Description: Three-to-four pricing columns with one highlighted offer and a tight feature rhythm below the price block.
+- Description: Up to three peer plan cards, one highlighted, with 3–6 limit rows and 3–6 feature rows. The numeric contract, billing toggle, identical CTA verb, and five FAQ topics are in `pricing-architecture.md`. A fourth peer plan needs an exception recorded in the brief.
 - Use when: SaaS tiers, memberships, service packages.
-- Do not use when: pricing depends on custom quotes or complex matrix logic.
+- Do not use when: pricing depends on custom quotes or complex matrix logic. At `390px`, stack the cards. Do not turn this grid into a horizontal-scrolling comparison table.
 - HTML:
 ```html
 <section class="pricing">
@@ -347,7 +347,7 @@ Derived from current layout conventions seen in [Awwwards](https://www.awwwards.
 - Inspiration: Modern SaaS pricing pages.
 
 ## 15. Feature Comparison Matrix
-- Description: Sticky row or column headers help compare plans or product capabilities without losing context.
+- Description: Sticky row or column headers help compare plans or product capabilities without losing context. At `390px`, reflow to stacked cards from `pricing-architecture.md`. A horizontal-scrolling comparison table is a failure, not a mobile layout.
 - Use when: plan comparisons, tool comparisons, evaluation pages.
 - Do not use when: there are fewer than five comparable criteria.
 - HTML:

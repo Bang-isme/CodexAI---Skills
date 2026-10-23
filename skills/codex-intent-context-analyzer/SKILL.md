@@ -5,7 +5,7 @@ load_priority: always
 ---
 
 ## TL;DR
-Parse user request into structured intent JSON (goal, constraints, complexity). Sparse prompts ask 2–3 material questions only. Narrow tasks skip the long interview. Suggest an agent route after classification. Wait for explicit confirmation before implementation. For large repos: read index files first, max 20 files deep-read per task.
+Parse the request into structured intent JSON (goal, constraints, complexity). Treat a clear implementation request as authorization for its stated scope; ask only when a material decision has no safe default or a risk boundary needs authorization. A plan-only request stops after the plan. Follow the shared confirmation policy in `skills/codex-workflow-autopilot/references/workflow-routing-contract.json`. For large repos: read index files first, max 20 files deep-read per task.
 
 # Intent and Context Analyzer
 
@@ -28,7 +28,7 @@ Always return a fenced JSON block in conversation:
   "missing_info": ["Information needed but not provided"],
   "normalized_prompt": "Clean rewrite of the user request",
   "complexity": "simple | complex",
-  "needs_confirmation": true,
+  "needs_confirmation": false,
   "suggested_agent": "design-lead | frontend-specialist | visual-quality-reviewer | backend-specialist | security-auditor | debugger | test-engineer | devops-engineer | planner | scrum-master | null",
   "design_operation": "extend | refine | redesign | new | null",
   "surface_mode": "persuade | operate | read | experience | null",
@@ -39,6 +39,7 @@ Always return a fenced JSON block in conversation:
 ```
 
 Keep every existing field exactly as-is. Additive fields are `suggested_agent`, `design_operation`, `surface_mode`, `supporting_agents`, `ambiguity_reasons`, and `required_evidence`.
+The example represents clear, authorized scope. Set `needs_confirmation` to true only for a condition in the shared confirmation policy.
 
 ## Auto-Agent Routing
 
@@ -90,7 +91,7 @@ For all `build` intents: TDD (RED-GREEN-REFACTOR) activates as a behavioral cons
 
 ## Socratic Gate
 
-Trigger Socratic Gate for `complexity: complex` or ambiguous scope.
+Use Socratic clarification when material requirements are unresolved. Complexity alone does not require another confirmation when the user has clearly requested implementation and a safe, reversible default is available.
 
 ### HARD-GATE: Design Before Implementation (substantial UI or new systems)
 
@@ -104,15 +105,15 @@ A one-line CSS refine, an approved-design implementation, or a backend-only fix 
 
 ### Trigger Conditions
 
-- Build/create requests with vague requirements.
+- Build/create requests with a material requirement that remains unclear.
 - Multi-file or architecture-level work.
-- Requests with missing constraints or success criteria.
-- "Just do it" requests with unclear scope.
+- Requests with missing constraints or success criteria that change the user-visible outcome.
+- "Just do it" requests where a material choice or risk boundary remains unresolved.
 - Vague new/redesign UI with no audience, proof, or visual authority.
 
 ### Mandatory Questions
 
-For sparse *material* ambiguity, ask **2–3 questions in one round**, not an endless one-at-a-time interview. Each question must change the design or implementation.
+When material ambiguity has no safe default, ask up to **2–3 questions in one round**, not an endless one-at-a-time interview. Each question must change the design or implementation. Skip questions whose answers would not change the outcome.
 
 Cover only what is missing:
 
@@ -139,7 +140,7 @@ Format:
 
 ### Explore Approaches
 
-Before settling on a design, **propose 2-3 approaches with trade-offs:**
+When the user asks for design options or a material design choice is unresolved, **propose 2-3 approaches with trade-offs:**
 
 - Lead with your recommended option and explain why.
 - Present options conversationally, not as a wall of text.
@@ -150,7 +151,7 @@ Before settling on a design, **propose 2-3 approaches with trade-offs:**
 Scale each section to its complexity:
 - A few sentences if straightforward
 - Up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
+- Ask for feedback at a material decision checkpoint or when the user requests collaborative review; otherwise continue within the authorized scope.
 - Cover: architecture, components, data flow, error handling, testing
 
 ### Design Self-Review
@@ -167,14 +168,12 @@ Fix issues inline. No need to re-review — just fix and move on.
 ### Special Cases
 
 - If user already gave stack/tooling, ask edge-case and trade-off questions.
-- If user says "just do it", still ask 2 short boundary questions.
+- If the user says "just do it", proceed within the stated scope using a safe, reversible default. Ask only for a material missing decision or required risk authorization.
 - If scope covers multiple independent subsystems, help decompose into sub-projects first.
 
 ## Confirmation Rule
 
-- Keep `needs_confirmation` true by default.
-- Present analysis first and wait for explicit confirmation.
-- Do not start implementation until confirmed.
+Follow `confirmation_policy` in `skills/codex-workflow-autopilot/references/workflow-routing-contract.json`. Set `needs_confirmation` only when that policy requires a decision. A clear request authorizes its stated scope, so do not ask the user to confirm the same scope again. Ask before unrequested destructive, irreversible, high-impact, or external actions, and before expanding scope. A plan-only request ends after the plan; an implementation request may use an internal plan and continue within its authorized scope. Keep required spec or design reviews when they present a new artifact or material decision.
 
 ## Fallback
 
@@ -187,20 +186,25 @@ If `intent` is `other`, ask user to rephrase or choose one of:
 2. Treat helper scripts as black-box tools and execute by contract before reading source.
 3. Read script source only when customization or bug-fixing is required.
 
-## Repo Comprehension Protocol
+## Repo Comprehension Protocol (4-Tier Memory First)
 
-For repositories with more than 50 files:
+For repositories with more than 50 files or existing `.codex/` context:
 
-1. Read index files first: `ARCHITECTURE.md`, `CODEBASE.md`, `README.md`.
-2. Build a lightweight map:
+1. Read the 4-Tier Unified Project Memory first (`../codex-project-memory/references/unified-memory-architecture.md`):
+   - **Tier 1 (L0):** `.codex/profile.json`, `.codex/pulse/sprint-state.json`, latest `.codex/sessions/*.md`
+   - **Tier 2 (L1):** `.codex/context/genome.md`, `.codex/knowledge/INDEX.md`
+   - **Tier 3 (L2):** active `.codex/specs/<slug>/SPEC.md`, `DESIGN.md`, `.codex/decisions/*.md`
+   - **Tier 4 (L3):** active `.codex/project-docs/<role>/*.md`
+2. If no `.codex/` memory exists yet, read repository index files first: `ARCHITECTURE.md`, `CODEBASE.md`, `README.md`.
+3. Build a lightweight map:
    - top-level directories (depth <= 2)
    - likely entry points (`main`, `index`, `app`, `server`)
    - config files (`package.json`, `tsconfig.json`, `pyproject.toml`, etc.)
-3. Load by scope, not globally:
+4. Load by scope, not globally:
    - fix: target module + related tests/docs
-   - build: target area + nearby tests/docs
-4. Use progressive disclosure:
+   - build: target area + nearby tests/docs + cross-module `SILC-###` seam files
+5. Use progressive disclosure:
    - outline first (exports/functions/classes)
    - deep-read only directly relevant files
-5. Deep-read budget: max 20 files per task unless user approves expansion.
-6. If uncertain scope, ask user before broad exploration.
+6. Deep-read budget: max 20 files per task unless user approves expansion.
+7. If uncertain scope, ask user before broad exploration.

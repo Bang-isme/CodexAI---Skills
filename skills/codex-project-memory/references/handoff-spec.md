@@ -156,14 +156,17 @@ npm install && cp .env.example .env && npx prisma migrate dev && npm run dev
 1. Run `generate_handoff.py`.
 2. Open the generated `handoff.md`.
 3. Copy the content into the next AI chat with the task request.
+4. Ensure the receiving tool can access the intended branch/commit or an authorized patch when uncommitted work must continue; the Git section lists dirty paths but does not include their contents.
 
 ## Quality Rules
 
 - Handoff must be self-contained — reader should not need to ask "what's the stack?" or "where do I start?"
 - Include setup commands that work on a fresh clone.
 - List key files with purpose, not just paths.
+- Include active `SPEC.md` / plan links, completed vs pending `AC-###` and `SILC-###` integration seams, and exact next ticket when multi-step work is in flight.
 - Include recent decisions with reasons — prevents the next person from re-debating.
 - Flag known issues — prevents wasted time debugging known problems.
+- Treat the uncommitted-changes list as a path snapshot, not a code transfer. The recipient needs the same worktree state or a separately transferred branch/patch.
 
 ## Recommended Update Frequency
 

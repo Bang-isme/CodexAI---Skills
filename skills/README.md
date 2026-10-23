@@ -6,7 +6,7 @@
 
 | Surface | Location or behavior |
 | --- | --- |
-| Version | `18.1.1` |
+| Version | `18.1.0` |
 | Codex plugin and marketplace | `../.codex-plugin/plugin.json`, `../.agents/plugins/marketplace.json` |
 | Claude Code plugin and marketplace | `../.claude-plugin/plugin.json`, `../.claude-plugin/marketplace.json`, `../hooks/hooks.json` |
 | Cursor plugin and marketplace | `../.cursor-plugin/plugin.json`, `../.cursor-plugin/marketplace.json` |
@@ -14,30 +14,22 @@
 | Antigravity | `../antigravity/` package candidate; verify against the installed host before relying on native behavior |
 | Responsive UI evidence | `codex-visual-quality-gate` capture helper and manifest validator |
 
-In 18.1.0, the pack added repository marketplace manifests for Claude Code and Cursor, checked Cursor packaging in local gates, and made the default installer require a host while installing only at user scope. The role-doc initializer creates only the project brief and ADR template unless selected roles are requested.
-
-18.1.1 strengthens the frontend workflow with context-led scroll narrative planning, safer motion lifecycle and reduced-motion guidance, and checkpoint-aware visual evidence review. See [the install guide](../docs/INSTALL.md) for host support limits. The host doctor checks installed wiring; it does not review rendered UI.
+18.1.0 adds repository marketplace manifests for Claude Code and Cursor, checks Cursor packaging in local gates, and makes the default installer require a host while installing only at user scope. The role-doc initializer creates only the project brief and ADR template unless selected roles are requested. See [the install guide](../docs/INSTALL.md) for the short customer path and host-specific support limits. The host doctor checks installed wiring; it does not review rendered UI.
 
 ---
 
-## Runtime Flow
+## Runtime Flow (7-Stage SDLC + SILC Closed-Loop Pipeline)
 
 ```text
 User Request
   -> Pack Health (when install/sync/runtime metadata is in doubt)
-  -> Runtime Hook (one-command preflight for domains, readiness gaps, suggested agent)
-  -> Project Profile / Knowledge Index (stable routing + visible tacit knowledge)
-  -> Intent Context Analyzer
-  -> Logical Decision Layer (when multiple paths or hidden tradeoffs exist)
-  -> Plan Writer (when task is medium/large, with TDD steps + No Placeholders)
-  -> Workflow Autopilot (routes to mode + TDD/Debug/Subagent skills)
-  -> Domain/Security Routing
-  -> Git Worktrees (optional, for complex tasks needing isolation)
-  -> Subagent Execution (optional, for plan with independent tasks)
-  -> TDD Implementation (RED-GREEN-REFACTOR per feature/fix)
-  -> Systematic Debugging (4-phase root cause, for bugs)
-  -> Execution Quality Gate
-  -> Role Docs / Docs Change Sync / Project Memory / Git Autopilot
+  -> Stage 1: Runtime Hook + 4-Tier Project Memory Read (L0 State -> L1 Genome/Index -> L2 Specs/DESIGN.md/ADRs -> L3 Role Docs)
+  -> Stage 2: Intent Context Analyzer + Logical Decision Layer (when multiple paths or hidden tradeoffs exist)
+  -> Stage 3: Normative Contract Lock ($spec for AC-### + SILC-### integration seams, /codex-frontend for 7-Point Design Blueprint)
+  -> Stage 4: Plan Writer (dependency-ordered slices: Schema/Contract -> Producer -> Consumer -> E2E Seam Verification)
+  -> Stage 5: Workflow Autopilot + TDD + SILC Seam Implementation (with Git Worktrees / Subagent Execution / 4-Phase Debugging)
+  -> Stage 6: Execution & Visual Quality Gates (auto_gate.py, visual_quality_gate.py, check_spec.py, output_guard.py, editorial_review.py)
+  -> Stage 7: Deterministic Memory Write-Back (Decision Logger, Role Docs, Knowledge Index, Session Summary, Git Autopilot)
 ```
 
 ### Output Quality Path
@@ -76,7 +68,7 @@ Reasoning Rigor
 | Skill | Notes |
 | --- | --- |
 | `codex-frontend-design` | Fast path for a page/component, full route/state prototype flow for multi-screen work, and studio when options or a new identity are requested |
-| `codex-frontend-implementation` | React, Next.js, Tailwind, shadcn, GSAP recipes; curated craft files with provenance; OKLCH starter stylesheet |
+| `codex-frontend-implementation` | React, Next.js, Tailwind, shadcn, GSAP recipes; native CodexAI craft patterns; OKLCH starter stylesheet |
 | `codex-visual-quality-gate` | Route/state responsive capture and evidence validation; missing browser or review remains `DEGRADED` |
 | `codex-design-md` | DESIGN.md contract authoring, scaffold, lint/diff/export wrapper, and reusable design-system source-of-truth workflow |
 | `codex-document-writer` | Report and document templates, sentence-quality rules, reliability tone, Vietnamese style, and formatting guidance |

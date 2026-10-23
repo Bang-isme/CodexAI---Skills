@@ -76,7 +76,7 @@ User IDE: `%USERPROFILE%\.gemini\config\plugins\codexai-agentic-workflow\`
 User CLI: `%USERPROFILE%\.gemini\antigravity-cli\plugins\codexai-agentic-workflow\`
 If `agy` is missing, record `skipped: binary unavailable`.
 
-Three usage levels: Python-only core; Python + local Impeccable detector; Antigravity native package candidate. See `docs/design-knowledge-provenance.md`.
+Three usage levels: Python-only core; Node + Playwright for responsive capture; Antigravity native package candidate.
 
 Clean release archive:
 
@@ -107,7 +107,6 @@ python "<SOURCE_SKILLS_ROOT>\.system\scripts\local_release_gate.py" --format jso
 python "<SOURCE_SKILLS_ROOT>\.system\scripts\build_release_zip.py" --project-root "<PLUGIN_ROOT>" --dry-run --format text
 ```
 
-Docs: `<SOURCE_SKILLS_ROOT>/.system/references/deploy-promotion.md`
 - These commands do not publish or push a release. Upload or distribute the reviewed archive through the chosen channel as a separate action.
 
 Legacy global sync remains available for development compatibility.

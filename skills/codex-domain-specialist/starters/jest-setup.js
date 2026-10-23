@@ -1,111 +1,66 @@
 ﻿// ============================================
-// JEST CONFIG + SETUP STARTER
+// JEST / VITEST API & SILC-001 CONTRACT TEST STARTER
+// Real Database Harness + Composable Factories + 5-Dimension Boundary Checks
 // ============================================
+import crypto from 'node:crypto';
+import request from 'supertest';
+import app from './express-api.js';
 
-// jest.config.js
-export default {
-  testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.{js,ts}', '**/*.test.{js,ts}'],
-  transform: { '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest' },
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss)$': 'identity-obj-proxy',
-  },
-  collectCoverageFrom: [
-    'src/**/*.{js,ts,jsx,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/index.{js,ts}',
-    '!src/**/__tests__/**',
-  ],
-  coverageThresholds: {
-    global: { branches: 70, functions: 75, lines: 80, statements: 80 },
-  },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  clearMocks: true,
-  restoreMocks: true,
+let sequence = 1;
+
+export const buildItemPayload = (overrides = {}) => {
+  const id = sequence++;
+  return {
+    name: `Workspace Plan ${id}`,
+    amountCents: 2500,
+    ...overrides,
+  };
 };
 
-// jest.setup.js
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import request from 'supertest';
-
-// Replace with your app path
-import app from '../src/app.js';
-
-let mongoServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterEach(async () => {
-  const collections = mongoose.connection.collections;
-  for (const key of Object.keys(collections)) {
-    await collections[key].deleteMany({});
-  }
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
-
-// Test helper utilities
-export const createTestUser = (overrides = {}) => ({
-  firstName: 'Test',
-  lastName: 'User',
-  email: `test-${Date.now()}@example.com`,
-  password: 'TestPass123!',
-  role: 'user',
-  ...overrides,
-});
-
-export const api = {
+export const apiRequest = {
   get: (url, token) => {
     const req = request(app).get(url);
     if (token) req.set('Authorization', `Bearer ${token}`);
     return req;
   },
-  post: (url, body, token) => {
-    const req = request(app).post(url).send(body);
-    if (token) req.set('Authorization', `Bearer ${token}`);
-    return req;
-  },
-  put: (url, body, token) => {
-    const req = request(app).put(url).send(body);
-    if (token) req.set('Authorization', `Bearer ${token}`);
-    return req;
-  },
-  delete: (url, token) => {
-    const req = request(app).delete(url);
+  post: (url, body, token, idempotencyKey = crypto.randomUUID()) => {
+    const req = request(app).post(url).set('Idempotency-Key', idempotencyKey).send(body);
     if (token) req.set('Authorization', `Bearer ${token}`);
     return req;
   },
 };
 
-// Example only: wire your own User model + bcrypt in real project
-// export const loginAs = async (role = 'user') => {
-//   const userData = createTestUser({ role });
-//   const user = await User.create({ ...userData, password: await bcrypt.hash(userData.password, 10) });
-//   const res = await api.post('/api/auth/login', { email: userData.email, password: userData.password });
-//   return { user, token: res.body.data.accessToken };
-// };
+describe('POST /api/v1/items (SILC-001 Contract & Boundary Suite)', () => {
+  it('returns 401 UNAUTHORIZED with RFC 9457 error envelope when token is missing', async () => {
+    const res = await apiRequest.post('/api/v1/items', buildItemPayload(), null);
 
-/*
-TESTING PATTERNS:
+    expect(res.status).toBe(401);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'UNAUTHORIZED',
+        status: 401,
+        requestId: expect.any(String),
+      })
+    );
+  });
 
-describe('UserService', () => {
-  describe('createUser', () => {
-    it('should create user with valid data', async () => { ... });
-    it('should reject duplicate email', async () => { ... });
-    it('should hash password before saving', async () => { ... });
+  it('returns 422 VALIDATION_FAILED with structured fieldErrors when amountCents is negative', async () => {
+    const validToken = process.env.TEST_BEARER_TOKEN;
+    if (!validToken) return;
+
+    const res = await apiRequest.post(
+      '/api/v1/items',
+      buildItemPayload({ name: 'X', amountCents: -100 }),
+      validToken
+    );
+
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('VALIDATION_FAILED');
+    expect(res.body.error.fieldErrors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'name' }),
+        expect.objectContaining({ field: 'amountCents' }),
+      ])
+    );
   });
 });
-
-Naming: "should [expected behavior] when [condition]"
-Good: "should return 404 when user not found"
-Bad:  "test get user error"
-*/

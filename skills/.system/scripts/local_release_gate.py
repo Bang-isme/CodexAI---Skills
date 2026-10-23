@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local pre-release gate: validators + optional ZIP build before tagging v*."""
+"""Local pre-release gate: validators, safety self-test, and optional ZIP build before tagging v*."""
 from __future__ import annotations
 
 import argparse
@@ -59,8 +59,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skills-root", default="", help="Skills root (default: skills/ under project root)")
     parser.add_argument("--apply", action="store_true", help="Build release ZIP (default: dry-run only)")
     parser.add_argument("--no-write", action="store_true", help="Keep validators read-only (implied when --apply is omitted)")
-    parser.add_argument("--target", choices=("none", "s3", "ssh"), default="none", help="Optional deploy target preview")
-    parser.add_argument("--dry-run", action="store_true", help="For s3/ssh: print promotion commands only")
     parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args()
 
@@ -107,6 +105,15 @@ def main() -> int:
                 "--skills-root",
                 rel_skills,
                 "--strict",
+                "--format",
+                "json",
+            ],
+            cwd=project_root,
+        ),
+        run_step(
+            "safety_selftest",
+            [
+                str(skills_root / "codex-execution-quality-gate" / "scripts" / "safety_selftest.py"),
                 "--format",
                 "json",
             ],
@@ -205,38 +212,12 @@ def main() -> int:
     antigravity_tmp.cleanup()
 
     failures = [s for s in steps if not s["ok"]]
-    zip_path = ""
-    release_payload = steps[-1]["payload"]
-    if isinstance(release_payload, dict):
-        zip_path = str(release_payload.get("output", ""))
-
-    deploy_preview: dict[str, Any] | None = None
-    if args.target != "none" and zip_path:
-        deploy_preview = run_step(
-            "deploy_preview",
-            [
-                str(SCRIPT_DIR / "promote_deploy.py"),
-                "--zip",
-                zip_path,
-                "--target",
-                args.target,
-                "--environment",
-                "staging",
-                *(["--dry-run"] if args.dry_run or not args.apply else []),
-                "--format",
-                "json",
-            ],
-            cwd=project_root,
-        )
-        if not deploy_preview["ok"] and not args.dry_run:
-            failures.append(deploy_preview)
 
     report = {
         "status": "pass" if not failures else "fail",
         "project_root": str(project_root),
         "skills_root": str(skills_root),
         "steps": steps,
-        "deploy_preview": deploy_preview,
         "ready_for_tag": not failures,
         "read_only": not write_allowed,
         "next": "git tag vX.Y.Z && git push origin vX.Y.Z" if not failures else "fix failing steps before tagging",
@@ -246,8 +227,6 @@ def main() -> int:
         print(f"status={report['status']} ready_for_tag={report['ready_for_tag']}")
         for step in steps:
             print(f"- {step['name']}: {'ok' if step['ok'] else 'FAIL'}")
-        if deploy_preview:
-            print(f"- deploy_preview: {'ok' if deploy_preview['ok'] else 'FAIL'}")
         print(report["next"])
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2))

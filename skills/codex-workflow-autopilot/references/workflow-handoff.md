@@ -1,13 +1,24 @@
 # Workflow: Handoff
-Use this workflow at end of session or when transferring project context to another developer or future AI session.
+Use this workflow at end of session or when transferring project context to another developer or future AI session. Follow the Long-Horizon Continuity Contract in `../codex-project-memory/references/unified-memory-architecture.md`.
+
 ## Steps
-1. Run `generate_session_summary.py` to capture session activity.
-2. Run `generate_handoff.py` to create portable project context export.
-3. Log any open decisions via `decision_logger.py` (if architectural tradeoffs remain unresolved).
-4. Run `generate_changelog.py --since today` to capture today's changes.
-5. Run `track_feedback.py --aggregate` to surface any recurring issues.
+1. Synchronize active artifacts per the Write-Back Protocol:
+   - Log any new architecture/contract tradeoff via `decision_logger.py`.
+   - Update active `SPEC.md` traceability and `SILC-###` integration seam status (`check_spec.py` when `.codex/specs/` exists).
+   - Update touched role docs via `update_role_docs.py` when `.codex/project-docs/` exists.
+2. Run `generate_session_summary.py --project-root . --since last-session` (or `--since today` for first session) to capture the Git and working-tree snapshot.
+3. Complete **every** prompt marker in the generated `.codex/sessions/*.md` file before treating it as a valid checkpoint:
+   - **Goal & Status:** `in_progress | completed | blocked`
+   - **Active Spec & Plan:** exact `.codex/specs/<slug>/SPEC.md` and `./<plan>.md` paths when applicable
+   - **Completed vs Pending ACs & SILC Seams:** e.g., `Completed: AC-001, SILC-001 | Pending: AC-002, SILC-002`
+   - **Commands Verified:** exact commands run and observed pass/fail outputs
+   - **Exact Next Step:** specific `TICKET-###`, file path, and verification command to run first on resume
+4. Run `generate_handoff.py` to export a self-contained portable project handoff (`.codex/handoff.md`).
+5. Run `generate_changelog.py --since today` and `track_feedback.py --aggregate` to surface recent changes and recurring risk patterns.
+
 ## Exit Criteria
-- Session summary file exists in `.codex/sessions/`.
+- Session summary file exists in `.codex/sessions/` with zero unresolved bracketed placeholders (`[Fill from the user request]`, etc.).
+- Active spec, pending ACs, SILC integration seams, verified commands, and exact next step are recorded.
 - Handoff document exported with current project state.
 - No undocumented architectural decisions from the session.
 ## Common Pitfalls

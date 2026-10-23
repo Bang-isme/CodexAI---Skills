@@ -1,73 +1,59 @@
 ﻿// ============================================
-// GRACEFUL SHUTDOWN STARTER
+// GRACEFUL SHUTDOWN STARTER — Drain Readiness First, Then Await Server & Pools
 // ============================================
+import { setShutdownDraining } from './health-check.js';
 
-const gracefulShutdown = (server, { mongoose, sequelize, redis, io, queues = [] }) => {
+export const gracefulShutdown = (server, { closeDatabase, closeCache, queues = [], drainDelayMs = 2000 } = {}) => {
   let isShuttingDown = false;
 
   const shutdown = async (signal) => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    console.log(`\n${signal} received. Starting graceful shutdown...`);
 
-    server.close(() => console.log('HTTP server closed'));
+    // 1. Flip readiness flag so load balancer stops routing new requests
+    setShutdownDraining(true);
 
-    if (io) {
-      io.close(() => console.log('WebSocket server closed'));
-    }
-
-    const timeout = setTimeout(() => {
-      console.error('Forced shutdown after 30s timeout');
+    const forceExitTimer = setTimeout(() => {
       process.exit(1);
-    }, 30000);
+    }, 25000);
+    forceExitTimer.unref?.();
 
     try {
+      // Allow load balancer health probe interval to observe 503 draining state
+      if (drainDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, drainDelayMs));
+      }
+
+      // 2. Stop accepting new HTTP connections and await in-flight requests
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+
+      // 3. Drain background queues before closing persistence pools
       for (const queue of queues) {
-        await queue.close();
-        console.log(`Queue "${queue.name}" closed`);
+        if (typeof queue?.close === 'function') {
+          await queue.close();
+        }
       }
 
-      if (mongoose) {
-        await mongoose.disconnect();
-        console.log('MongoDB disconnected');
+      // 4. Close database and cache pools cleanly
+      if (typeof closeDatabase === 'function') {
+        await closeDatabase();
+      }
+      if (typeof closeCache === 'function') {
+        await closeCache();
       }
 
-      if (sequelize) {
-        await sequelize.close();
-        console.log('SQL disconnected');
-      }
-
-      if (redis) {
-        await redis.quit();
-        console.log('Redis disconnected');
-      }
-
-      clearTimeout(timeout);
-      console.log('Graceful shutdown complete');
+      clearTimeout(forceExitTimer);
       process.exit(0);
-    } catch (err) {
-      console.error('Error during shutdown:', err);
-      clearTimeout(timeout);
+    } catch {
+      clearTimeout(forceExitTimer);
       process.exit(1);
     }
   };
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-
-  process.on('unhandledRejection', (reason) => {
-    console.error('UNHANDLED REJECTION:', reason);
-    shutdown('unhandledRejection');
-  });
-
-  process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION:', err);
-    shutdown('uncaughtException');
-  });
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 };
 
 export default gracefulShutdown;
-
-// Usage:
-// const server = app.listen(PORT);
-// gracefulShutdown(server, { mongoose, redis, io, queues: [emailQueue, reportQueue] });

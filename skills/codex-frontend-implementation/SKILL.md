@@ -2,7 +2,7 @@
 name: codex-frontend-implementation
 description: Use when implementing web UI in React, Next.js, Tailwind, CSS, or GSAP against an approved design, fast-path brief, or prototype UX contract.
 load_priority: on-demand
-version: "18.1.1"
+version: "18.1.0"
 ---
 
 ## TL;DR
@@ -17,9 +17,9 @@ Implement the selected brief. Honor incumbent tokens and `DESIGN.md`. Load stack
 
 ## Load order
 1. `references/frontend-rules.md`
-2. Stack recipe: `references/react-tailwind-shadcn.md` and/or `references/nextjs-app-router.md`
+2. Stack recipe: `references/react-tailwind-shadcn.md` and/or `references/nextjs-app-router.md` (also load `references/nextjs-patterns.md` for caching, rendering modes, or App Router migrations)
 3. `references/accessibility-rules.md`
-4. Optional craft file from `craft/` matching the requested effect
+4. Optional craft pattern from `references/craft-recipes.md` matching the requested effect
 5. Starter tokens: `starters/design-system.css` (OKLCH, no Inter default)
 
 For GSAP, ScrollTrigger, scrubbed, or pinned scenes, also load `references/gsap-mastery.md` and follow the scene intent in the approved UX contract. Do not treat its API examples as design defaults.
@@ -45,4 +45,4 @@ For GSAP, ScrollTrigger, scrubbed, or pinned scenes, also load `references/gsap-
 - For structural changes, hand off the ownership or dependency changes, affected consumers, checks run, and any material remaining debt. Do not create an architecture document for a narrow UI change; use an existing project record for decisions that need to persist.
 
 ## Craft library
-Curated technique skills live in `craft/`. See `craft/PROVENANCE.md`. Load one file, not the whole folder.
+Proprietary CodexAI UI implementation patterns live in `references/craft-recipes.md`. Load only the pattern required by the approved UX contract.

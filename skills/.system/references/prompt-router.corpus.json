@@ -361,6 +361,16 @@
       "intent": "pulse",
       "suggested_agent": "planner",
       "workflow": "plan"
+    },
+    {
+      "prompt": "/codex-frontend build a high-converting SaaS pricing and checkout page",
+      "intent": "build",
+      "suggested_agent": "design-lead",
+      "workflow": "create",
+      "design_operation": "new",
+      "surface_mode": "persuade",
+      "design_mode": "fast",
+      "must_include_skills": ["codex-frontend-design", "codex-frontend-implementation", "codex-visual-quality-gate"]
     }
   ]
 }

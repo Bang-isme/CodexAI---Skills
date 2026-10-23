@@ -65,8 +65,8 @@
       },
       "artifact_policy": {
         "mode": "optional_outputs",
-        "description": "Writes JSON, Markdown, and self-contained HTML only when --no-write is omitted.",
-        "paths": [".codex/quality/skill-scorecard.json", ".codex/quality/SKILL-SCORECARD.md", ".codex/quality/skill-scorecard.html"]
+        "description": "Writes JSON and Markdown scorecards only when --no-write is omitted.",
+        "paths": [".codex/quality/skill-scorecard.json", ".codex/quality/SKILL-SCORECARD.md"]
       },
       "safety_policy": {
         "network": "none",
@@ -380,12 +380,7 @@
           "incremental": {"type": "boolean", "default": true, "description": "Default on; pass --no-incremental to disable hash-based chunk reuse"},
           "rebuild": {"type": "boolean", "default": false},
           "no_redaction": {"type": "boolean", "default": false},
-          "html": {"type": "boolean", "default": false},
           "progress_file": {"type": "string", "default": ".codex/knowledge/index-progress.json"},
-          "watch": {"type": "boolean", "default": false},
-          "serve": {"type": "boolean", "default": false},
-          "host": {"type": "string", "default": "127.0.0.1"},
-          "port": {"type": "integer", "default": 8765},
           "include": {"type": "array", "items": {"type": "string"}},
           "exclude": {"type": "array", "items": {"type": "string"}},
           "max_files": {"type": "integer", "default": 1000},
@@ -403,7 +398,7 @@
       },
       "artifact_policy": {
         "mode": "generated_on_success",
-        "description": "Writes index (with source.git_head + source.tree_fingerprint), graph, codebase index, and INDEX.md under output_dir atomically. index.html is opt-in via --html.",
+        "description": "Writes index (with source.git_head + source.tree_fingerprint), graph, codebase index, and INDEX.md under output_dir atomically.",
         "paths": [
           ".codex/knowledge/index.json",
           ".codex/knowledge/knowledge-graph.json",
@@ -426,46 +421,6 @@
       }
     },
     {
-      "name": "memory_scale_gate",
-      "kind": "memory",
-      "script": "codex-project-memory/scripts/run_scale_gate.py",
-      "purpose": "Run synthetic scale gate: fixture generation, knowledge index build, incremental reuse, and memory_status on a large file tree.",
-      "args_schema": {
-        "type": "object",
-        "required": ["tier"],
-        "properties": {
-          "tier": {"type": "string", "enum": ["medium", "large"]},
-          "project_root": {"type": "string"},
-          "file_count": {"type": "integer"},
-          "max_files": {"type": "integer"},
-          "budget_seconds": {"type": "integer"},
-          "seed": {"type": "integer", "default": 42},
-          "keep_fixture": {"type": "boolean", "default": false},
-          "report_path": {"type": "string"},
-          "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
-        }
-      },
-      "stdout_contract": "codex-project-memory/references/scale-sla.md#scale-gate-report",
-      "exit_codes": {"success": [0], "failure": [1]},
-      "warning_policy": {
-        "mode": "none",
-        "description": "Gate fails hard when budget, memory_status, or incremental reuse checks fail."
-      },
-      "artifact_policy": {
-        "mode": "generated_on_success",
-        "description": "Writes scale-gate-report.json and ephemeral fixture tree under project_root.",
-        "paths": ["scale-gate-report.json", ".codex/knowledge/"]
-      },
-      "safety_policy": {
-        "network": "none",
-        "writes_artifacts": true,
-        "reads_secrets": false,
-        "smoke_allowed": false,
-        "description": "CI and operators only; creates many files under project_root."
-      },
-      "wrapper_notes": "Use tier medium for PR-sized checks; large tier is for scheduled stress runs."
-    },
-    {
       "name": "local_release_gate",
       "kind": "release",
       "script": ".system/scripts/local_release_gate.py",
@@ -477,12 +432,10 @@
           "skills_root": {"type": "string"},
           "apply": {"type": "boolean", "default": false},
           "no_write": {"type": "boolean", "default": true},
-          "target": {"type": "string", "enum": ["none", "s3", "ssh"], "default": "none"},
-          "dry_run": {"type": "boolean", "default": false},
           "format": {"type": "string", "enum": ["json", "text"], "default": "json"}
         }
       },
-      "stdout_contract": "references/deploy-promotion.md",
+      "stdout_contract": "references/tool-call-contract.md#validator-output",
       "exit_codes": {"success": [0], "failure": [1]},
       "warning_policy": {"mode": "none", "description": "Fails when any gate step fails."},
       "artifact_policy": {
@@ -495,7 +448,7 @@
         "writes_artifacts": true,
         "reads_secrets": false,
         "smoke_allowed": false,
-        "description": "Local gate is filesystem-only; S3/SSH uses separate promote_deploy with operator env."
+        "description": "Local gate is filesystem-only."
       },
       "wrapper_notes": "Optional local check before sharing a plugin ZIP; not tied to production deploy.",
       "smoke": {
@@ -534,7 +487,7 @@
         "writes_artifacts": true,
         "reads_secrets": false,
         "smoke_allowed": true,
-        "description": "Smoke uses --help only; full runs spawn pytest and validators locally."
+        "description": "Smoke uses --help only; full runs execute local validators, and the test stage uses Python unittest plus Node's built-in --test runner for the checked-in suites."
       },
       "wrapper_notes": "Use --stage lint,contracts for a fast pre-commit check; --stage all before tagging.",
       "smoke": {
@@ -716,7 +669,7 @@
         "writes_artifacts": true,
         "reads_secrets": false,
         "smoke_allowed": true,
-        "description": "Never auto-installs Node; detector is available, skipped, or failed."
+        "description": "Never auto-installs Node; validates source signals and capture manifest."
       },
       "wrapper_notes": "No aggregate AI-slop score. Review every stitched route/state/viewport image and its source slices; record checkedCaptureKeys, checked UX flows, route/state exercise, accessibility status, and evidence-linked findings; then pass --capture-manifest. Missing browser/capture/review evidence is DEGRADED.",
       "smoke": {

@@ -293,6 +293,15 @@ Available in `references/` directory:
 - **`defense-in-depth.md`** — Add validation at multiple layers after finding root cause
 - **`condition-based-waiting.md`** — Replace arbitrary timeouts with condition polling
 
+## Smallest Complete Change While Fixing
+
+After the root cause is known, choose the fix with the [6-rung precision ladder](../codex-reasoning-rigor/references/precision-ladder.md).
+
+- Grep every caller before changing a signature or patching a symptom. Fix the shared function once. A check added to only one caller fails when the second caller runs.
+- Moved code keeps its validation.
+- Do not cut trust-boundary validation, error handling that prevents data loss, security controls, accessibility, hardware or sensor calibration, or an explanation the user explicitly requested.
+- If the fix is intentionally bounded, leave a code comment in the form `shortcut: <ceiling>, <when to upgrade>`.
+
 ## Related Skills
 
 - **`codex-test-driven-development`** — For creating failing test case (Phase 4, Step 1)

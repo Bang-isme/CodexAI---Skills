@@ -1,49 +1,93 @@
 ﻿// ============================================
-// REACT TESTING LIBRARY STARTER
+// REACT TESTING LIBRARY + MSW v2 STARTER (SILC-001 Contract & 6-State Coverage)
 // ============================================
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import ItemsPage from './react-crud-page.jsx';
 
-// Replace with your component path
-import UsersPage from '../src/pages/UsersPage.jsx';
-
-const createTestQueryClient = () =>
-  new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
-  });
-
-const AllProviders = ({ children }) => (
-  <QueryClientProvider client={createTestQueryClient()}>
-    <BrowserRouter>{children}</BrowserRouter>
-  </QueryClientProvider>
-);
-
-const renderWithProviders = (ui, options = {}) =>
-  render(ui, { wrapper: AllProviders, ...options });
+const sampleItems = [
+  {
+    id: 'itm_1',
+    name: 'Enterprise Seat',
+    amountCents: 4900,
+    createdAt: '2026-10-23T08:00:00.000Z',
+  },
+  {
+    id: 'itm_2',
+    name: 'Audit Log Add-on',
+    amountCents: 1900,
+    createdAt: '2026-10-23T09:00:00.000Z',
+  },
+];
 
 const handlers = [
-  rest.get('/api/v1/users', (req, res, ctx) => {
-    const page = parseInt(req.url.searchParams.get('page') || '1', 10);
-    return res(
-      ctx.json({
-        success: true,
-        data: [
-          { _id: '1', firstName: 'John', lastName: 'Doe', email: 'john@test.com', status: 'active' },
-          { _id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@test.com', status: 'active' },
-        ],
-        meta: { page, limit: 20, total: 2, pages: 1 },
-      })
+  http.get('/api/v1/items', ({ request }) => {
+    const url = new URL(request.url);
+    const search = (url.searchParams.get('search') || '').toLowerCase();
+    const filtered = search
+      ? sampleItems.filter((item) => item.name.toLowerCase().includes(search))
+      : sampleItems;
+    return HttpResponse.json({
+      data: filtered,
+      meta: {
+        requestId: 'req_test_1',
+        pagination: { limit: 25, nextCursor: null, hasMore: false },
+      },
+    });
+  }),
+
+  http.post('/api/v1/items', async ({ request }) => {
+    const idempotencyKey = request.headers.get('Idempotency-Key');
+    if (!idempotencyKey) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'IDEMPOTENCY_KEY_REQUIRED',
+            title: 'Idempotency-Key header is required',
+            status: 400,
+            requestId: 'req_test_err',
+            fieldErrors: [],
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    if (!body.name || body.name.trim().length < 2) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_FAILED',
+            title: 'Request validation failed',
+            status: 422,
+            requestId: 'req_test_422',
+            fieldErrors: [
+              { field: 'name', code: 'TOO_SMALL', message: 'Name must be at least 2 characters' },
+            ],
+          },
+        },
+        { status: 422 }
+      );
+    }
+
+    return HttpResponse.json(
+      {
+        data: {
+          id: 'itm_3',
+          name: body.name,
+          amountCents: body.amountCents,
+          createdAt: '2026-10-23T10:00:00.000Z',
+        },
+        meta: { requestId: 'req_test_create', idempotentReplay: false },
+      },
+      { status: 201 }
     );
   }),
-  rest.post('/api/v1/users', async (req, res, ctx) => {
-    const body = await req.json();
-    return res(ctx.status(201), ctx.json({ success: true, data: { _id: '3', ...body } }));
-  }),
-  rest.delete('/api/v1/users/:id', (req, res, ctx) => res(ctx.json({ success: true }))),
+
+  http.delete('/api/v1/items/:id', () => new HttpResponse(null, { status: 204 })),
 ];
 
 const server = setupServer(...handlers);
@@ -52,81 +96,61 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-describe('UsersPage', () => {
-  it('should show loading spinner initially', () => {
-    renderWithProviders(<UsersPage />);
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
+describe('ItemsPage (6-State Matrix & SILC-001 Contract)', () => {
+  it('renders loading skeleton with aria-busy and then displays tabular items', async () => {
+    render(<ItemsPage />);
+    expect(screen.getByLabelText(/loading items/i)).toHaveAttribute('aria-busy', 'true');
 
-  it('should display users after loading', async () => {
-    renderWithProviders(<UsersPage />);
     await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+      expect(screen.getByText('Enterprise Seat')).toBeInTheDocument();
+      expect(screen.getByText('$49.00')).toBeInTheDocument();
     });
   });
 
-  it('should filter users when searching', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<UsersPage />);
-    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    await user.type(searchInput, 'John');
-
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-  });
-
-  it('should show error message on API failure', async () => {
-    server.use(rest.get('/api/v1/users', (req, res, ctx) => res(ctx.status(500))));
-    renderWithProviders(<UsersPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-    });
-  });
-
-  it('should open create modal and submit form', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<UsersPage />);
-    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: /add/i }));
-
-    const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText(/new user/i)).toBeInTheDocument();
-
-    await user.type(within(modal).getByLabelText(/name/i), 'New User');
-    await user.click(within(modal).getByRole('button', { name: /create/i }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-  });
-
-  it('should show empty state when no users', async () => {
+  it('renders guided empty state with primary activation CTA when no items exist', async () => {
     server.use(
-      rest.get('/api/v1/users', (req, res, ctx) =>
-        res(ctx.json({ success: true, data: [], meta: { total: 0, pages: 0 } }))
+      http.get('/api/v1/items', () =>
+        HttpResponse.json({
+          data: [],
+          meta: { requestId: 'req_empty', pagination: { limit: 25, nextCursor: null, hasMore: false } },
+        })
       )
     );
 
-    renderWithProviders(<UsersPage />);
+    render(<ItemsPage />);
     await waitFor(() => {
-      expect(screen.getByText(/no.*found/i)).toBeInTheDocument();
+      expect(screen.getByText(/no items recorded yet/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create first item/i })).toBeInTheDocument();
     });
   });
-});
 
-/*
-Query priority:
-1. getByRole
-2. getByLabelText
-3. getByPlaceholderText
-4. getByText
-5. getByTestId
-Avoid: querySelector/class selectors.
-*/
+  it('surfaces server 422 fieldErrors inline on the form and preserves user input', async () => {
+    const user = userEvent.setup();
+    render(<ItemsPage />);
+    await waitFor(() => expect(screen.getByText('Enterprise Seat')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /create item/i }));
+    const dialog = screen.getByRole('dialog');
+    const nameInput = within(dialog).getByLabelText(/item name/i);
+
+    await user.type(nameInput, 'A');
+    await user.click(within(dialog).getByRole('button', { name: /create item/i }));
+
+    await waitFor(() => {
+      expect(within(dialog).getByRole('alert')).toHaveTextContent(/at least 2 characters/i);
+      expect(nameInput).toHaveAttribute('aria-invalid', 'true');
+      expect(nameInput).toHaveValue('A');
+    });
+  });
+
+  it('requires explicit confirmation before executing a destructive delete', async () => {
+    const user = userEvent.setup();
+    render(<ItemsPage />);
+    await waitFor(() => expect(screen.getByText('Enterprise Seat')).toBeInTheDocument());
+
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByRole('button', { name: /confirm delete/i })).toBeInTheDocument();
+  });
+});

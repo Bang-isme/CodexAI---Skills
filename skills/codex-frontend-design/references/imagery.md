@@ -54,3 +54,16 @@ Record a visual finding against the route, state, viewport, and capture key in t
 ## Icons
 
 Prefer one coherent icon family and optical size per surface. Mixing unrelated stroke weights or filled/outline styles weakens grouping unless the difference has a clear semantic role. Use accessible labels on icon-only actions.
+
+## Aspect ratio and safe space
+
+Choose the ratio for the job, then protect the focal point and the safe area inside it.
+
+| Job | Ratio |
+| --- | --- |
+| Avatar | `1:1` |
+| Portrait | `4:5` or `3:4` |
+| Hero | `16:9` |
+| Vertical story | `9:16` |
+
+Place focal eyes at about one third (`1/3`) from the top of the frame. Do not crop through a face to force a ratio. Background heroes preserve `30–50%` negative space as safe space for copy. A hero that fills the frame edge to edge leaves the claim with nowhere to sit. Check the same focal point and safe area at each breakpoint after the crop changes.

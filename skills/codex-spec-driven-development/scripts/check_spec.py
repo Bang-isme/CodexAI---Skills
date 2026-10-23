@@ -19,6 +19,7 @@ DOMAIN_PATTERNS = {
     "devops": (".github/", "Dockerfile", "docker-compose", "infra/", "deploy/", "k8s/", "terraform/"),
 }
 AC_PATTERN = re.compile(r"\bAC-\d{3}\b")
+SILC_PATTERN = re.compile(r"\bSILC-\d{3}\b")
 TICKET_PATTERN = re.compile(r"\bTICKET-\d{3}\b")
 
 
@@ -61,6 +62,7 @@ def parse_spec_metadata(text: str) -> dict[str, Any]:
         "status": "",
         "domains": [],
         "acceptance_criteria": [],
+        "silc_contracts": [],
         "implementation_tickets": [],
     }
     for line in text.splitlines():
@@ -73,6 +75,7 @@ def parse_spec_metadata(text: str) -> dict[str, Any]:
             domains_line = line.split(":", 1)[1].strip()
             metadata["domains"] = [item.strip().lower() for item in domains_line.split(",") if item.strip()]
     metadata["acceptance_criteria"] = sorted(set(AC_PATTERN.findall(text)))
+    metadata["silc_contracts"] = sorted(set(SILC_PATTERN.findall(text)))
     metadata["implementation_tickets"] = sorted(set(TICKET_PATTERN.findall(text)))
     return metadata
 
@@ -93,6 +96,7 @@ def read_specs(project_root: Path) -> list[dict[str, Any]]:
                 "status": metadata["status"] or "unknown",
                 "schema_version": metadata["schema_version"] or "legacy",
                 "acceptance_criteria": metadata["acceptance_criteria"],
+                "silc_contracts": metadata["silc_contracts"],
                 "implementation_tickets": metadata["implementation_tickets"],
                 "text": text.lower(),
             }
@@ -162,6 +166,7 @@ def build_report(project_root: Path, changed_files: list[str]) -> dict[str, Any]
     unmapped: list[str] = []
     matched_slugs: set[str] = set()
     matched_ac_ids: set[str] = set()
+    matched_silc_ids: set[str] = set()
     matched_ticket_ids: set[str] = set()
     legacy_specs: list[str] = []
     draft_specs: list[str] = []
@@ -178,12 +183,15 @@ def build_report(project_root: Path, changed_files: list[str]) -> dict[str, Any]
         matches = match_specs(file_path, domain, specs)
         matched_slugs.update(matches)
         ac_ids: list[str] = []
+        silc_ids: list[str] = []
         ticket_ids: list[str] = []
         for spec in specs:
             if spec["slug"] in matches:
                 ac_ids.extend(spec["acceptance_criteria"])
+                silc_ids.extend(spec["silc_contracts"])
                 ticket_ids.extend(spec["implementation_tickets"])
         matched_ac_ids.update(ac_ids)
+        matched_silc_ids.update(silc_ids)
         matched_ticket_ids.update(ticket_ids)
         file_reports.append(
             {
@@ -191,6 +199,7 @@ def build_report(project_root: Path, changed_files: list[str]) -> dict[str, Any]
                 "domain": domain,
                 "matched_specs": matches,
                 "candidate_ac_ids": sorted(set(ac_ids)),
+                "candidate_silc_ids": sorted(set(silc_ids)),
                 "candidate_ticket_ids": sorted(set(ticket_ids)),
             }
         )
@@ -210,6 +219,7 @@ def build_report(project_root: Path, changed_files: list[str]) -> dict[str, Any]
         "overall": overall,
         "matched_specs": sorted(matched_slugs),
         "matched_acceptance_criteria": sorted(matched_ac_ids),
+        "matched_silc_contracts": sorted(matched_silc_ids),
         "matched_implementation_tickets": sorted(matched_ticket_ids),
         "unmapped_files": unmapped,
         "files": file_reports,

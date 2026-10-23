@@ -51,6 +51,16 @@ class DesignScopeRoutingTests(unittest.TestCase):
         self.assertEqual(route["suggested_agent"], "planner")
         self.assertEqual(route["workflow"], "prototype")
 
+    def test_codex_frontend_command_routes_to_design_lead_with_frontend_skills(self):
+        for trigger in ("/codex-frontend", "$codex-frontend"):
+            with self.subTest(trigger=trigger):
+                route = prompt_router.route_prompt(f"{trigger} build a SaaS analytics workspace")
+                self.assertEqual(route["suggested_agent"], "design-lead")
+                self.assertEqual(route["design_operation"], "new")
+                self.assertIn("codex-frontend-design", route["required_skills"])
+                self.assertIn("codex-frontend-implementation", route["required_skills"])
+                self.assertIn("codex-visual-quality-gate", route["required_skills"])
+
 
 if __name__ == "__main__":
     unittest.main()

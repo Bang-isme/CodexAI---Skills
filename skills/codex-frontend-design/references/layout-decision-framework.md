@@ -1,42 +1,54 @@
-# Layout Decision Framework
+# Layout Decision Framework & Spatial Mathematics
 
-Use this to find a composition that fits the information and task. It is a way to generate and compare layouts, not a gallery of styles to copy. Compare structural options privately; present several only when the user asks for alternatives.
+Use this framework to engineer a composition that fits the information architecture and user task. Compare structural options privately; present multiple options only when the user asks for alternatives (`studio`).
 
-## Start from content relationships
+---
 
-For each route, list the primary action/claim, the content that supports it, secondary tasks, and the expected reading/task order. Identify what is truly parallel, sequential, comparable, measurable, or exploratory. Layout should make those relationships visible without decoration doing the job of information architecture.
+## 1. Start from Content Relationships
 
-## Generate structural candidates
+For each route or surface, list:
+- **Primary Focal Anchor:** The single claim, workspace canvas, or primary action that must dominate the first 3 seconds.
+- **Supporting Evidence / Context:** What proves the claim or informs the operator's action.
+- **Secondary Controls & Navigation:** Filters, settings, or secondary actions that must stay quiet until needed.
+- **Reading & Task Axis:** Identify what is sequential, parallel, comparable, hierarchical, or real-time. Layout geometry must make those relationships visible without relying on decorative borders or card chrome.
 
-Choose candidates that reflect the content, then test them against `references/composition.md` and the existing product system:
+---
 
-| Content/task relationship | Layout structures to consider | Fit signal |
-| --- | --- | --- |
-| A user operates a dense tool | Persistent app shell with work area; split navigation/detail; table or list with a focused inspector | Repeated operations need stable orientation and scan speed |
-| A user compares choices | Comparison table; aligned option columns with one recommended choice; attribute/value layout | Differences are easier to compare when corresponding facts share an axis |
-| A user follows a sequence | Stepper plus focused task panel; timeline; vertical narrative with checkpoints | Order and progress change what the user should do next |
-| A user reads or evaluates evidence | Editorial column with supporting media; asymmetrical text/evidence split; chart with nearby explanation | Reading order and evidence relationships matter more than equal card sizes |
-| A page sells one clear proposition | Claim-led split with real product proof; full-width editorial section; offer and proof in a deliberate sequence | One claim and its proof dominate the decision path |
-| A user explores a collection | Variable-span grid; filterable list with preview pane; grouped catalog | Items vary in importance or need rapid scanning/filtering |
-| A user monitors changing data | Summary strip plus one dominant chart/table; timeline with event detail; status-first operations board | Current state, change, and response should be easy to locate |
+## 2. Structural Layout Mathematics Matrix
 
-These are options, not required patterns. A plain list, single-column form, or one strong image may be the most expressive and efficient structure.
+Select a structural candidate from real content relationships, then test it against `references/composition.md` and the incumbent system:
 
-## Compare before committing
+| Content / Task Relationship | Layout Structure & Column Ratio | CSS / Spatial Mathematics | Fit Signal |
+| --- | --- | --- | --- |
+| **User operates a dense tool (`operate`)** | Persistent App Shell + Split Workbench (`240px–280px` rail + `minmax(0, 1fr)` canvas + optional `360px` inspector) | `grid-template-columns: 260px minmax(0, 1fr);` local scroll regions, sticky table headers | Repeated operations need zero-shift orientation and high scan speed |
+| **User compares choices or tiers** | Aligned Comparison Matrix or Asymmetric Recommendation Split (`4:4:4` with 1 elevated anchor or `5:7` configurator) | Shared horizontal row axes for attributes; `tabular-nums` for all figures | Differences are effortless to compare when corresponding facts share an axis |
+| **User follows a multi-step sequence** | Stepper Rail + Focused Task Surface (`3:9` or `4:8` split) | `grid-template-columns: minmax(220px, 3fr) minmax(0, 9fr);` | Order, progress, and live validation change what the user does next |
+| **User reads or evaluates evidence (`read`)** | Editorial Column + Margin/Evidence Track (`8:4` or `7:5` asymmetric split) | Body measure locked to `60ch–70ch`; sticky or adjacent proof figure | Reading rhythm and evidence proximity matter more than equal card widths |
+| **Page sells one clear proposition (`persuade`)** | Claim-Led Asymmetric Hero (`7:5` or `6:6` bottom-aligned) + Live Product Proof | `grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.95fr);` | One claim and authentic product proof dominate the decision path |
+| **User explores a heterogeneous collection** | Variable-Span Asymmetric Grid (`7+5` lead row, `4+4+4` secondary row) | `repeat(12, minmax(0, 1fr))` with intentional span hierarchy (`span 7`, `span 5`) | Items vary in importance; avoids monotonous "Bento Soup" |
+| **User monitors changing telemetry** | KPI Summary Strip (no cards, divider-separated) + 1 Dominant Chart/Table (`8:4` with event stream) | Open summary strip at top; primary chart spans 8 cols, anomaly feed spans 4 cols | Current status, delta, and drill-down action are immediately locatable |
+
+These are structural options, not mandatory templates. A single-column form or an open table with clean dividers often outperforms a complex grid.
+
+---
+
+## 3. Compare Before Committing
 
 For at least two plausible structural candidates, ask:
 
-1. Does it expose the primary task or claim first?
+1. Does it expose the primary task or claim first without visual competition?
 2. Does it preserve the real hierarchy and grouping of the content?
-3. Can realistic long labels, dense values, empty states, and errors fit without flattening everything into identical containers?
-4. Does it remain understandable at tablet and phone widths, including short landscape viewports?
+3. Can realistic long labels, dense values, empty states, and errors fit using intrinsic sizing (`minmax(0, 1fr)` and `min-width: 0`) without clipping or horizontal overflow?
+4. Does it remain understandable at tablet and phone widths (`320px–2560px`), including short landscape viewports?
 5. Is it consistent with incumbent navigation and design tokens, or is a deliberate exception justified?
 
-Choose the one with the clearest task flow and strongest content fit. State one composition thesis and a short rationale in the direction file. Do not change only the palette and call that a different layout.
+Choose the candidate with the clearest task flow and strongest content fit. State one composition thesis and a short rationale in the direction file or blueprint. Never change only the palette and call that a different layout.
 
-## Explore creatively without losing the layout
+---
 
-For a substantial visual or structural change, record a compact **layout contract** in the existing direction file or UX contract. Do not create another document for it. Separate:
+## 4. Explore Creatively Without Losing the Layout (`Layout Contract`)
+
+For a substantial visual or structural change, record a compact **layout contract** in the existing direction file or UX contract (do not create a separate document). Separate:
 
 - **Must hold:** primary task and action, route/navigation behavior, content meaning and reading order, control semantics, data behavior, keyboard access, and product-specific elements users rely on.
 - **Safe to explore:** grid geometry, column proportions, density, grouping, typographic scale, chart/data presentation, imagery, and surface treatment when the content and product purpose support the choice.
@@ -47,9 +59,11 @@ For the contract, state the desktop and narrow-screen content order; what may st
 
 Use this depth only for a substantial layout change. For a narrow refinement, make the smallest supported adjustment and record only a short rationale when needed.
 
-## Adapt and customize
+---
 
-- Name tokens for roles (`surface`, `text-muted`, `action-primary`, `space-section`) rather than visual trends.
+## 5. Adapt and Customize
+
+- Name tokens for semantic roles (`surface-canvas`, `surface-elevated`, `text-muted`, `action-primary`, `space-section`) rather than visual trends.
 - Reuse components when behavior and hierarchy match; let width, span, density, and media differ when content relationships differ.
 - Keep the approved direction stable through implementation; refine one observable issue at a time.
-- If a user asks for alternatives, make the directions structurally distinct: change content geometry, hierarchy, and navigation strategy, not just colors or corner radius.
+- If a user asks for alternatives (`studio`), make the directions structurally distinct: change content geometry, hierarchy, and navigation strategy, not just colors or corner radius.

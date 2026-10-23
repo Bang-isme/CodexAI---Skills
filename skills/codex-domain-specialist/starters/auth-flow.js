@@ -1,120 +1,151 @@
 ﻿// ============================================
-// AUTH FLOW STARTER - JWT + Refresh Token
+// AUTH FLOW STARTER — HttpOnly Cookie Session + Refresh Rotation
+// Unified Env Keys (JWT_SECRET, JWT_REFRESH_SECRET) + DTO Mapping + RFC 9457 Errors
 // ============================================
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { AppError } from './express-api.js';
 
-const JWT_SECRET = process.env.JWT_SECRET; // 256-bit random
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH; // different secret
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
-const SALT_ROUNDS = 12;
+const PASSWORD_COST = 12;
 
-// --- Token Generation ---
-const generateTokens = (user) => ({
-  accessToken: jwt.sign(
-    { id: user._id, role: user.role, email: user.email },
-    JWT_SECRET,
-    { expiresIn: ACCESS_TTL }
-  ),
-  refreshToken: jwt.sign(
-    { id: user._id, version: user.tokenVersion || 0 },
-    JWT_REFRESH_SECRET,
-    { expiresIn: REFRESH_TTL }
-  ),
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/api/v1/auth',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+export const toUserDto = (user) => ({
+  id: String(user.id || user._id),
+  tenantId: String(user.tenantId),
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  role: user.role,
 });
 
-// --- Signup ---
-const signup = async (req, res, next) => {
+export const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+export const issueSessionTokens = (user) => {
+  const sub = String(user.id || user._id);
+  const accessToken = jwt.sign(
+    { sub, tenantId: user.tenantId, role: user.role },
+    JWT_SECRET,
+    { expiresIn: ACCESS_TTL }
+  );
+  const refreshToken = jwt.sign(
+    { sub, tenantId: user.tenantId, version: user.tokenVersion || 0, jti: crypto.randomUUID() },
+    JWT_REFRESH_SECRET,
+    { expiresIn: REFRESH_TTL }
+  );
+  return { accessToken, refreshToken };
+};
+
+export const signupHandler = (UserRepo) => async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const existing = await UserRepo.findByEmail(email);
     if (existing) {
-      throw BadRequest('Email already registered');
+      throw new AppError('EMAIL_CONFLICT', 'Email is already registered', 409, [
+        { field: 'email', code: 'CONFLICT', message: 'Email is already registered' },
+      ]);
     }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    const user = await User.create({
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      firstName,
-      lastName,
+    const passwordHash = await bcrypt.hash(req.body.password, PASSWORD_COST);
+    const user = await UserRepo.create({
+      email,
+      passwordHash,
+      firstName: req.body.firstName.trim(),
+      lastName: req.body.lastName.trim(),
+      role: 'user',
+      tokenVersion: 0,
     });
 
-    const tokens = generateTokens(user);
-    // Store refreshToken hash in DB or Redis for revocation
-    res.status(201).json({ success: true, data: { user: sanitize(user), ...tokens } });
+    const { accessToken, refreshToken } = issueSessionTokens(user);
+    await UserRepo.storeRefreshTokenHash(user.id, hashToken(refreshToken));
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
+
+    res.status(201).json({
+      data: { user: toUserDto(user), accessToken },
+      meta: { requestId: req.id },
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// --- Signin ---
-const signin = async (req, res, next) => {
+export const signinHandler = (UserRepo) => async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    if (!user) {
-      throw Unauthorized('Invalid credentials');
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const user = await UserRepo.findByEmailWithPassword(email);
+    if (!user || !(await bcrypt.compare(req.body.password, user.passwordHash))) {
+      throw new AppError('INVALID_CREDENTIALS', 'Invalid email or password', 401);
     }
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      throw Unauthorized('Invalid credentials');
-    }
+    const { accessToken, refreshToken } = issueSessionTokens(user);
+    await UserRepo.storeRefreshTokenHash(user.id, hashToken(refreshToken));
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
 
-    const tokens = generateTokens(user);
-    res.json({ success: true, data: { user: sanitize(user), ...tokens } });
+    res.status(200).json({
+      data: { user: toUserDto(user), accessToken },
+      meta: { requestId: req.id },
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// --- Refresh Token ---
-const refresh = async (req, res, next) => {
+export const refreshHandler = (UserRepo) => async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      throw Unauthorized('No refresh token');
+    const presentedToken = req.cookies?.refreshToken;
+    if (!presentedToken) {
+      throw new AppError('REFRESH_TOKEN_MISSING', 'Refresh cookie is missing', 401);
     }
 
-    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user || user.tokenVersion !== decoded.version) {
-      throw Unauthorized('Token revoked');
+    let decoded;
+    try {
+      decoded = jwt.verify(presentedToken, JWT_REFRESH_SECRET);
+    } catch {
+      throw new AppError('REFRESH_TOKEN_INVALID', 'Refresh token is invalid or expired', 401);
     }
 
-    const tokens = generateTokens(user);
-    res.json({ success: true, data: tokens });
+    const user = await UserRepo.findById(decoded.sub);
+    const presentedHash = hashToken(presentedToken);
+    if (!user || user.tokenVersion !== decoded.version || user.refreshTokenHash !== presentedHash) {
+      if (user) await UserRepo.incrementTokenVersion(user.id);
+      res.clearCookie('refreshToken', COOKIE_OPTIONS);
+      throw new AppError('REFRESH_TOKEN_REVOKED', 'Session has been revoked; please sign in again', 401);
+    }
+
+    // Rotate refresh token on every use
+    const nextUser = await UserRepo.incrementTokenVersion(user.id);
+    const { accessToken, refreshToken } = issueSessionTokens(nextUser);
+    await UserRepo.storeRefreshTokenHash(nextUser.id, hashToken(refreshToken));
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS);
+
+    res.status(200).json({
+      data: { accessToken },
+      meta: { requestId: req.id },
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// --- Logout (revoke refresh token) ---
-const logout = async (req, res, next) => {
+export const logoutHandler = (UserRepo) => async (req, res, next) => {
   try {
-    // Increment tokenVersion to invalidate all existing refresh tokens
-    await User.findByIdAndUpdate(req.user.id, { $inc: { tokenVersion: 1 } });
-    res.json({ success: true, message: 'Logged out' });
+    if (req.actor?.userId) {
+      await UserRepo.incrementTokenVersion(req.actor.userId);
+    }
+    res.clearCookie('refreshToken', COOKIE_OPTIONS);
+    res.status(204).end();
   } catch (error) {
     next(error);
   }
-};
-
-// --- RBAC Middleware ---
-const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
-    return next(Forbidden());
-  }
-  next();
-};
-
-// Usage: router.delete('/users/:id', authenticate, requireRole('admin'), deleteUser);
-const sanitize = (user) => {
-  const obj = user.toObject ? user.toObject() : { ...user };
-  delete obj.password;
-  delete obj.tokenVersion;
-  delete obj.__v;
-  return obj;
 };

@@ -422,6 +422,31 @@ class FrontendExcellenceProtocolTests(unittest.TestCase):
             with self.subTest(concept=concept):
                 self.assertTrue(concept in pipeline, f"missing cross-layer workflow rule: {concept}")
 
+    def test_codex_frontend_command_and_no_split_brain_gimmick_files(self):
+        design_skill = DESIGN_SKILL.read_text(encoding="utf-8")
+        brief_template = (SKILLS_ROOT / "codex-frontend-design" / "references" / "design-brief-template.md").read_text(encoding="utf-8")
+        anti_slop = (SKILLS_ROOT / "codex-frontend-design" / "references" / "anti-slop.md").read_text(encoding="utf-8")
+        domain_index = (SKILLS_ROOT / "codex-domain-specialist" / "references" / "INDEX.md").read_text(encoding="utf-8")
+
+        self.assertIn("/codex-frontend", design_skill)
+        self.assertIn("$codex-frontend", design_skill)
+        self.assertIn("7-Point Frontend Design Blueprint", brief_template)
+        self.assertIn("12-Point AI Slop & Gimmick Rejection Matrix", anti_slop)
+
+        removed_gimmick_files = (
+            "creative-ui-ux.md",
+            "creative-development.md",
+            "interactive-elements.md",
+            "ui-ux-design-principles.md",
+        )
+        for filename in removed_gimmick_files:
+            with self.subTest(removed_file=filename):
+                self.assertFalse(
+                    (SKILLS_ROOT / "codex-domain-specialist" / "references" / filename).exists(),
+                    f"Legacy split-brain file must be removed: {filename}",
+                )
+                self.assertNotIn(filename, domain_index)
+
 
 if __name__ == "__main__":
     unittest.main()

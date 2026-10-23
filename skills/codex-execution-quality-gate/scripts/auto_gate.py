@@ -17,6 +17,7 @@ if str(SCRIPT_DIR) not in sys.path:
 import bundle_check
 import pre_commit_check
 import run_gate
+import safety_selftest
 import security_scan
 import tech_debt_scan
 
@@ -38,10 +39,11 @@ MODE_CHECKS: Dict[str, List[str]] = {
         "bundle",
         "suggestions",
         "visual_quality",
+        "safety_selftest",
     ],
 }
 
-UI_SUFFIXES = {".jsx", ".tsx", ".vue", ".css", ".scss", ".html"}
+UI_SUFFIXES = {".jsx", ".tsx", ".vue", ".svelte", ".astro", ".mdx", ".css", ".scss", ".html"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -194,16 +196,23 @@ def run_tech_debt(project_root: Path) -> RunnerResult:
     )
     total_issues = int(raw.get("total_issues", 0) or 0)
     warning_count = len(raw.get("warnings", [])) if isinstance(raw.get("warnings"), list) else 0
-    status = "warn" if total_issues or warning_count else "pass"
+    shortcut_ledger = raw.get("shortcut_ledger") if isinstance(raw.get("shortcut_ledger"), dict) else {}
+    shortcut_total = int(shortcut_ledger.get("total", 0) or 0)
+    no_trigger_count = int(shortcut_ledger.get("no_trigger_count", 0) or 0)
+    status = "warn" if total_issues or warning_count or no_trigger_count else "pass"
     payload = {
         "status": status,
         "total_issues": total_issues,
         "warnings": warning_count,
+        "shortcuts_total": shortcut_total,
+        "shortcuts_no_trigger": no_trigger_count,
         "summary": raw.get("summary", ""),
     }
     warnings: List[str] = []
     if total_issues:
         warnings.append(f"{total_issues} tech debt signal(s) detected.")
+    if no_trigger_count:
+        warnings.append(f"{no_trigger_count} shortcut comment(s) missing upgrade trigger (no-trigger).")
     if warning_count:
         warnings.append(f"Tech debt scan emitted {warning_count} warning(s).")
     return make_runner_result(payload, warnings=warnings)
@@ -478,27 +487,38 @@ def run_knowledge(project_root: Path) -> RunnerResult:
 
 
 def changed_ui_files(project_root: Path) -> List[str]:
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--name-only"],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=20,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    if result.returncode != 0:
-        return []
+    commands = [
+        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "diff", "--cached", "--name-only"],
+        ["git", "diff", "--name-only"],
+        ["git", "ls-files", "--others", "--exclude-standard"],
+    ]
     files: List[str] = []
-    for line in result.stdout.splitlines():
-        rel = line.strip().replace("\\", "/")
-        suffix = Path(rel).suffix.lower()
-        if suffix in UI_SUFFIXES:
-            files.append(rel)
+    seen = set()
+    for cmd in commands:
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=20,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if result.returncode != 0:
+            continue
+        for line in result.stdout.splitlines():
+            rel = line.strip().replace("\\", "/")
+            if not rel or rel in seen:
+                continue
+            suffix = Path(rel).suffix.lower()
+            if suffix in UI_SUFFIXES:
+                seen.add(rel)
+                files.append(rel)
     return files
 
 
@@ -543,7 +563,11 @@ def run_visual_quality(project_root: Path) -> RunnerResult:
         return make_runner_result(payload, warnings=[f"Visual quality unavailable: {exc}"])
 
     blocking_count = int(raw.get("blocking_count") or 0)
-    status = "fail" if blocking_count else str(raw.get("status", "pass"))
+    a11y_info = raw.get("accessibility_check") if isinstance(raw.get("accessibility_check"), dict) else {}
+    ux_info = raw.get("ux_audit") if isinstance(raw.get("ux_audit"), dict) else {}
+    capture_info = raw.get("capture_evidence") if isinstance(raw.get("capture_evidence"), dict) else {}
+    raw_status = str(raw.get("status", "pass"))
+    status = "fail" if blocking_count else raw_status
     if status not in {"pass", "fail", "warn", "skip"}:
         status = "warn"
     payload = {
@@ -551,14 +575,33 @@ def run_visual_quality(project_root: Path) -> RunnerResult:
         "overall": status,
         "blocking_count": blocking_count,
         "files": ui_files,
-        "optional_detector": (raw.get("optional_detector") or {}).get("status"),
-        "summary": "Mechanical visual evidence completed.",
+        "ux_audit": ux_info,
+        "accessibility_check": a11y_info,
+        "capture_status": capture_info.get("status"),
+        "summary": "Mechanical visual, UX, and accessibility evidence completed.",
     }
     blocking = [f"{blocking_count} determinate visual mechanical issue(s)."] if blocking_count else []
     warnings: List[str] = []
-    if (raw.get("independent_review") or {}).get("status") == "DEGRADED":
-        warnings.append("Visual review DEGRADED: " + str((raw.get("independent_review") or {}).get("reason")))
+    if raw_status == "DEGRADED" or capture_info.get("status") == "DEGRADED":
+        reason = str(capture_info.get("reason") or "capture manifest missing")
+        warnings.append(f"Visual review DEGRADED: {reason}")
+    if int(a11y_info.get("critical_issues", 0) or 0) > 0:
+        warnings.append(f"Accessibility check reported {a11y_info['critical_issues']} critical WCAG issue(s).")
     return make_runner_result(payload, blocking_issues=blocking, warnings=warnings)
+
+
+def run_safety_selftest(_project_root: Path) -> RunnerResult:
+    report = safety_selftest.run_safety_selftest()
+    ok = bool(report.get("ok", False))
+    payload = {
+        "status": "pass" if ok else "fail",
+        "case_count": int(report.get("case_count", 0) or 0),
+        "good_passed": int(report.get("good_passed", 0) or 0),
+        "bad_rejected": int(report.get("bad_rejected", 0) or 0),
+        "summary": "Executable 12-pair safety selftest completed.",
+    }
+    blocking = ["Executable safety selftest failed one or more good/bad pairs."] if not ok else []
+    return make_runner_result(payload, blocking_issues=blocking)
 
 
 def run_runtime_hook(project_root: Path) -> RunnerResult:
@@ -620,6 +663,8 @@ def run_runtime_hook(project_root: Path) -> RunnerResult:
         "suggested_agent": raw.get("suggested_agent"),
         "missing_readiness": missing_count,
         "recommended_commands": commands if isinstance(commands, list) else [],
+        "precision_mode": raw.get("precision_mode"),
+        "reuse_map": raw.get("reuse_map", ""),
         "summary": "Runtime hook advisory check completed.",
     }
 
@@ -643,6 +688,7 @@ CHECK_RUNNERS: Dict[str, Runner] = {
     "bundle": run_bundle,
     "suggestions": run_suggestions,
     "visual_quality": run_visual_quality,
+    "safety_selftest": run_safety_selftest,
 }
 
 
@@ -749,7 +795,7 @@ def run_auto_gate(project_root: Path, mode: str) -> Tuple[Dict[str, Any], int]:
         result_blocking = [str(item) for item in result.get("blocking_issues", []) if str(item).strip()]
         result_warnings = [str(item) for item in result.get("warnings", []) if str(item).strip()]
 
-        if check_name in {"security", "pre_commit", "gate", "visual_quality"}:
+        if check_name in {"security", "pre_commit", "gate", "visual_quality", "safety_selftest"}:
             blocking_issues.extend(result_blocking)
         else:
             warnings.extend(result_blocking)
