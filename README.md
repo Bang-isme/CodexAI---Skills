@@ -4,7 +4,7 @@
 
 > A 100% proprietary, production-grade AI agent engineering system with native host integrations for **Codex**, **Claude Code**, **Cursor**, and **Antigravity**: 7-Stage SDLC + SILC closed-loop workflows, 4-Tier Unified Project Memory, `/codex-frontend` anti-slop UI/UX engineering, 6-Rung Precision Mode, 10 Specialist Agent Playbooks, and deterministic verification gates.
 
-[![Version](https://img.shields.io/badge/version-18.1.0-blue)](skills/VERSION) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-18.2.0-blue)](skills/VERSION) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 

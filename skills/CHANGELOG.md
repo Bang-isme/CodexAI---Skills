@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [18.2.0] - 2026-10-23
+
 ### Added
 - **100% Proprietary CodexAI Architecture & Native Engines:** Removed all third-party skill clones, external detector wrappers, upstream CLI proxies, and unused HTML dashboard/scorecard bloat (`frontend-skill-guide.html`, `dashboard_template.html`, `skill-scorecard.html`). `codex-design-md` (`design_contract.py`) and `codex-visual-quality-gate` (`visual_quality_gate.py`) now run as 100% self-contained native CodexAI engines.
 - **`/codex-frontend` & `$codex-frontend` Command Gate:** Added first-class routing and aliases for `/codex-frontend` and `$codex-frontend`, enforcing the **7-Point Frontend Design Blueprint**, **Spatial Layout Mathematics Matrix**, **Perceptual OKLCH Color System**, **6-State Interactive Completeness Matrix**, and **12-Point AI Slop & Gimmick Rejection Matrix** before UI implementation.

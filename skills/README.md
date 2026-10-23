@@ -6,7 +6,7 @@
 
 | Surface | Location or behavior |
 | --- | --- |
-| Version | `18.1.0` |
+| Version | `18.2.0` |
 | Codex plugin and marketplace | `../.codex-plugin/plugin.json`, `../.agents/plugins/marketplace.json` |
 | Claude Code plugin and marketplace | `../.claude-plugin/plugin.json`, `../.claude-plugin/marketplace.json`, `../hooks/hooks.json` |
 | Cursor plugin and marketplace | `../.cursor-plugin/plugin.json`, `../.cursor-plugin/marketplace.json` |
